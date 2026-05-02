@@ -757,7 +757,7 @@ return buildAST(tokenize(src.split(’\n’)));
 }
 
 // –– コピー操作 ––
-async function copyAll(id){const node=window._cb?.[id];if(!node)return;await navigator.clipboard.writeText(node.lines.join(’\n’));const btn=document.querySelector(`#${id} .copy-all-btn`);if(!btn)return;btn.textContent=‘copied!’;btn.classList.add(‘copied’);setTimeout(()=>{btn.textContent=‘copy’;btn.classList.remove(‘copied’);},1500);}
+async function copyAll(id){const node=window._cb?.[id];if(!node)return;const allLines=[...(node.shebangLine?[node.shebangLine]:[]),...node.lines];await navigator.clipboard.writeText(allLines.join(’\n’));const btn=document.querySelector(`#${id} .copy-all-btn`);if(!btn)return;btn.textContent=‘copied!’;btn.classList.add(‘copied’);setTimeout(()=>{btn.textContent=‘copy’;btn.classList.remove(‘copied’);},1500);}
 async function copyLine(id,idx){const node=window._cb?.[id];if(!node)return;const allRows=[…(node.shebangLine?[{text:node.shebangLine}]:[]),…node.lines.map(text=>({text}))];await navigator.clipboard.writeText(allRows[idx]?.text??’’);const ln=document.getElementById(`${id}-ln-${idx}`);const lc=document.getElementById(`${id}-lc-${idx}`);if(ln){ln.classList.add(‘copied’);setTimeout(()=>ln.classList.remove(‘copied’),1500);}if(lc){lc.classList.add(‘copied’);setTimeout(()=>lc.classList.remove(‘copied’),1500);}}
 
 // –– UI ––
