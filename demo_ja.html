@@ -192,8 +192,8 @@ Prism.languages.blogable = {
   'heading-numbered':{ pattern:/^:{2,6}#.+$/m, inside:{ 'hm':{ pattern:/^:{2,6}#/, alias:'punctuation' }, 'ht':{ pattern:/.+/, alias:'bold' } } },
   'heading':         { pattern:/^:{2,6} .+$/m, inside:{ 'hm':{ pattern:/^:{2,6}/, alias:'punctuation' }, 'ht':{ pattern:/.+/, alias:'bold' } } },
   'bq-inline':     { pattern:/^> .+$/m,             alias:'string' },
-  'task-done':     { pattern:/^- \[x\] .+$/mi,      alias:'inserted' },
-  'task-open':     { pattern:/^- \[ \] .+$/m,       alias:'punctuation' },
+  'task-done':     { pattern:/^[#-] \[x\] .+$/mi,   alias:'inserted' },
+  'task-open':     { pattern:/^[#-] \[ \] .+$/m,    alias:'punctuation' },
   'anchor-block':  { pattern:/^\[#[^\]]+\]$/m,       alias:'symbol' },
   'url-block':     { pattern:/^https?:\/\/\S+$/m,    alias:'url' },
   'inline-link':   { pattern:/\[https?:\/\/[^\s\]]+\s[^\]]+\]/, alias:'url' },
@@ -393,7 +393,7 @@ function tokenize(lines) {
     if (anchorM) { tokens.push({type:'anchor_block', id:slugify(anchorM[1]), label:anchorM[1]}); continue; }
 
     // タスクリスト
-    const taskM=t.match(/^-\s+\[([ x])\]\s+(.*)/i);
+    const taskM=t.match(/^[#-]\s+\[([ x])\]\s+(.*)/i);
     if (taskM) { tokens.push({type:'task', checked:taskM[1].toLowerCase()==='x', text:taskM[2]}); continue; }
 
     // ul: - item
