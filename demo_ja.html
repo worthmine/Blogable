@@ -234,7 +234,7 @@ function slugify(text) {
 }
 function isImageUrl(url) { try { return IMAGE_EXTS.test(new URL(url).pathname); } catch { return IMAGE_EXTS.test(url); } }
 function getHostname(url) { try { return new URL(url).hostname; } catch { return url; } }
-function isSafeUrl(url) { return /^https?:\/\//i.test(url); }
+function isSafeUrl(url) { return /^https:\/\//.test(url); }
 function esc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function extLink(href,text) { return `<a href="${esc(href)}" rel="noopener noreferrer" target="_blank">${text}</a>`; }
 function detectLang(line) {
