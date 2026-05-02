@@ -313,13 +313,13 @@ function parseInline(text) {
     // コードスパン外: 通常のインライン処理
     return esc(part)
       // リンク
-      .replace(/\[(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (_,url,label)=>{
-        if (!isSafeUrl(url)) return esc(label);
+      .replace(/\[(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (match,url,label)=>{
+        if (!isSafeUrl(url)) return match;
         return extLink(url, label);
       })
       // 脚注
-      .replace(/\[\^(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (_,url,alt)=>{
-        if (!isSafeUrl(url)) return esc(url);
+      .replace(/\[\^(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (match,url,alt)=>{
+        if (!isSafeUrl(url)) return match;
         const n=footnotes.length+1; footnotes.push({n,url,text:alt});
         return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
       })
