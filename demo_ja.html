@@ -757,10 +757,9 @@ function astToHtml(nodes, forDisplay=false) {
           if (node.title||node.lang) h+=`  <figcaption>${esc(node.title)}${node.lang?` <span class="lang-badge">${esc(node.lang)}</span>`:''}</figcaption>\n`;
           h+=`  <pre><code${node.lang?` class="language-${esc(node.lang)}"`:''}>${allLines.map(l=>esc(l)).join('\n')}</code></pre>\n`;
 
-```
-      if (node.cite) h+=`  <cite>${isSafeUrl(node.cite)?extLink(node.cite,getHostname(node.cite)):esc(node.cite)}</cite>\n`;
-      return h+'</figure>';
-    }
+          if (node.cite) h+=`  <cite>${isSafeUrl(node.cite)?extLink(node.cite,getHostname(node.cite)):esc(node.cite)}</cite>\n`;
+          return h+'</figure>';
+        }
     const id=`cb-${++cbCounter}`;
     const allRows=[
       ...(node.shebangLine?[{text:node.shebangLine,isShebang:true}]:[]),
