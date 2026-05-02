@@ -469,7 +469,7 @@ function buildAST(tokens) {
         const item={listType, text:tok.text, children:null};
         if (i<tokens.length) {
           const next=tokens[i];
-          if ((next.type==='ul'||next.type==='ol') && next.indent>baseIndent)
+          if ((next.type==='ul'||next.type==='ol') && next.indent===baseIndent+2)
             item.children=parseListItems(next.indent, next.type);
         }
         items.push(item);
