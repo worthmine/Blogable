@@ -415,8 +415,8 @@ function tokenize(lines) {
     const olM=raw.match(/^(\s*)(\d+)\.\s+(.*)/);
     if (olM) { tokens.push({type:'ol', indent:olM[1].length, text:olM[3]}); continue; }
 
-    // URL単独行
-    if (/^https?:\/\/\S+$/.test(t)) { tokens.push({type:'url', url:t}); continue; }
+    // URL単独行（buildAST で安全に扱える HTTPS のみを URL ブロック化する）
+    if (/^https:\/\/\S+$/.test(t)) { tokens.push({type:'url', url:t}); continue; }
 
     // 通常テキスト
     tokens.push({type:'text', text:t});
