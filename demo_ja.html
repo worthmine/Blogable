@@ -495,7 +495,7 @@ function buildAST(tokens) {
   function parseFrontLines(lines) {
     const meta={};
     for (const line of lines) {
-      const m=line.match(/^([a-z][a-z0-9-]*):\s*(.*)$/i);
+      const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/i);
       if (!m) continue;
 
       const rawKey=m[1];
