@@ -192,8 +192,8 @@ Prism.languages.blogable = {
   'heading-numbered':{ pattern:/^:{2,6}#.+$/m, inside:{ 'hm':{ pattern:/^:{2,6}#/, alias:'punctuation' }, 'ht':{ pattern:/.+/, alias:'bold' } } },
   'heading':         { pattern:/^:{2,6} .+$/m, inside:{ 'hm':{ pattern:/^:{2,6}/, alias:'punctuation' }, 'ht':{ pattern:/.+/, alias:'bold' } } },
   'bq-inline':     { pattern:/^> .+$/m,             alias:'string' },
-  'task-done':     { pattern:/^[#-] \[x\] .+$/mi,   alias:'inserted' },
-  'task-open':     { pattern:/^[#-] \[ \] .+$/m,    alias:'punctuation' },
+  'task-done':     { pattern:/^\[x\] .+$/mi,          alias:'inserted' },
+  'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
   'anchor-block':  { pattern:/^\[#[^\]]+\]$/m,       alias:'symbol' },
   'url-block':     { pattern:/^https?:\/\/\S+$/m,    alias:'url' },
   'inline-link':   { pattern:/\[https?:\/\/[^\s\]]+\s[^\]]+\]/, alias:'url' },
@@ -403,7 +403,7 @@ function tokenize(lines) {
     if (anchorM) { tokens.push({type:'anchor_block', id:slugify(anchorM[1]), label:anchorM[1]}); continue; }
 
     // タスクリスト
-    const taskM=t.match(/^(?:[#-]\s+)?\[([ x])\]\s+(.*)/i);
+    const taskM=t.match(/^\[([ x])\]\s+(.*)/i);
     if (taskM) { tokens.push({type:'task', checked:taskM[1].toLowerCase()==='x', text:taskM[2]}); continue; }
 
     // ul: - item
@@ -894,9 +894,9 @@ Processing proceeds line by line in one forward pass. No lookahead or backtracki
 1. ol アイテム 2
 1. ol アイテム 3
 
-- [x] 完了タスク
-- [ ] 未完了タスク
-- [x] 完了タスク 2
+[x] 完了タスク
+[ ] 未完了タスク
+[x] 完了タスク 2
 
 -----
 
@@ -952,8 +952,8 @@ https://picsum.photos/seed/blogable1/600/200
 := Term
 Definition body paragraph.
 
-- [x] タスク完了
-- [ ] タスク未完了
+[x] タスク完了
+[ ] タスク未完了
   **bold** *italic* `code` ++ins++ ~~del~~
   [https://example.com リンク]
   @[class: lead]
