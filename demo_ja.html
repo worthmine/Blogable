@@ -72,18 +72,18 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 /* 定義ブロック := */
 .bp .def-block { margin:.8em 0; display:grid; grid-template-columns:auto 1fr; gap:.3em 1.2em; align-items:start; }
 .bp .def-block dt { color:#c8b87a; font-weight:bold; white-space:nowrap; padding-top:.1em; }
-.bp .def-block dt::after { content:” :=”; color:#555; font-weight:normal; }
+.bp .def-block dt::after { content:" :="; color:#555; font-weight:normal; }
 .bp .def-block dd { color:#a0a09a; margin:0; }
 .bp .def-block dd p { margin:.2em 0; }
 
 /* 連番見出し */
 .bp { counter-reset:h2; }
 .bp h2.numbered { counter-reset:h3; counter-increment:h2; }
-.bp h2.numbered::before { content:counter(h2) “. “; }
+.bp h2.numbered::before { content:counter(h2) ". "; }
 .bp h3.numbered { counter-reset:h4; counter-increment:h3; }
-.bp h3.numbered::before { content:counter(h2) “.” counter(h3) “. “; }
+.bp h3.numbered::before { content:counter(h2) "." counter(h3) ". "; }
 .bp h4.numbered { counter-reset:h5; counter-increment:h4; }
-.bp h4.numbered::before { content:counter(h2) “.” counter(h3) “.” counter(h4) “. “; }
+.bp h4.numbered::before { content:counter(h2) "." counter(h3) "." counter(h4) ". "; }
 
 /* 脚注 */
 .bp .blogable-footnotes { margin-top:2em; padding-top:1em; border-top:1px solid #222; font-size:.85em; color:#888; }
