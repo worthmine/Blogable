@@ -685,7 +685,7 @@ function astToHtml(nodes, forDisplay=false) {
           const allLines=[node.shebangLine,...node.lines];
           let h='<figure class="blogable-code">\n';
           if (node.title||node.lang) h+=`  <figcaption>${esc(node.title)}${node.lang?` <span class="lang-badge">${esc(node.lang)}</span>`:''}</figcaption>\n`;
-          h+=`  <pre><code${node.lang?` class="language-${esc(node.lang)}"`:''}}>${allLines.map(l=>esc(l)).join('\n')}</code></pre>\n`;
+          h+=`  <pre><code${node.lang?` class="language-${esc(node.lang)}"`:''}>${allLines.map(l=>esc(l)).join('\n')}</code></pre>\n`;
 
 ```
       if (node.cite) h+=`  <cite>${isSafeUrl(node.cite)?extLink(node.cite,getHostname(node.cite)):esc(node.cite)}</cite>\n`;
