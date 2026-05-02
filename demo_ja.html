@@ -629,8 +629,8 @@ function buildAST(tokens) {
     // 通常テキスト
     if (tok.type==='text') {
       i++;
-      while (i<tokens.length && tokens[i].type==='modifier') i++;
-      nodes.push({type:'paragraph', html:parseInline(tok.text)});
+      const mods=cm();
+      nodes.push({type:'paragraph', html:parseInline(tok.text), mods});
       continue;
     }
 
