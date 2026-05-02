@@ -348,8 +348,11 @@ function tokenize(lines) {
     }
     // シバン内
     if (mode==='shebang') {
-      if (t==='!#') { tokens.push({type:'shebang_close'}); mode=null; }
-      else           { tokens.push({type:'code_line', text:raw}); }
+      if (t.startsWith('\\!#')) {
+        tokens.push({type:'code_line', text:raw.replace(/^(\s*)\\(!#.*)$/, '$1$2')});
+      }
+      else if (t==='!#') { tokens.push({type:'shebang_close'}); mode=null; }
+      else               { tokens.push({type:'code_line', text:raw}); }
       continue;
     }
     // 引用ブロック内
