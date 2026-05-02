@@ -318,6 +318,15 @@ function parseInline(text) {
       // 内部アンカー参照
       .replace(/\[#([^\]]+)\]/g, (_,id)=>{
         const slug=slugify(id);
+        const hasHeadingTarget =
+          typeof headingIds !== 'undefined' &&
+          headingIds &&
+          typeof headingIds.has === 'function' &&
+          headingIds.has(slug);
+        if (!hasHeadingTarget) {
+          console.warn(`Unresolved internal anchor reference: [#${id}]`);
+          return esc(id);
+        }
         return `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
       })
       // strong / em
