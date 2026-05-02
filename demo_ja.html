@@ -397,7 +397,7 @@ function tokenize(lines) {
     if (t==='$$')  { tokens.push({type:'math_open'}); mode='math'; continue; }
 
     // 修飾キー @[key: value]
-    const modM=t.match(/^@\[([a-z][a-z0-9-]*):\s*(.*)\]$/);
+    const modM=t.match(/^@\[([a-z][a-z0-9-]*):\s+(.*)\]$/);
     if (modM) { tokens.push({type:'modifier', key:modM[1], value:modM[2]}); continue; }
 
     // シバン開始
