@@ -551,13 +551,26 @@ function buildAST(tokens) {
     if (tok.type==='def_term') {
       i++;
       const term=tok.text;
-      // 後続の非空テキスト行を定義本文（DD）として収集
+      // 後続のテキスト行と段落区切りの空行を定義本文（DD）として収集
       const ddLines=[];
+      let pendingParagraphBreak=false;
       while (i<tokens.length) {
         const t=tokens[i];
-        if (t.type==='empty') { i++; break; }
-        if (t.type==='text')  { ddLines.push(t.text); i++; }
-        else break;
+        if (t.type==='empty') {
+          if (ddLines.length>0) pendingParagraphBreak=true;
+          i++;
+          continue;
+        }
+        if (t.type==='text') {
+          if (pendingParagraphBreak) {
+            ddLines.push('');
+            pendingParagraphBreak=false;
+          }
+          ddLines.push(t.text);
+          i++;
+          continue;
+        }
+        break;
       }
       nodes.push({type:'def_block', term, ddLines});
       continue;
