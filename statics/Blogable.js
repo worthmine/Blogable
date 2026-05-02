@@ -710,7 +710,7 @@ renderTimer=setTimeout(async()=>{render();const updated=await fetchNewOgps(docum
 // –– デモソース ––
 document.getElementById(‘source’).value = `@@
 title: Blogable v1.1-alpha デモ
-author: Blogable Project
+author: worthmine(Yuki Yoshida)
 x-version: 1.1-alpha
 @@
 
