@@ -702,9 +702,14 @@ function buildAST(tokens) {
 
     // 通常テキスト
     if (tok.type==='text') {
+      const lines=[tok.text];
       i++;
+      while (i<tokens.length && tokens[i].type==='text') {
+        lines.push(tokens[i].text);
+        i++;
+      }
       const mods=cm();
-      nodes.push({type:'paragraph', html:parseInline(tok.text), mods});
+      nodes.push({type:'paragraph', html:parseInline(lines.join('\n')), mods});
       continue;
     }
 
