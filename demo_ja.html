@@ -473,11 +473,35 @@ function buildAST(tokens) {
   }
 
   // フロントマターパース
+  const ALLOWED_FRONT_MATTER_KEYS=new Set([
+    'title',
+    'slug',
+    'date',
+    'author',
+    'tags',
+    'category',
+    'summary',
+    'cover',
+    'layout'
+  ]);
+
+  function isAllowedFrontMatterKey(key) {
+    return ALLOWED_FRONT_MATTER_KEYS.has(key) || key.startsWith('x-');
+  }
+
   function parseFrontLines(lines) {
     const meta={};
     for (const line of lines) {
-      const m=line.match(/^([a-z][a-z0-9-]*):\s*(.*)/i);
-      if (m) meta[m[1]]=m[2];
+      const m=line.match(/^([a-z][a-z0-9-]*):\s*(.*)$/i);
+      if (!m) continue;
+
+      const rawKey=m[1];
+      const normalizedKey=rawKey.toLowerCase();
+      if (!isAllowedFrontMatterKey(normalizedKey)) {
+        throw new Error(`Invalid front matter key: ${rawKey}`);
+      }
+
+      meta[rawKey]=m[2];
     }
     return meta;
   }
