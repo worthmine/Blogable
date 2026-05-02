@@ -159,11 +159,7 @@ function parseInline(text) {
       // 内部アンカー参照
       .replace(/\[#([^\]]+)\]/g, (_,id)=>{
         const slug=slugify(id);
-        const hasHeadingTarget =
-          typeof headingIds !== 'undefined' &&
-          headingIds &&
-          typeof headingIds.has === 'function' &&
-          headingIds.has(slug);
+        const hasHeadingTarget = headingIds[slug];
         if (!hasHeadingTarget) {
           console.warn(`Unresolved internal anchor reference: [#${id}]`);
           return esc(id);
@@ -328,14 +324,14 @@ function buildAST(tokens) {
   // フロントマターパース
   const ALLOWED_FRONT_MATTER_KEYS=new Set([
     'title',
-    'slug',
-    'date',
     'author',
+    'date',
+    'updated',
+    'description',
     'tags',
-    'category',
-    'summary',
-    'cover',
-    'layout'
+    'slug',
+    'draft',
+    'lang'
   ]);
 
   function isAllowedFrontMatterKey(key) {
@@ -661,9 +657,8 @@ function astToHtml(nodes, forDisplay=false) {
   case 'paragraph': return `<p>${node.html}</p>`;
   default: return '';
 }
-```
 
-}).join('\n');
+  }).join('\n');
 
 // 脚注
 if (footnotes.length>0) {
@@ -688,27 +683,27 @@ async function copyAll(id){const node=window._cb?.[id];if(!node)return;const all
 async function copyLine(id,idx){const node=window._cb?.[id];if(!node)return;const allRows=[...(node.shebangLine?[{text:node.shebangLine}]:[]),...node.lines.map(text=>({text}))];await navigator.clipboard.writeText(allRows[idx]?.text??'');const ln=document.getElementById(`${id}-ln-${idx}`);const lc=document.getElementById(`${id}-lc-${idx}`);if(ln){ln.classList.add('copied');setTimeout(()=>ln.classList.remove('copied'),1500);}if(lc){lc.classList.add('copied');setTimeout(()=>lc.classList.remove('copied'),1500);}}
 
 // –– UI ––
-let currentTab=‘preview’;
-function switchTab(tab,btn){currentTab=tab;document.querySelectorAll(’.tab-btn’).forEach(b=>b.classList.remove(‘active’));btn.classList.add(‘active’);document.getElementById(‘preview-out’).style.display=tab===‘preview’?’’:‘none’;document.getElementById(‘html-out’).style.display=tab===‘html’?’’:‘none’;render();}
+let currentTab='preview';
+function switchTab(tab,btn){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('preview-out').style.display=tab==='preview'?'':'none';document.getElementById('html-out').style.display=tab==='html'?'':'none';render();}
 function render(){
 cbCounter=0; window._cb={}; footnotes=[];
-const src=document.getElementById(‘source’).value;
+const src=document.getElementById('source').value;
 const ast=parseToAST(src);
-if (currentTab===‘preview’) {
-document.getElementById(‘preview-out’).innerHTML=astToHtml(ast,true);
-if (window.Prism) Prism.highlightAllUnder(document.getElementById(‘preview-out’));
+if (currentTab==='preview') {
+document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
+if (window.Prism) Prism.highlightAllUnder(document.getElementById('preview-out'));
 } else {
-document.getElementById(‘html-out’).textContent=astToHtml(ast,false);
+document.getElementById('html-out').textContent=astToHtml(ast,false);
 }
 }
 let renderTimer=null;
-document.getElementById(‘source’).addEventListener(‘input’,()=>{
+document.getElementById('source').addEventListener('input',()=>{
 clearTimeout(renderTimer);
-renderTimer=setTimeout(async()=>{render();const updated=await fetchNewOgps(document.getElementById(‘source’).value);if(updated)render();},150);
+renderTimer=setTimeout(async()=>{render();const updated=await fetchNewOgps(document.getElementById('source').value);if(updated)render();},150);
 });
 
 // –– デモソース ––
-document.getElementById(‘source’).value = `@@
+document.getElementById('source').value = `@@
 title: Blogable v1.1-alpha デモ
 author: worthmine(Yuki Yoshida)
 x-version: 1.1-alpha
@@ -720,7 +715,7 @@ x-version: 1.1-alpha
 
 :: フロントマター
 
-上記の `@@` ブロックがフロントマターです。パースされてドキュメント先頭のメタデータ一覧として表示されます。
+上記の \`@@\` ブロックがフロントマターです。パースされてドキュメント先頭のメタデータ一覧として表示されます。
 
 ---
 
@@ -807,7 +802,7 @@ $$
 
 :: インライン記法
 
-**strong** *emphasis* `inline code` ++inserted++ ~~deleted~~
+**strong** *emphasis* \`inline code\` ++inserted++ ~~deleted~~
 
 リンク: [https://example.com リンクテキスト]
 
@@ -835,7 +830,7 @@ Definition body paragraph.
 
 [x] タスク完了
 [ ] タスク未完了
-  **bold** *italic* `code` ++ins++ ~~del~~
+  **bold** *italic* \`code\` ++ins++ ~~del~~
   [https://example.com リンク]
   @[class: lead]
   @[cite: https://example.com]
@@ -849,7 +844,7 @@ Definition body paragraph.
 #!ebnf
 Document = [ FrontMatterBlock ] , { Block } ;
 Block    = Heading | Paragraph | CodeBlock | QuoteBlock ;
-Heading  = “::” , { “:” } , SP , InlineText , NL ;
+Heading  = "::" , { ":" } , SP , InlineText , NL ;
 !#
 @[title: EBNF 記法ハイライト]
 
@@ -863,4 +858,4 @@ Heading  = “::” , { “:” } , SP , InlineText , NL ;
 `;
 
 render();
-fetchNewOgps(document.getElementById(‘source’).value).then(u=>{if(u)render();});
+fetchNewOgps(document.getElementById('source').value).then(u=>{if(u)render();});
