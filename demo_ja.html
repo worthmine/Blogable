@@ -403,7 +403,7 @@ function tokenize(lines) {
     if (anchorM) { tokens.push({type:'anchor_block', id:slugify(anchorM[1]), label:anchorM[1]}); continue; }
 
     // タスクリスト
-    const taskM=t.match(/^[#-]\s+\[([ x])\]\s+(.*)/i);
+    const taskM=t.match(/^(?:[#-]\s+)?\[([ x])\]\s+(.*)/i);
     if (taskM) { tokens.push({type:'task', checked:taskM[1].toLowerCase()==='x', text:taskM[2]}); continue; }
 
     // ul: - item
