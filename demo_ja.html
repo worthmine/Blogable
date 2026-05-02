@@ -409,14 +409,14 @@ function tokenize(lines) {
     const taskM=t.match(/^\[([ x])\]\s+(.*)/);
     if (taskM) { tokens.push({type:'task', checked:taskM[1].toLowerCase()==='x', text:taskM[2]}); continue; }
 
-    // ul: - item
-    if (/^\s*-\s+/.test(raw) && !raw.trim().startsWith('-[')) {
-      const indent=raw.match(/^(\s*)/)[1].length;
-      tokens.push({type:'ul', indent, text:t.replace(/^-\s+/,'')}); continue;
+    // ul: - item（インデントはスペースのみ・2個単位）
+    const ulM=raw.match(/^((?:  )*)-\s+(.*)/);
+    if (ulM && !raw.trim().startsWith('-[')) {
+      tokens.push({type:'ul', indent:ulM[1].length, text:ulM[2]}); continue;
     }
 
-    // ol: 1. item  2. item など
-    const olM=raw.match(/^(\s*)(\d+)\.\s+(.*)/);
+    // ol: 1. item  2. item など（インデントはスペースのみ・2個単位）
+    const olM=raw.match(/^((?:  )*)(\d+)\.\s+(.*)/);
     if (olM) { tokens.push({type:'ol', indent:olM[1].length, text:olM[3]}); continue; }
 
     // URL単独行（buildAST で安全に扱える HTTPS のみを URL ブロック化する）
