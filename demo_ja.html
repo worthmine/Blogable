@@ -256,29 +256,30 @@ function buildAttrs(mods) {
 
 // ---- OGP ----
 const ogpMap={}, fetchedUrls=new Set();
-async function fetchOgpTitle(url) {
+function buildOfflineTitle(url) {
   try {
-    const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(5000)});
-    if (!res.ok) throw new Error();
-    const data=await res.json();
-    const html=data.contents||'';
-    const m=html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
-           ||html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i)
-           ||html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    return m?m[1].trim():null;
-  } catch { return null; }
+    const parsed=new URL(url);
+    const host=parsed.hostname.replace(/^www\./,'');
+    const parts=parsed.pathname.split('/').filter(Boolean).map(p=>decodeURIComponent(p));
+    const tail=parts.length?` / ${parts[parts.length-1]}`:'';
+    return `${host}${tail}`;
+  } catch {
+    return null;
+  }
 }
 async function fetchNewOgps(src) {
   const urls=[...new Set(src.split('\n').map(l=>l.trim()).filter(l=>/^https:\/\/\S+$/.test(l)&&!isImageUrl(l)))].filter(u=>!fetchedUrls.has(u));
   if (!urls.length) return false;
   urls.forEach(u=>fetchedUrls.add(u));
-  const results=await Promise.all(urls.map(async u=>({u,t:await fetchOgpTitle(u)})));
   let updated=false;
-  for (const {u,t} of results) { if(t){ogpMap[u]=t;updated=true;} }
+  for (const u of urls) {
+    const t=buildOfflineTitle(u);
+    if (t) { ogpMap[u]=t; updated=true; }
+  }
   const el=document.getElementById('ogp-status');
   const count=Object.keys(ogpMap).length;
   el.style.display=count>0?'inline':'none';
-  el.textContent=`OGP: ${count}件取得済`;
+  el.textContent=`URLラベル: ${count}件生成済`;
   return updated;
 }
 
