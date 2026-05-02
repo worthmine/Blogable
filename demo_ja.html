@@ -238,9 +238,21 @@ function isSafeUrl(url) { return /^https:\/\//.test(url); }
 function esc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function extLink(href,text) { return `<a href="${esc(href)}" rel="noopener noreferrer" target="_blank">${text}</a>`; }
 function detectLang(line) {
-  const m = line.match(/^#!(?:\/\S+\/(?:env\s+)?)(\S+)/);
+  const m = line.match(/^#!(.+)$/);
   if (!m) return '';
-  const cmd = m[1].replace(/[0-9.]+$/,'');
+  const rest = m[1].trim();
+  if (!rest) return '';
+
+  let rawCmd = '';
+  if (rest.startsWith('/')) {
+    const pathMatch = rest.match(/^\/\S+\/(?:env\s+)?(\S+)/);
+    if (!pathMatch) return '';
+    rawCmd = pathMatch[1];
+  } else {
+    rawCmd = rest;
+  }
+
+  const cmd = rawCmd.replace(/[0-9.]+$/,'');
   return SHEBANG_LANG_MAP[cmd] || cmd;
 }
 
