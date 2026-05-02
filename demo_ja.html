@@ -427,8 +427,8 @@ function tokenize(lines) {
     if (anchorM) { tokens.push({type:'anchor_block', id:slugify(anchorM[1]), label:anchorM[1]}); continue; }
 
     // タスクリスト
-    const taskM=t.match(/^\[([ x])\]\s+(.*)/);
-    if (taskM) { tokens.push({type:'task', checked:taskM[1].toLowerCase()==='x', text:taskM[2]}); continue; }
+    const taskM=raw.match(/^(\s*)\[([ x])\]\s+(.*)/);
+    if (taskM) { tokens.push({type:'task', indent:taskM[1].length, checked:taskM[2].toLowerCase()==='x', text:taskM[3]}); continue; }
 
     // ul: - item（インデントはスペースのみ・2個単位）
     const ulM=raw.match(/^((?:  )*)-\s+(.*)/);
