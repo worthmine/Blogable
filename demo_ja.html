@@ -808,29 +808,29 @@ function astToHtml(nodes, forDisplay=false) {
 }
 ```
 
-}).join(’\n’);
+}).join('\n');
 
 // 脚注
 if (footnotes.length>0) {
-let fn=’<footer class="blogable-footnotes">\n<ol>\n’;
+let fn='<footer class="blogable-footnotes">\n<ol>\n';
 for (const f of footnotes) {
 const body=f.url?`${extLink(f.url,getHostname(f.url))} <span class="fn-alt">${esc(f.text)}</span>`:esc(f.text);
 fn+=`  <li id="fn-${f.n}">${body} <a href="#fnref-${f.n}" class="fn-back">↩</a></li>\n`;
 }
-fn+=’</ol>\n</footer>’;
-html+=’\n’+fn;
+fn+='</ol>\n</footer>';
+html+='\n'+fn;
 }
 return html;
 }
 
 function parseToAST(src) {
 headingIds={};
-return buildAST(tokenize(src.split(’\n’)));
+return buildAST(tokenize(src.split('\n')));
 }
 
 // –– コピー操作 ––
-async function copyAll(id){const node=window._cb?.[id];if(!node)return;const allLines=[...(node.shebangLine?[node.shebangLine]:[]),...node.lines];await navigator.clipboard.writeText(allLines.join(’\n’));const btn=document.querySelector(`#${id} .copy-all-btn`);if(!btn)return;btn.textContent=‘copied!’;btn.classList.add(‘copied’);setTimeout(()=>{btn.textContent=‘copy’;btn.classList.remove(‘copied’);},1500);}
-async function copyLine(id,idx){const node=window._cb?.[id];if(!node)return;const allRows=[…(node.shebangLine?[{text:node.shebangLine}]:[]),…node.lines.map(text=>({text}))];await navigator.clipboard.writeText(allRows[idx]?.text??’’);const ln=document.getElementById(`${id}-ln-${idx}`);const lc=document.getElementById(`${id}-lc-${idx}`);if(ln){ln.classList.add(‘copied’);setTimeout(()=>ln.classList.remove(‘copied’),1500);}if(lc){lc.classList.add(‘copied’);setTimeout(()=>lc.classList.remove(‘copied’),1500);}}
+async function copyAll(id){const node=window._cb?.[id];if(!node)return;const allLines=[...(node.shebangLine?[node.shebangLine]:[]),...node.lines];await navigator.clipboard.writeText(allLines.join('\n'));const btn=document.querySelector(`#${id} .copy-all-btn`);if(!btn)return;btn.textContent='copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='copy';btn.classList.remove('copied');},1500);}
+async function copyLine(id,idx){const node=window._cb?.[id];if(!node)return;const allRows=[...(node.shebangLine?[{text:node.shebangLine}]:[]),...node.lines.map(text=>({text}))];await navigator.clipboard.writeText(allRows[idx]?.text??'');const ln=document.getElementById(`${id}-ln-${idx}`);const lc=document.getElementById(`${id}-lc-${idx}`);if(ln){ln.classList.add('copied');setTimeout(()=>ln.classList.remove('copied'),1500);}if(lc){lc.classList.add('copied');setTimeout(()=>lc.classList.remove('copied'),1500);}}
 
 // –– UI ––
 let currentTab=‘preview’;
