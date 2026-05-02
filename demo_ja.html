@@ -269,7 +269,7 @@ async function fetchOgpTitle(url) {
   } catch { return null; }
 }
 async function fetchNewOgps(src) {
-  const urls=[...new Set(src.split('\n').map(l=>l.trim()).filter(l=>/^https?:\/\/\S+$/.test(l)&&!isImageUrl(l)))].filter(u=>!fetchedUrls.has(u));
+  const urls=[...new Set(src.split('\n').map(l=>l.trim()).filter(l=>/^https:\/\/\S+$/.test(l)&&!isImageUrl(l)))].filter(u=>!fetchedUrls.has(u));
   if (!urls.length) return false;
   urls.forEach(u=>fetchedUrls.add(u));
   const results=await Promise.all(urls.map(async u=>({u,t:await fetchOgpTitle(u)})));
