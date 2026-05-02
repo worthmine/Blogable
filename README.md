@@ -1,3 +1,10 @@
+@@
+title: Blogable Bootstrap EBNF
+author: worthmine
+description: Bootstrap EBNF grammar and parser constraint reference for Blogable v1.1-alpha
+slug: blogable-bootstrap-ebnf
+@@
+
 :: Blogable Bootstrap EBNF
 
 := Blogable
