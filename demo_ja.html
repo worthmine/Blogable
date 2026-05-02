@@ -288,36 +288,45 @@ let footnotes=[];
 let headingIds={};
 
 function parseInline(text) {
-  return esc(text)
-    // コード（最優先）
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // リンク
-    .replace(/\[(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (_,url,label)=>{
-      if (!isSafeUrl(url)) return esc(label);
-      return extLink(url, label);
-    })
-    // 脚注
-    .replace(/\[\^(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (_,url,alt)=>{
-      if (!isSafeUrl(url)) return esc(url);
-      const n=footnotes.length+1; footnotes.push({n,url,text:alt});
-      return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
-    })
-    .replace(/\[\^\s*([^\]]+)\]/g, (_,text)=>{
-      const n=footnotes.length+1; footnotes.push({n,url:null,text});
-      return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
-    })
-    // 内部アンカー参照
-    .replace(/\[#([^\]]+)\]/g, (_,id)=>{
-      const slug=slugify(id);
-      return `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
-    })
-    // strong / em
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    // del（~~ に変更）
-    .replace(/~~([^~]+)~~/g, '<del>$1</del>')
-    // ins
-    .replace(/\+\+([^+]+)\+\+/g, '<ins>$1</ins>');
+  // コードスパンを最優先で分割し、内部に他のインライン置換が走らないよう保護する
+  // split の捕捉グループにより奇数インデックスがコードスパン、偶数が通常テキスト
+  const parts = text.split(/(`[^`]*`)/g);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      // コードスパン内: HTMLエスケープのみ、インライン置換なし
+      const inner = part.length >= 2 ? part.slice(1, -1) : '';
+      return '<code>' + esc(inner) + '</code>';
+    }
+    // コードスパン外: 通常のインライン処理
+    return esc(part)
+      // リンク
+      .replace(/\[(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (_,url,label)=>{
+        if (!isSafeUrl(url)) return esc(label);
+        return extLink(url, label);
+      })
+      // 脚注
+      .replace(/\[\^(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (_,url,alt)=>{
+        if (!isSafeUrl(url)) return esc(url);
+        const n=footnotes.length+1; footnotes.push({n,url,text:alt});
+        return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
+      })
+      .replace(/\[\^\s*([^\]]+)\]/g, (_,text)=>{
+        const n=footnotes.length+1; footnotes.push({n,url:null,text});
+        return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
+      })
+      // 内部アンカー参照
+      .replace(/\[#([^\]]+)\]/g, (_,id)=>{
+        const slug=slugify(id);
+        return `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
+      })
+      // strong / em
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      // del
+      .replace(/~~([^~]+)~~/g, '<del>$1</del>')
+      // ins
+      .replace(/\+\+([^+]+)\+\+/g, '<ins>$1</ins>');
+  }).join('');
 }
 
 // ============================================================
