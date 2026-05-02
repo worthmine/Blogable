@@ -24,15 +24,15 @@ Prism.languages.blogable = {
   'task-done':     { pattern:/^\[x\] .+$/mi,          alias:'inserted' },
   'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
   'anchor-block':  { pattern:/^\[#[^\]]+\]$/m,       alias:'symbol' },
-  'url-block':     { pattern:/^https?:\/\/\S+$/m,    alias:'url' },
-  'inline-link':   { pattern:/\[https?:\/\/[^\s\]]+\s[^\]]+\]/, alias:'url' },
+  'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
+  'inline-link':   { pattern:/\[https:\/\/[^\s\]]+\s[^\]]+\]/, alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
   'anchor-ref':    { pattern:/\[#[^\]]+\]/,          alias:'symbol' },
-  'bold':    { pattern:/\*\*[^*]+\*\*/ },
-  'italic':  { pattern:/\*[^*]+\*/ },
-  'ins':     { pattern:/\+\+[^+]+\+\+/, alias:'inserted' },
-  'del':     { pattern:/~~[^~]+~~/,     alias:'deleted' },
-  'code-inline': { pattern:/`[^`]+`/,   alias:'code' },
+  'bold':    { pattern:/\*\*[^*\n]+\*\*/ },
+  'italic':  { pattern:/\*[^*\n]+\*/ },
+  'ins':     { pattern:/\+\+[^+\n]+\+\+/, alias:'inserted' },
+  'del':     { pattern:/~~[^~\n]+~~/,     alias:'deleted' },
+  'code-inline': { pattern:/`[^`\n]+`/,   alias:'code' },
   'ol': { pattern:/^\s*\d+\.\s+.+$/m, inside:{ 'ol-marker':{ pattern:/^\s*\d+\.\s+/, alias:'punctuation' } } },
   'ul': { pattern:/^\s*- .+$/m,        inside:{ 'ul-marker':{ pattern:/^\s*- /, alias:'punctuation' } } },
 };
@@ -53,6 +53,9 @@ const SHEBANG_LANG_MAP = {
   blogable:'blogable',
   ebnf:'ebnf',
 };
+
+// MetaKey の許可リスト（spec §Metadata）
+const ALLOWED_META_KEYS = new Set(['class','id','title','cite','author','alt']);
 
 // ---- ユーティリティ ----
 function slugify(text) {
@@ -132,7 +135,7 @@ let headingIds={};
 function parseInline(text) {
   // コードスパンを最優先で分割し、内部に他のインライン置換が走らないよう保護する
   // split の捕捉グループにより奇数インデックスがコードスパン、偶数が通常テキスト
-  const parts = text.split(/(`[^`]*`)/g);
+  const parts = text.split(/(`[^`\n]*`)/g);
   return parts.map((part, i) => {
     if (i % 2 === 1) {
       // コードスパン内: HTMLエスケープのみ、インライン置換なし
@@ -142,12 +145,12 @@ function parseInline(text) {
     // コードスパン外: 通常のインライン処理
     return esc(part)
       // リンク
-      .replace(/\[(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (match,url,label)=>{
+      .replace(/\[(https:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (match,url,label)=>{
         if (!isSafeUrl(url)) return match;
         return extLink(url, label);
       })
       // 脚注
-      .replace(/\[\^(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (match,url,alt)=>{
+      .replace(/\[\^(https:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (match,url,alt)=>{
         if (!isSafeUrl(url)) return match;
         const n=footnotes.length+1; footnotes.push({n,url,text:alt});
         return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
@@ -167,12 +170,12 @@ function parseInline(text) {
         return `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
       })
       // strong / em
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
       // del
-      .replace(/~~([^~]+)~~/g, '<del>$1</del>')
+      .replace(/~~([^~\n]+)~~/g, '<del>$1</del>')
       // ins
-      .replace(/\+\+([^+]+)\+\+/g, '<ins>$1</ins>');
+      .replace(/\+\+([^+\n]+)\+\+/g, '<ins>$1</ins>');
   }).join('');
 }
 
@@ -221,9 +224,14 @@ function tokenize(lines) {
     if (t==='|>')  { tokens.push({type:'quote_open'}); mode='quote'; continue; }
     if (t==='$$')  { tokens.push({type:'math_open'}); mode='math'; continue; }
 
-    // 修飾キー @[key: value]
-    const modM=t.match(/^@\[([a-z][a-z0-9-]*):\s+(.*)\]$/);
-    if (modM) { tokens.push({type:'modifier', key:modM[1], value:modM[2]}); continue; }
+    // 修飾キー @[key: value]  — SP は単一スペース（spec: SP = " "）
+    const modM=t.match(/^@\[([a-z][a-z0-9-]*): (.*)\]$/);
+    if (modM) {
+      const mk=modM[1];
+      if (!ALLOWED_META_KEYS.has(mk) && !/^x-[a-z0-9-]+$/.test(mk))
+        console.warn(`Unknown MetaKey: ${mk}. Allowed keys: ${[...ALLOWED_META_KEYS].join(', ')}, or x-* custom keys`);
+      tokens.push({type:'modifier', key:mk, value:modM[2]}); continue;
+    }
 
     // シバン開始
     if (t.startsWith('#!')) {
@@ -335,22 +343,21 @@ function buildAST(tokens) {
   ]);
 
   function isAllowedFrontMatterKey(key) {
-    return ALLOWED_FRONT_MATTER_KEYS.has(key) || key.startsWith('x-');
+    return ALLOWED_FRONT_MATTER_KEYS.has(key) || /^x-[a-z0-9-]+$/.test(key);
   }
 
   function parseFrontLines(lines) {
     const meta={};
     for (const line of lines) {
-      const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/i);
+      const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/);
       if (!m) continue;
 
-      const rawKey=m[1];
-      const normalizedKey=rawKey.toLowerCase();
-      if (!isAllowedFrontMatterKey(normalizedKey)) {
-        throw new Error(`Invalid front matter key: ${rawKey}`);
+      const key=m[1];
+      if (!isAllowedFrontMatterKey(key)) {
+        throw new Error(`Invalid front matter key: ${key}`);
       }
 
-      meta[rawKey]=m[2];
+      meta[key]=m[2];
     }
     return meta;
   }
@@ -729,7 +736,7 @@ x-version: 1.1-alpha
 :::# 連番 h3
 :::# 連番 h3（カウント継続）
 
------
+---
 
 :: 段落
 
@@ -738,25 +745,25 @@ x-version: 1.1-alpha
 これは強調用クラスを付けた段落です。
 @[class: lead]
 
------
+---
 
 :: 用語リスト
 
 - Deterministic: A parser is deterministic when the same input always produces the same output with no ambiguity in rule application.
 - Single-pass: Processing proceeds line by line in one forward pass. No lookahead or backtracking is performed.
 
------
+---
 
 :: 用語リスト
 
 - tokenize: 行をトークン列に変換する第1段階
 - buildAST: トークン列からASTノード配列を生成する第3段階
 
------
+---
 
 :: 水平線
 
------
+---
 
 :: リスト
 
@@ -774,7 +781,7 @@ x-version: 1.1-alpha
 [ ] 未完了タスク
 [x] 完了タスク 2
 
------
+---
 
 :: 引用ブロック
 
@@ -789,7 +796,7 @@ x-version: 1.1-alpha
 @[author: 著者名]
 @[cite: 出典書籍]
 
------
+---
 
 :: 数式ブロック
 
@@ -798,7 +805,7 @@ E = mc^2
 F = ma
 $$
 
------
+---
 
 :: インライン記法
 
@@ -808,7 +815,7 @@ $$
 
 脚注: [^https://example.com 参考リンク] [^ URLなしの補足]
 
------
+---
 
 :: URL・画像
 
@@ -818,7 +825,7 @@ https://picsum.photos/seed/blogable1/600/200.jpg
 @[alt: サンプル画像]
 @[title: 画像キャプション]
 
------
+---
 
 :: #!blogable ブロック（ハイライトデモ）
 
@@ -837,7 +844,7 @@ Definition body paragraph.
   !#
   @[title: Blogable 記法ハイライト]
 
------
+---
 
 :: #!ebnf ブロック（ハイライトデモ）
 
@@ -848,7 +855,7 @@ Heading  = "::" , { ":" } , SP , InlineText , NL ;
 !#
 @[title: EBNF 記法ハイライト]
 
------
+---
 
 :: 内部アンカー
 
