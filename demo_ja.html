@@ -309,11 +309,6 @@ function parseInline(text) {
         if (!isSafeUrl(url)) return esc(url);
         const n=footnotes.length+1; footnotes.push({n,url,text:alt});
         return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
-      const hasHeadingId = typeof headingIds !== 'undefined' && headingIds && typeof headingIds.has === 'function';
-      if (hasHeadingId && !headingIds.has(slug)) {
-        console.warn(`Unresolved anchor reference: ${id}`);
-        return esc(id);
-      }
       })
       .replace(/\[\^\s*([^\]]+)\]/g, (_,text)=>{
         const n=footnotes.length+1; footnotes.push({n,url:null,text});
