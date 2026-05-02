@@ -654,8 +654,15 @@ function astToHtml(nodes, forDisplay=false) {
       case 'hr': return '<hr>';
 
       case 'heading': {
-        const cls=node.numbered?' class="numbered"'+node.attrs:node.attrs;
-        return `<h${node.level} id="${esc(node.id)}"${cls}>${esc(node.label)}</h${node.level}>`;
+        let attrs=node.attrs;
+        if (node.numbered) {
+          if (/\sclass="[^"]*"/.test(attrs)) {
+            attrs=attrs.replace(/\sclass="([^"]*)"/, (m, classes)=>` class="numbered${classes ? ' '+classes : ''}"`);
+          } else {
+            attrs=' class="numbered"'+attrs;
+          }
+        }
+        return `<h${node.level} id="${esc(node.id)}"${attrs}>${esc(node.label)}</h${node.level}>`;
       }
 
       case 'blockquote_inline': return `<blockquote><p>${node.html}</p></blockquote>`;
