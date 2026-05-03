@@ -686,7 +686,7 @@ describe('§Metadata', () => {
 
   it('multi-line plain paragraph joins lines with <br>', () => {
     const html = parse('line one\nline two\nline three');
-    expect(html).toMatch(/<p>line one<br>line two<br>line three<\/p>/);
+    expect(html).toMatch(/<p>line one<br>\nline two<br>\nline three<\/p>/);
   });
 
   it('@[class: items] after an unordered list adds class to <ul>', () => {
