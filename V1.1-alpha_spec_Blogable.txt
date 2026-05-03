@@ -244,7 +244,7 @@ ListItem = IndentLevel , ( ULItem | OLItem | TaskItem | DLItem ) ;
 IndentLevel = { INDENT } ;
 
 ULItem   = "- " , InlineText , NL ;
-OLItem   = DIGIT , { DIGIT } , ". " , InlineText , NL ;
+OLItem   = "# " , InlineText , NL ;
 TaskItem = "[" , ( " " | "x" ) , "]" , SP , InlineText , NL ;
 
 DLItem   = ":=" , SP , Term , NL , DD ;
