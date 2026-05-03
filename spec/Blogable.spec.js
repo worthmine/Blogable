@@ -340,10 +340,51 @@ describe('§Lists', () => {
   });
 
   it('ordered list items → <ol><li>…</li></ol>', () => {
-    const src = '1. First\n2. Second';
+    const src = '# First\n# Second\n# Third';
     const html = parse(src);
     expect(html).toMatch(/<ol>/);
     expect(html).toMatch(/<li>First<\/li>/);
+    expect(html).toMatch(/<li>Second<\/li>/);
+    expect(html).toMatch(/<li>Third<\/li>/);
+  });
+
+  it('nested ordered list (2-space indent) → nested <ol>', () => {
+    const src = '# Parent\n  # Child';
+    const html = parse(src);
+    expect(html).toMatch(/<ol>/);
+    expect(html).toMatch(/<li>Parent[\s\S]*<ol>[\s\S]*<li>Child<\/li>/);
+  });
+
+  it('ordered list items support inline parsing (**bold**)', () => {
+    const html = parse('# **bold item**');
+    expect(html).toMatch(/<strong>bold item<\/strong>/);
+  });
+
+  it('digit-dot syntax (1. item) is NOT an ordered list', () => {
+    const toks = tokenize('1. item');
+    expect(toks[0].type).not.toBe('ol');
+  });
+
+  it('odd-indent ol (3 spaces) → falls back to text, not list', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const html = parse('   # odd indent');
+      expect(html).not.toMatch(/<ol>/);
+      expect(html).not.toMatch(/<li>/);
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  it('odd-indent ul (1 space) → falls back to text, not list', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const html = parse(' - odd indent');
+      expect(html).not.toMatch(/<ul>/);
+      expect(html).not.toMatch(/<li>/);
+    } finally {
+      jest.restoreAllMocks();
+    }
   });
 
   it('nested list (2-space indent) → nested <ul>', () => {
@@ -622,6 +663,62 @@ describe('§Metadata', () => {
     expect(html).toMatch(/data-foo="bar"/);
   });
 
+  it('@[class: lead] after a paragraph adds class to <p>', () => {
+    const html = parse(': Hello world\n@[class: lead]');
+    expect(html).toMatch(/<p class="lead">/);
+  });
+
+  it('@[id: intro] after a paragraph sets id on <p>', () => {
+    const html = parse(': Intro text\n@[id: intro]');
+    expect(html).toMatch(/<p id="intro">/);
+  });
+
+  it('@[x-role: note] after a paragraph adds data-role on <p>', () => {
+    const html = parse(': A note\n@[x-role: note]');
+    expect(html).toMatch(/data-role="note"/);
+  });
+
+  it('plain paragraph (no `: ` prefix) does NOT accept modifiers', () => {
+    // @[class: lead] after a plain paragraph must NOT be applied
+    const html = parse('Hello world\n@[class: lead]');
+    expect(html).not.toMatch(/<p class="lead">/);
+  });
+
+  it('@[class: items] after an unordered list adds class to <ul>', () => {
+    const html = parse('- item one\n- item two\n@[class: items]');
+    expect(html).toMatch(/<ul class="items">/);
+  });
+
+  it('@[class: steps] after an ordered list adds class to <ol>', () => {
+    const html = parse('# step one\n# step two\n@[class: steps]');
+    expect(html).toMatch(/<ol class="steps">/);
+  });
+
+  it('@[class: callout] after an inline blockquote adds class to <blockquote>', () => {
+    const html = parse('> A quote\n@[class: callout]');
+    expect(html).toMatch(/<blockquote class="callout">/);
+  });
+
+  it('@[class: callout] after a block blockquote adds class to <blockquote>', () => {
+    const html = parse('|>\nA quoted paragraph\n<|\n@[class: callout]');
+    expect(html).toMatch(/<blockquote class="callout">/);
+  });
+
+  it('@[class: equation] after a math block adds class to the math wrapper', () => {
+    const html = parse('$$\nx = 1\n$$\n@[class: equation]');
+    expect(html).toMatch(/class="math-block equation"/);
+  });
+
+  it('@[class: glossary] after a definition block adds class to <dl>', () => {
+    const html = parse(':= Term\nBody text\n@[class: glossary]');
+    expect(html).toMatch(/<dl[^>]*class="[^"]*glossary[^"]*">/);
+  });
+
+  it('@[class: highlight] after a code block adds class to <figure>', () => {
+    const html = parse('#!bash\necho hi\n!#\n@[class: highlight]');
+    expect(html).toMatch(/<figure[^>]*class="[^"]*highlight[^"]*">/);
+  });
+
   it('unknown MetaKey emits [E002] and falls back to literal text', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     try {
@@ -713,6 +810,35 @@ describe('§Diagnostics', () => {
       const html = parse(':: Section\n\n[#ghost]');
       // The heading must still be rendered
       expect(html).toMatch(/<h2/);
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  it('[E003] is emitted for an odd-length list indent (ol)', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      parse('   # three-space indent');
+      expect(warnSpy.mock.calls.some(a => /\[E003\]/.test(a.join(' ')))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('[E003] is emitted for an odd-length list indent (ul)', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      parse(' - one-space indent');
+      expect(warnSpy.mock.calls.some(a => /\[E003\]/.test(a.join(' ')))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('[E003] error does not crash the parser (falls back to text)', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect(() => parse('     # five-space indent')).not.toThrow();
     } finally {
       jest.restoreAllMocks();
     }
@@ -828,9 +954,39 @@ describe('§Tokenizer', () => {
     expect(toks[0].type).toBe('ul');
   });
 
-  it('1. item → ol token', () => {
-    const toks = tokenize('1. item text');
+  it('# item → ol token', () => {
+    const toks = tokenize('# item text');
     expect(toks[0].type).toBe('ol');
+    expect(toks[0].text).toBe('item text');
+    expect(toks[0].indent).toBe(0);
+  });
+
+  it('  # item → ol token with indent 2', () => {
+    const toks = tokenize('  # indented item');
+    expect(toks[0].type).toBe('ol');
+    expect(toks[0].indent).toBe(2);
+  });
+
+  it('   # item (3-space indent) → text token with [E003]', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const toks = tokenize('   # three-space indent');
+      expect(toks[0].type).toBe('text');
+      expect(warnSpy.mock.calls.some(a => /\[E003\]/.test(a.join(' ')))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it(' - item (1-space indent) → text token with [E003]', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const toks = tokenize(' - one-space indent');
+      expect(toks[0].type).toBe('text');
+      expect(warnSpy.mock.calls.some(a => /\[E003\]/.test(a.join(' ')))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it('[x] item → task token (checked)', () => {
