@@ -1,29 +1,27 @@
----
+@@
 title: Blogable Bootstrap EBNF
 author: worthmine(Yuki Yoshida)
 description: Bootstrap EBNF grammar and parser constraint reference for Blogable v1.1-alpha
 slug: blogable-bootstrap-ebnf
----
+@@
 
-# Blogable Bootstrap EBNF
+:: Blogable Bootstrap EBNF
 
-**Blogable**
-
+:= Blogable
 Blogable is a deterministic, single-pass markup language with semantic output and strict diagnostics.
 
 ---
 
-## Scope
+:: Scope
 
-**Scope**
-
+:= Scope
 This document defines the bootstrap EBNF for Blogable v1.1-alpha.
 
 ---
 
-## Lexical Elements
+:: Lexical Elements
 
-```ebnf
+#!ebnf
 NL        = "\n" ;
 WS        = " " | "\t" ;
 SP        = " " ;
@@ -35,13 +33,13 @@ ALNUM     = LOWER | UPPER | DIGIT ;
 TEXT      = { ANY - NL } ;
 HTTPS_URL = "https://" , { ANY - WS - NL } ;
 ID        = { ALNUM | "-" } ;
-```
+!#
 
 ---
 
-## Document Structure
+:: Document Structure
 
-```ebnf
+#!ebnf
 Document = [ FrontMatterBlock ] , { Block } ;
 
 Block = Heading
@@ -56,13 +54,13 @@ Block = Heading
       | HorizontalRule
       | InternalAnchorBlock
       | DefinitionBlock ;
-```
+!#
 
 ---
 
-## Front Matter
+:: Front Matter
 
-```ebnf
+#!ebnf
 FrontMatterBlock =
   "@@" , NL ,
   { FrontMetaLine } ,
@@ -82,51 +80,48 @@ FrontKey =
   | "draft"
   | "lang"
   | "x-" , { LOWER | DIGIT | "-" } ;
-```
+!#
 
-**FrontMatter**
-
+:= FrontMatter
 Front matter is parsed and preserved as metadata, but it does not alter core body rendering.
 
 ---
 
-## Headings
+:: Headings
 
-```ebnf
+#!ebnf
 Heading = "::" , { ":" } , SP , InlineText , NL ;
-```
+!#
 
-**Heading**
-
+:= Heading
 Heading levels are determined by the number of leading colons.
 The level range is h2 through h6.
 
 ---
 
-## Paragraphs
+:: Paragraphs
 
-```ebnf
+#!ebnf
 Paragraph = InlineLine , { InlineLine } , NL ;
 InlineLine = InlineText , NL ;
-```
+!#
 
-**Paragraph**
-
+:= Paragraph
 Paragraphs are separated by blank lines or by the start of a recognized block.
 
 ---
 
-## Horizontal Rule
+:: Horizontal Rule
 
-```ebnf
+#!ebnf
 HorizontalRule = "---" , NL ;
-```
+!#
 
 ---
 
-## Code Blocks
+:: Code Blocks
 
-```ebnf
+#!ebnf
 CodeBlock =
   "#!" , TEXT , NL ,
   { CodeLine , NL } ,
@@ -134,53 +129,50 @@ CodeBlock =
   { Meta } ;
 
 CodeLine = TEXT ;
-```
+!#
 
-**CodeBlock**
-
+:= CodeBlock
 Code blocks are literal regions.
 Inline parsing is disabled inside code blocks.
-A line beginning with `\!#` MUST be treated as a literal `!#`.
+A line beginning with "\!#" MUST be treated as a literal "!#".
 
 ---
 
-## Blogable Blocks
+:: Blogable Blocks
 
-```ebnf
+#!ebnf
 BlogableBlock =
   "#!blogable" , NL ,
   { CodeLine , NL } ,
   "!#" , NL ,
   { Meta } ;
-```
+!#
 
-**BlogableBlock**
-
+:= BlogableBlock
 Blogable blocks present Blogable syntax literally.
 No re-parse is performed inside the block.
 
 ---
 
-## EBNF Blocks
+:: EBNF Blocks
 
-```ebnf
+#!ebnf
 EbnfBlock =
   "#!ebnf" , NL ,
   { CodeLine , NL } ,
   "!#" , NL ,
   { Meta } ;
-```
+!#
 
-**EbnfBlock**
-
+:= EbnfBlock
 Ebnf blocks present grammar definitions literally.
 No re-parse is performed inside the block.
 
 ---
 
-## Quote Blocks
+:: Quote Blocks
 
-```ebnf
+#!ebnf
 QuoteBlock =
   "|>" , NL ,
   { QuoteLine , NL } ,
@@ -188,51 +180,47 @@ QuoteBlock =
   { Meta } ;
 
 QuoteLine = TEXT ;
-```
+!#
 
-**QuoteBlock**
-
+:= QuoteBlock
 Quote blocks render as blockquote structures.
 Internal text is parsed as paragraphs.
 Inline parsing is enabled inside quote text.
 
 ---
 
-## Math Blocks
+:: Math Blocks
 
-```ebnf
+#!ebnf
 MathBlock =
   "$$" , NL ,
   { MathLine , NL } ,
   "$$" , NL ;
 
 MathLine = TEXT ;
-```
+!#
 
-**MathBlock**
-
+:= MathBlock
 Math blocks are opaque to the core parser.
 Inline parsing is disabled inside math blocks.
 
 ---
 
-## URLs
+:: URLs
 
-```ebnf
+#!ebnf
 UrlBlock = HTTPS_URL , NL , { Meta } ;
-```
+!#
 
-**UrlBlock**
-
+:= UrlBlock
 A UrlBlock is a standalone body line that begins with an HTTPS URL.
 Inline URLs MUST NOT auto-link.
 
 ---
 
-## Images
+:: Images
 
-**ImageURL**
-
+:= ImageURL
 An ImageURL is a UrlBlock whose path ends with one of the allowed image extensions.
 
 Allowed extensions:
@@ -246,9 +234,9 @@ SVG MUST NOT be treated as an image.
 
 ---
 
-## Lists
+:: Lists
 
-```ebnf
+#!ebnf
 ListBlock = { ListItem } ;
 
 ListItem = IndentLevel , ( ULItem | OLItem | TaskItem | DLItem ) ;
@@ -263,10 +251,9 @@ DLItem   = ":=" , SP , Term , NL , DD ;
 
 Term = InlineText ;
 DD   = Paragraph , { Paragraph } ;
-```
+!#
 
-**ListBlock**
-
+:= ListBlock
 A ListBlock contains one item type at a time.
 Indentation must use spaces only and must advance in multiples of two spaces.
 List blocks split when the item type changes, a blank line appears, or a non-list block appears.
@@ -274,9 +261,9 @@ Definition-list terms are unique across the document.
 
 ---
 
-## Inline Syntax
+:: Inline Syntax
 
-```ebnf
+#!ebnf
 InlineText = { Inline } ;
 
 Inline = Code
@@ -309,10 +296,9 @@ Insert    = "++" , { InsertChar } , "++" ;
 InsertChar = ? any character except "+" and NL ? ;
 
 Plain = { ANY - NL } ;
-```
+!#
 
-**InlineSyntax**
-
+:= InlineSyntax
 Inline elements MUST NOT nest.
 Inline evaluation order is:
 Code, Link, Footnote, AnchorRef, Strong, Emphasis, Delete, Insert.
@@ -320,35 +306,33 @@ Inline code has no escape syntax.
 
 ---
 
-## Internal Anchors
+:: Internal Anchors
 
-```ebnf
+#!ebnf
 InternalAnchorBlock = "[#" , TEXT , "]" , NL ;
-```
+!#
 
-**InternalAnchor**
-
+:= InternalAnchor
 Internal anchors reference headings by label.
 Unresolved references produce a warning.
 
 ---
 
-## Definitions
+:: Definitions
 
-```ebnf
+#!ebnf
 DefinitionBlock = ":=" , SP , Term , NL , DD ;
-```
+!#
 
-**DefinitionBlock**
-
+:= DefinitionBlock
 Definition blocks behave as list items in the DL system.
 The definition body is one or more paragraphs.
 
 ---
 
-## Metadata
+:: Metadata
 
-```ebnf
+#!ebnf
 Meta = "@[" , MetaKey , ":" , SP , TEXT , "]" , NL ;
 
 MetaKey =
@@ -359,19 +343,17 @@ MetaKey =
   | "author"
   | "alt"
   | "x-" , { LOWER | DIGIT | "-" } ;
-```
+!#
 
-**Meta**
-
+:= Meta
 Block-local metadata applies only to the immediately preceding block.
 Metadata does not cross blank lines.
 
 ---
 
-## Parsing Model
+:: Parsing Model
 
-**Parsing**
-
+:= Parsing
 Parsing proceeds in three stages:
 1. Block recognition
 2. Inline parsing
@@ -379,20 +361,18 @@ Parsing proceeds in three stages:
 
 ---
 
-## Diagnostics
+:: Diagnostics
 
-**Diagnostics**
-
+:= Diagnostics
 The parser produces diagnostics with fixed codes.
 Errors invalidate the construct and fall back safely.
 Warnings notify without stopping rendering.
 
 ---
 
-## Security
+:: Security
 
-**Security**
-
+:= Security
 The core parser MUST not access the network.
 The core parser MUST not accept raw HTML.
 The core parser MUST not execute scripts.
@@ -400,17 +380,17 @@ Only HTTPS URLs are accepted by the strict core parser.
 
 ---
 
-## Self-Hosting
+:: Self-Hosting
 
-```blogable
+#!blogable
 :: Blogable Bootstrap EBNF
 := Blogable
 Blogable is a deterministic, single-pass markup language with semantic output and strict diagnostics.
-```
+!#
 
 ---
 
-## Conclusion
+:: Conclusion
 
 Blogable v1.1-alpha is deterministic, self-describing, and semantically stable.
 
