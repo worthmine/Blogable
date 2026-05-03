@@ -63,8 +63,7 @@ vm.runInContext(src, ctx);
  * parseToAST resets headingIds and footnotes so each call is independent.
  */
 function parse(src) {
-  // Reset display-mode-only counters (not needed for non-display, but kept for hygiene)
-  ctx.cbCounter  = 0;
+  // Clear callback storage for test isolation; non-display rendering does not use cbCounter.
   ctx.window._cb = {};
 
   const ast = ctx.parseToAST(src);
