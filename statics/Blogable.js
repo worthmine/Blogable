@@ -728,6 +728,7 @@ return html;
 
 function parseToAST(src) {
 headingIds={};
+footnotes=[];
 return buildAST(tokenize(src.split('\n')));
 }
 
