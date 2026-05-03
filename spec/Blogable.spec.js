@@ -974,7 +974,7 @@ describe('§Diagnostics', () => {
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
       try {
         parse(src);
-        const logged = warnSpy.mock.calls.some(a => a.join(' ').startsWith(`[${code}]`));
+        const logged = warnSpy.mock.calls.some(call => call[0]?.startsWith(`[${code}]`));
         expect(logged).toBe(true);
       } finally {
         warnSpy.mockRestore();
@@ -1138,8 +1138,8 @@ describe('§SecureFallback', () => {
   // ── Unterminated block constructs ────────────────────────────────────────
 
   it('unterminated shebang block (no !#) does not crash and produces code output', () => {
-    expect(() => parse('#!bash\necho hi')).not.toThrow();
-    const html = parse('#!bash\necho hi');
+    let html;
+    expect(() => { html = parse('#!bash\necho hi'); }).not.toThrow();
     expect(html).toMatch(/echo hi/);
   });
 
