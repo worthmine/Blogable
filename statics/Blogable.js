@@ -136,6 +136,14 @@ async function fetchNewOgps(src) {
   return updated;
 }
 
+// ---- diagnostics ----
+let diagnostics=[];
+function pushDiag(code,msg){
+  diagnostics.push({code,message:msg});
+  console.warn(`[${code}] ${msg}`);
+}
+function getBlogableDiagnostics(){ return diagnostics.slice(); }
+
 // ---- インライン ----
 let footnotes=[];
 // ヘッドのIDマップ（内部アンカー解決用）
@@ -187,7 +195,7 @@ function parseInline(text) {
       if (Object.hasOwn(headingIds, slug)) {
         out += `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
       } else {
-        console.warn(`[W001] Unresolved internal anchor reference: [#${id}]`);
+        pushDiag('W001',`Unresolved internal anchor reference: [#${id}]`);
         out += esc(id);
       }
       i += m[0].length; continue;
@@ -276,7 +284,7 @@ function tokenize(lines) {
       const mk=modM[1];
       if (!ALLOWED_META_KEYS.has(mk) && !/^x-[a-z0-9-]+$/.test(mk)) {
         // [E002] Unknown MetaKey: fall back to literal text (spec: errors fall back safely)
-        console.warn(`[E002] Unknown MetaKey: ${mk}. Allowed keys: ${[...ALLOWED_META_KEYS].join(', ')}, or x-* custom keys`);
+        pushDiag('E002',`Unknown MetaKey: ${mk}. Allowed keys: ${[...ALLOWED_META_KEYS].join(', ')}, or x-* custom keys`);
         tokens.push({type:'text', text:t}); continue;
       }
       tokens.push({type:'modifier', key:mk, value:modM[2]}); continue;
@@ -319,7 +327,7 @@ function tokenize(lines) {
     // odd-indent list items — [E003] invalid list indentation, fall back to text
     const oddIndentM=raw.match(/^( +)(#|-)\s+/);
     if (oddIndentM && oddIndentM[1].length % 2 !== 0) {
-      console.warn(`[E003] Invalid list indentation: ${oddIndentM[1].length} space(s). Indentation must be a multiple of two.`);
+      pushDiag('E003',`Invalid list indentation: ${oddIndentM[1].length} space(s). Indentation must be a multiple of two.`);
       tokens.push({type:'text', text:t}); continue;
     }
 
@@ -412,14 +420,14 @@ function buildAST(tokens) {
       const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/);
       if (!m) {
         // [W002] Non-empty lines that do not match FrontMetaLine syntax are invalid
-        if (line !== '') console.warn(`[W002] Malformed front matter line: ${line}`);
+        if (line !== '') pushDiag('W002',`Malformed front matter line: ${line}`);
         continue;
       }
 
       const key=m[1];
       if (!isAllowedFrontMatterKey(key)) {
         // [E001] Invalid key: invalidate this construct and continue (spec: errors fall back safely)
-        console.warn(`[E001] Invalid front matter key: ${key}`);
+        pushDiag('E001',`Invalid front matter key: ${key}`);
         continue;
       }
 
@@ -522,7 +530,9 @@ function buildAST(tokens) {
         break;
       }
       const mods=cm();
-      nodes.push({type:'def_block', term, ddLines, mods});
+      const termHtml=parseInline(term);
+      const ddHtml=ddLines.map(l=>`<p>${parseInline(l)}</p>`).join('\n');
+      nodes.push({type:'def_block', term, termHtml, ddLines, ddHtml, mods});
       continue;
     }
 
@@ -690,8 +700,7 @@ function astToHtml(nodes, forDisplay=false) {
       }
 
       case 'def_block': {
-        const ddHtml=node.ddLines.map(l=>`<p>${parseInline(l)}</p>`).join('\n');
-        return `<dl${mergeAttrs('def-block', node.mods)}><dt>${parseInline(node.term)}</dt><dd>${ddHtml}</dd></dl>`;
+        return `<dl${mergeAttrs('def-block', node.mods)}><dt>${node.termHtml}</dt><dd>${node.ddHtml}</dd></dl>`;
       }
 
       case 'anchor_block': {
@@ -777,6 +786,7 @@ return html;
 function parseToAST(src) {
 headingIds={};
 footnotes=[];
+diagnostics=[];
 return buildAST(tokenize(src.split('\n')));
 }
 
@@ -786,16 +796,31 @@ async function copyLine(id,idx){const node=window._cb?.[id];if(!node)return;cons
 
 // –– UI ––
 let currentTab='preview';
-function switchTab(tab,btn){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('preview-out').style.display=tab==='preview'?'':'none';document.getElementById('html-out').style.display=tab==='html'?'':'none';render();}
+function switchTab(tab,btn){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('preview-out').style.display=tab==='preview'?'':'none';document.getElementById('html-out').style.display=tab==='html'?'':'none';document.getElementById('diag-out').style.display=tab==='diag'?'':'none';render();}
 function render(){
 cbCounter=0; window._cb={}; footnotes=[];
 const src=document.getElementById('source').value;
 const ast=parseToAST(src);
+const diags=getBlogableDiagnostics();
+const diagBtn=document.getElementById('diag-tab-btn');
+if(diagBtn){
+  const eCount=diags.filter(d=>d.code[0]==='E').length;
+  const wCount=diags.filter(d=>d.code[0]==='W').length;
+  const badge=eCount>0?` (${eCount}E)`:(wCount>0?` (${wCount}W)`:'');
+  diagBtn.dataset.count=badge;
+}
 if (currentTab==='preview') {
 document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
 if (window.Prism) Prism.highlightAllUnder(document.getElementById('preview-out'));
-} else {
+} else if (currentTab==='html') {
 document.getElementById('html-out').textContent=astToHtml(ast,false);
+} else if (currentTab==='diag') {
+const out=document.getElementById('diag-out');
+if(!diags.length){
+  out.innerHTML='<p class="diag-ok">✓ No diagnostics</p>';
+}else{
+  out.innerHTML=diags.map(d=>`<div class="diag-item diag-${d.code[0]==='E'?'error':'warn'}"><span class="diag-code">[${d.code}]</span> ${esc(d.message)}</div>`).join('');
+}
 }
 }
 let renderTimer=null;

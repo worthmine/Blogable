@@ -13,7 +13,7 @@
 
 'use strict';
 
-const { parse, tokenize, buildAST } = require('./setup.js');
+const { parse, tokenize, buildAST, getDiagnostics } = require('./setup.js');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // §FrontMatter
@@ -879,96 +879,84 @@ describe('§Metadata', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('§Diagnostics', () => {
+  // Suppress console.warn output in this section; the structured diagnostics
+  // array is the primary API under test.
+  beforeEach(() => jest.spyOn(console, 'warn').mockImplementation(() => {}));
+  afterEach(() => jest.restoreAllMocks());
+
   it('[E001] is emitted for an invalid front matter key', () => {
     // A key that matches the FrontKey regex pattern [a-z][a-z0-9-]* but is not
     // in the spec-defined allowed list triggers [E001].
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      parse('@@\nbadkey: value\n@@');
-      expect(warnSpy.mock.calls.some(a => /\[E001\]/.test(a.join(' ')))).toBe(true);
-    } finally {
-      warnSpy.mockRestore();
-    }
+    parse('@@\nbadkey: value\n@@');
+    expect(getDiagnostics().some(d => d.code === 'E001')).toBe(true);
+  });
+
+  it('[E001] diagnostic carries the invalid key in its message', () => {
+    parse('@@\nbadkey: value\n@@');
+    expect(getDiagnostics().find(d => d.code === 'E001')?.message).toMatch(/badkey/);
   });
 
   it('[E002] is emitted for an unknown MetaKey', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      parse('@[unknownkey: v]');
-      expect(warnSpy.mock.calls.some(a => /\[E002\]/.test(a.join(' ')))).toBe(true);
-    } finally {
-      warnSpy.mockRestore();
-    }
+    parse('@[unknownkey: v]');
+    expect(getDiagnostics().some(d => d.code === 'E002')).toBe(true);
+  });
+
+  it('[E002] diagnostic carries the unknown key in its message', () => {
+    parse('@[unknownkey: v]');
+    expect(getDiagnostics().find(d => d.code === 'E002')?.message).toMatch(/unknownkey/);
   });
 
   it('[W001] is emitted for an unresolved anchor reference', () => {
     // AnchorRef is inline-only; use it inside paragraph text.
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      parse('See [#ghost-anchor] for details.');
-      expect(warnSpy.mock.calls.some(a => /\[W001\]/.test(a.join(' ')))).toBe(true);
-    } finally {
-      warnSpy.mockRestore();
-    }
+    parse('See [#ghost-anchor] for details.');
+    expect(getDiagnostics().some(d => d.code === 'W001')).toBe(true);
+  });
+
+  it('[W001] diagnostic carries the anchor id in its message', () => {
+    parse('See [#ghost-anchor] for details.');
+    expect(getDiagnostics().find(d => d.code === 'W001')?.message).toMatch(/ghost-anchor/);
   });
 
   it('[W002] is emitted for a malformed front matter line', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      parse('@@\nmalformed line without colon\n@@');
-      expect(warnSpy.mock.calls.some(a => /\[W002\]/.test(a.join(' ')))).toBe(true);
-    } finally {
-      warnSpy.mockRestore();
-    }
+    parse('@@\nmalformed line without colon\n@@');
+    expect(getDiagnostics().some(d => d.code === 'W002')).toBe(true);
+  });
+
+  it('[W002] diagnostic carries the malformed line in its message', () => {
+    parse('@@\nmalformed line without colon\n@@');
+    expect(getDiagnostics().find(d => d.code === 'W002')?.message).toMatch(/malformed line without colon/);
+  });
+
+  it('getDiagnostics() is reset on each parse call', () => {
+    parse('@@\nbadkey: v\n@@');
+    expect(getDiagnostics().some(d => d.code === 'E001')).toBe(true);
+    // Clean parse — previous diagnostics must not bleed through
+    parse(':: Clean heading');
+    expect(getDiagnostics()).toHaveLength(0);
   });
 
   it('[E001] error does not crash the parser (fall back safely)', () => {
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      expect(() => parse('@@\nbadkey: v\n@@')).not.toThrow();
-    } finally {
-      jest.restoreAllMocks();
-    }
+    expect(() => parse('@@\nbadkey: v\n@@')).not.toThrow();
   });
 
   it('[W001] warning does not stop rendering', () => {
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      const html = parse(':: Section\n\n[#ghost]');
-      // The heading must still be rendered
-      expect(html).toMatch(/<h2/);
-    } finally {
-      jest.restoreAllMocks();
-    }
+    const html = parse(':: Section\n\n[#ghost]');
+    // The heading must still be rendered
+    expect(html).toMatch(/<h2/);
   });
 
   it('[E003] is emitted for an odd-length list indent (ol)', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      parse('   # three-space indent');
-      expect(warnSpy.mock.calls.some(a => /\[E003\]/.test(a.join(' ')))).toBe(true);
-    } finally {
-      warnSpy.mockRestore();
-    }
+    parse('   # three-space indent');
+    expect(getDiagnostics().some(d => d.code === 'E003')).toBe(true);
   });
 
   it('[E003] is emitted for an odd-length list indent (ul)', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      parse(' - one-space indent');
-      expect(warnSpy.mock.calls.some(a => /\[E003\]/.test(a.join(' ')))).toBe(true);
-    } finally {
-      warnSpy.mockRestore();
-    }
+    parse(' - one-space indent');
+    expect(getDiagnostics().some(d => d.code === 'E003')).toBe(true);
   });
 
   it('[E003] error does not crash the parser (falls back to text)', () => {
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      expect(() => parse('     # five-space indent')).not.toThrow();
-    } finally {
-      jest.restoreAllMocks();
-    }
+    expect(() => parse('     # five-space indent')).not.toThrow();
   });
 });
 
