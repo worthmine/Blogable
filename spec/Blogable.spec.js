@@ -340,10 +340,29 @@ describe('§Lists', () => {
   });
 
   it('ordered list items → <ol><li>…</li></ol>', () => {
-    const src = '# First\n# Second';
+    const src = '# First\n# Second\n# Third';
     const html = parse(src);
     expect(html).toMatch(/<ol>/);
     expect(html).toMatch(/<li>First<\/li>/);
+    expect(html).toMatch(/<li>Second<\/li>/);
+    expect(html).toMatch(/<li>Third<\/li>/);
+  });
+
+  it('nested ordered list (2-space indent) → nested <ol>', () => {
+    const src = '# Parent\n  # Child';
+    const html = parse(src);
+    expect(html).toMatch(/<ol>/);
+    expect(html).toMatch(/<li>Parent[\s\S]*<ol>[\s\S]*<li>Child<\/li>/);
+  });
+
+  it('ordered list items support inline parsing (**bold**)', () => {
+    const html = parse('# **bold item**');
+    expect(html).toMatch(/<strong>bold item<\/strong>/);
+  });
+
+  it('digit-dot syntax (1. item) is NOT an ordered list', () => {
+    const toks = tokenize('1. item');
+    expect(toks[0].type).not.toBe('ol');
   });
 
   it('nested list (2-space indent) → nested <ul>', () => {
@@ -831,6 +850,14 @@ describe('§Tokenizer', () => {
   it('# item → ol token', () => {
     const toks = tokenize('# item text');
     expect(toks[0].type).toBe('ol');
+    expect(toks[0].text).toBe('item text');
+    expect(toks[0].indent).toBe(0);
+  });
+
+  it('  # item → ol token with indent 2', () => {
+    const toks = tokenize('  # indented item');
+    expect(toks[0].type).toBe('ol');
+    expect(toks[0].indent).toBe(2);
   });
 
   it('[x] item → task token (checked)', () => {
