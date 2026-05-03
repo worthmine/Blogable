@@ -809,18 +809,19 @@ if(diagBtn){
   const badge=eCount>0?` (${eCount}E)`:(wCount>0?` (${wCount}W)`:'');
   diagBtn.dataset.count=badge;
 }
+const diagOut=document.getElementById('diag-out');
+if(diagOut){
+  if(!diags.length){
+    diagOut.innerHTML='<p class="diag-ok">✓ No diagnostics</p>';
+  }else{
+    diagOut.innerHTML=diags.map(d=>`<div class="diag-item diag-${d.code[0]==='E'?'error':'warn'}"><span class="diag-code">[${d.code}]</span> ${esc(d.message)}</div>`).join('');
+  }
+}
 if (currentTab==='preview') {
 document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
 if (window.Prism) Prism.highlightAllUnder(document.getElementById('preview-out'));
 } else if (currentTab==='html') {
 document.getElementById('html-out').textContent=astToHtml(ast,false);
-} else if (currentTab==='diag') {
-const out=document.getElementById('diag-out');
-if(!diags.length){
-  out.innerHTML='<p class="diag-ok">✓ No diagnostics</p>';
-}else{
-  out.innerHTML=diags.map(d=>`<div class="diag-item diag-${d.code[0]==='E'?'error':'warn'}"><span class="diag-code">[${d.code}]</span> ${esc(d.message)}</div>`).join('');
-}
 }
 }
 let renderTimer=null;
