@@ -19,11 +19,6 @@ const assert = require('node:assert/strict');
 
 const { parse, tokenize, buildAST } = require('./setup.js');
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
-/** Collapse consecutive whitespace / newlines for easy comparison. */
-function collapse(s) { return s.replace(/\s+/g, ' ').trim(); }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // §FrontMatter
 // ─────────────────────────────────────────────────────────────────────────────
@@ -139,7 +134,7 @@ describe('§Headings', () => {
 
   it('heading text is HTML-escaped', () => {
     const html = parse(':: <script>alert(1)</script>');
-    assert.doesNotMatch(html, /<script>/);
+    assert.doesNotMatch(html, /<script>/i);
     assert.match(html, /&lt;script&gt;/);
   });
 });
@@ -150,7 +145,7 @@ describe('§Headings', () => {
 
 describe('§HorizontalRule', () => {
   it('--- → <hr>', () => {
-    assert.equal(collapse(parse('---')), '<hr>');
+    assert.equal(parse('---').replace(/\s+/g, ' ').trim(), '<hr>');
   });
 
   it('---- (4 dashes) is NOT a horizontal rule', () => {
@@ -272,7 +267,7 @@ describe('§MathBlocks', () => {
   it('math block content is HTML-escaped', () => {
     const src = '$$\n<script>alert(1)</script>\n$$';
     const html = parse(src);
-    assert.doesNotMatch(html, /<script>/);
+    assert.doesNotMatch(html, /<script>/i);
     assert.match(html, /&lt;script&gt;/);
   });
 
@@ -417,9 +412,11 @@ describe('§InlineSyntax', () => {
   });
 
   it('Code: newline inside backticks does NOT form a code span', () => {
-    // CodeChar = any except ` and NL
+    // CodeChar = any except ` and NL; the two lines are separate tokens
     const html = parse('`line1\nline2`');
     assert.doesNotMatch(html, /<code>line1\nline2<\/code>/);
+    // Each fragment is rendered as plain text (escaped)
+    assert.match(html, /`line1/);
   });
 
   it('Link: [https://url label] → <a href="…">label</a>', () => {
@@ -564,7 +561,7 @@ describe('§InlineSyntax', () => {
 
   it('plain text is HTML-escaped', () => {
     const html = parse('<script>alert(1)</script>');
-    assert.doesNotMatch(html, /<script>/);
+    assert.doesNotMatch(html, /<script>/i);
     assert.match(html, /&lt;script&gt;/);
   });
 
@@ -776,7 +773,7 @@ describe('§Security', () => {
 
   it('raw <script> tag is escaped', () => {
     const html = parse('<script>alert("xss")</script>');
-    assert.doesNotMatch(html, /<script>/);
+    assert.doesNotMatch(html, /<script>/i);
     assert.match(html, /&lt;script&gt;/);
   });
 
@@ -801,10 +798,10 @@ describe('§Security', () => {
     assert.doesNotMatch(html, /href="ftp:\/\//);
   });
 
-  it('image src attribute value is HTML-escaped', () => {
-    // URL with " character — must be escaped in the attribute
+  it('image src attribute value is HTML-escaped (& → &amp;)', () => {
+    // URL query strings containing & must be escaped to &amp; in HTML attributes.
     const html = parse('https://example.com/path?a=1&b=2');
-    assert.doesNotMatch(html, /src="[^"]*"[^"]*&[^"]*"/);
+    assert.match(html, /href="https:\/\/example\.com\/path\?a=1&amp;b=2"/);
   });
 });
 
