@@ -796,6 +796,15 @@ async function copyLine(id,idx){const node=window._cb?.[id];if(!node)return;cons
 
 // –– UI ––
 let currentTab='preview';
+function updateDiagnosticsPanel(diags){
+  const diagOut=document.getElementById('diag-out');
+  if(!diagOut) return;
+  if(!diags.length){
+    diagOut.innerHTML='<p class="diag-ok">✓ No diagnostics</p>';
+  }else{
+    diagOut.innerHTML=diags.map(d=>`<div class="diag-item diag-${d.code[0]==='E'?'error':'warn'}"><span class="diag-code">[${d.code}]</span> ${esc(d.message)}</div>`).join('');
+  }
+}
 function switchTab(tab,btn){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('preview-out').style.display=tab==='preview'?'':'none';document.getElementById('html-out').style.display=tab==='html'?'':'none';document.getElementById('diag-out').style.display=tab==='diag'?'':'none';render();}
 function render(){
 cbCounter=0; window._cb={}; footnotes=[];
@@ -809,18 +818,12 @@ if(diagBtn){
   const badge=eCount>0?` (${eCount}E)`:(wCount>0?` (${wCount}W)`:'');
   diagBtn.dataset.count=badge;
 }
+updateDiagnosticsPanel(diags);
 if (currentTab==='preview') {
 document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
 if (window.Prism) Prism.highlightAllUnder(document.getElementById('preview-out'));
 } else if (currentTab==='html') {
 document.getElementById('html-out').textContent=astToHtml(ast,false);
-} else if (currentTab==='diag') {
-const out=document.getElementById('diag-out');
-if(!diags.length){
-  out.innerHTML='<p class="diag-ok">✓ No diagnostics</p>';
-}else{
-  out.innerHTML=diags.map(d=>`<div class="diag-item diag-${d.code[0]==='E'?'error':'warn'}"><span class="diag-code">[${d.code}]</span> ${esc(d.message)}</div>`).join('');
-}
 }
 }
 let renderTimer=null;
