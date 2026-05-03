@@ -365,6 +365,28 @@ describe('§Lists', () => {
     expect(toks[0].type).not.toBe('ol');
   });
 
+  it('odd-indent ol (3 spaces) → falls back to text, not list', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const html = parse('   # odd indent');
+      expect(html).not.toMatch(/<ol>/);
+      expect(html).not.toMatch(/<li>/);
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  it('odd-indent ul (1 space) → falls back to text, not list', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const html = parse(' - odd indent');
+      expect(html).not.toMatch(/<ul>/);
+      expect(html).not.toMatch(/<li>/);
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
   it('nested list (2-space indent) → nested <ul>', () => {
     const src = '- Parent\n  - Child';
     const html = parse(src);
@@ -736,6 +758,35 @@ describe('§Diagnostics', () => {
       jest.restoreAllMocks();
     }
   });
+
+  it('[E003] is emitted for an odd-length list indent (ol)', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      parse('   # three-space indent');
+      expect(warnSpy.mock.calls.some(a => /\[E003\]/.test(a.join(' ')))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('[E003] is emitted for an odd-length list indent (ul)', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      parse(' - one-space indent');
+      expect(warnSpy.mock.calls.some(a => /\[E003\]/.test(a.join(' ')))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('[E003] error does not crash the parser (falls back to text)', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect(() => parse('     # five-space indent')).not.toThrow();
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -858,6 +909,28 @@ describe('§Tokenizer', () => {
     const toks = tokenize('  # indented item');
     expect(toks[0].type).toBe('ol');
     expect(toks[0].indent).toBe(2);
+  });
+
+  it('   # item (3-space indent) → text token with [E003]', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const toks = tokenize('   # three-space indent');
+      expect(toks[0].type).toBe('text');
+      expect(warnSpy.mock.calls.some(a => /\[E003\]/.test(a.join(' ')))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it(' - item (1-space indent) → text token with [E003]', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const toks = tokenize(' - one-space indent');
+      expect(toks[0].type).toBe('text');
+      expect(warnSpy.mock.calls.some(a => /\[E003\]/.test(a.join(' ')))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it('[x] item → task token (checked)', () => {

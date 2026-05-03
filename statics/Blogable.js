@@ -303,6 +303,13 @@ function tokenize(lines) {
     const taskM=raw.match(/^(\s*)\[([ x])\]\s+(.*)/);
     if (taskM) { tokens.push({type:'task', indent:taskM[1].length, checked:taskM[2].toLowerCase()==='x', text:taskM[3]}); continue; }
 
+    // odd-indent list items — [E003] invalid list indentation, fall back to text
+    const oddIndentM=raw.match(/^( +)(#|-)\s+/);
+    if (oddIndentM && oddIndentM[1].length % 2 !== 0) {
+      console.warn(`[E003] Invalid list indentation: ${oddIndentM[1].length} space(s). Indentation must be a multiple of two.`);
+      tokens.push({type:'text', text:t}); continue;
+    }
+
     // ul: - item（インデントはスペースのみ・2個単位）
     const ulM=raw.match(/^((?:  )*)-\s+(.*)/);
     if (ulM && !raw.trim().startsWith('-[')) {
