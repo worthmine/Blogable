@@ -610,9 +610,14 @@ function buildAST(tokens) {
 
     // `: ` 段落ブロック（明示的な段落 — モディファイア使用可）
     if (tok.type==='para_block') {
+      const lines=[tok.text];
       i++;
+      while (i<tokens.length && tokens[i].type==='para_block') {
+        lines.push(tokens[i].text);
+        i++;
+      }
       const mods=cm();
-      nodes.push({type:'paragraph', html:parseInline(tok.text), mods});
+      nodes.push({type:'paragraph', html:lines.map(l=>parseInline(l)).join('<br>\n'), mods});
       continue;
     }
 

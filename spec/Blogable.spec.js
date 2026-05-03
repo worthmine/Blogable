@@ -689,6 +689,16 @@ describe('§Metadata', () => {
     expect(html).toMatch(/<p>line one<br>\nline two<br>\nline three<\/p>/);
   });
 
+  it('multi-line `: ` paragraph joins lines with <br>', () => {
+    const html = parse(': line one\n: line two\n: line three');
+    expect(html).toMatch(/<p>line one<br>\nline two<br>\nline three<\/p>/);
+  });
+
+  it('multi-line `: ` paragraph with modifier applies modifier to single <p>', () => {
+    const html = parse(': line one\n: line two\n@[class: lead]');
+    expect(html).toMatch(/<p class="lead">line one<br>\nline two<\/p>/);
+  });
+
   it('@[class: items] after an unordered list adds class to <ul>', () => {
     const html = parse('- item one\n- item two\n@[class: items]');
     expect(html).toMatch(/<ul class="items">/);
