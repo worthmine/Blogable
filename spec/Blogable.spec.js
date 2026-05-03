@@ -1120,8 +1120,8 @@ describe('§Diagnostics', () => {
   });
 
   it('[W007] does not crash the parser (both definitions still render)', () => {
-    let html;
-    expect(() => { html = parse(':= Alpha\nBody one.\n\n:= Alpha\nBody two.'); }).not.toThrow();
+    expect(() => parse(':= Alpha\nBody one.\n\n:= Alpha\nBody two.')).not.toThrow();
+    const html = parse(':= Alpha\nBody one.\n\n:= Alpha\nBody two.');
     expect(html).toMatch(/Alpha/);
   });
 
@@ -1179,6 +1179,7 @@ describe('§Diagnostics', () => {
 
   it('every diagnostic emits console.warn with [CODE] prefix format', () => {
     // All diagnostic codes must log [CODE] so users see the code in browser console.
+    // Also verifies the code appears in getDiagnostics() so both channels are covered.
     const codes = [
       { src: '@@\nbadkey: v\n@@',          code: 'E001' },
       { src: '@[badmetakey: v]',            code: 'E002' },
@@ -1200,6 +1201,7 @@ describe('§Diagnostics', () => {
         parse(src);
         const logged = warnSpy.mock.calls.some(call => call[0]?.startsWith(`[${code}]`));
         expect(logged).toBe(true);
+        expect(getDiagnostics().some(d => d.code === code)).toBe(true);
       } finally {
         warnSpy.mockRestore();
       }

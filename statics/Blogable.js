@@ -308,7 +308,7 @@ function tokenize(lines) {
     if (plnH) { tokens.push({type:'heading', colons:plnH[1].length, numbered:false, text:plnH[2]}); continue; }
 
     // 見出しレベル超過（7コロン以上） — [E004]: fall back to text
-    const overH=t.match(/^(:{7,})(\s|#)/);
+    const overH=t.match(/^(:{7,})(?:\s|#\s)/);
     if (overH) {
       pushDiag('E004',`Heading level out of range: ${overH[1].length} colons. The maximum heading level is h6 (6 colons).`);
       tokens.push({type:'text', text:t}); continue;
@@ -548,7 +548,7 @@ function buildAST(tokens) {
         pushDiag('E005',`Definition block for "${term}" has no body text. A DefinitionBlock requires at least one paragraph (DD).`);
       }
       // [W007] 定義用語の重複 — spec: Definition-list terms are unique across the document
-      const termKey=term.toLowerCase();
+      const termKey=term.trim().toLowerCase();
       if (definitionTerms.has(termKey)) {
         pushDiag('W007',`Duplicate definition term: "${term}" is already defined in this document.`);
       } else {
