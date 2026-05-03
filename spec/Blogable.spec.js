@@ -958,6 +958,459 @@ describe('§Diagnostics', () => {
   it('[E003] error does not crash the parser (falls back to text)', () => {
     expect(() => parse('     # five-space indent')).not.toThrow();
   });
+
+  // ── E004: heading level out of range ─────────────────────────────────────
+
+  it('[E004] is emitted for a heading with 7 colons', () => {
+    parse(':::::::: Heading Seven');
+    expect(getDiagnostics().some(d => d.code === 'E004')).toBe(true);
+  });
+
+  it('[E004] is emitted for a numbered heading with 7 colons', () => {
+    parse(':::::::# Numbered Heading Seven');
+    expect(getDiagnostics().some(d => d.code === 'E004')).toBe(true);
+  });
+
+  it('[E004] diagnostic message mentions the colon count and the h6 maximum', () => {
+    parse(':::::::: Too Deep');
+    const msg = getDiagnostics().find(d => d.code === 'E004')?.message || '';
+    expect(msg).toMatch(/6/);
+  });
+
+  it('[E004] falls back to plain text (does not emit a heading element)', () => {
+    const html = parse(':::::::: Too Deep');
+    expect(html).not.toMatch(/<h[0-9]/);
+    expect(html).toMatch(/Too Deep/);
+  });
+
+  it('exactly 6 colons (h6) does NOT emit [E004]', () => {
+    parse(':::::: Valid h6');
+    expect(getDiagnostics().some(d => d.code === 'E004')).toBe(false);
+  });
+
+  // ── E005: definition block with no body ──────────────────────────────────
+
+  it('[E005] is emitted for a definition block with no body', () => {
+    parse(':= TermOnly');
+    expect(getDiagnostics().some(d => d.code === 'E005')).toBe(true);
+  });
+
+  it('[E005] diagnostic carries the term name in its message', () => {
+    parse(':= TermOnly');
+    expect(getDiagnostics().find(d => d.code === 'E005')?.message).toMatch(/TermOnly/);
+  });
+
+  it('[E005] does not crash the parser (falls back safely)', () => {
+    expect(() => parse(':= TermOnly')).not.toThrow();
+  });
+
+  it('[E005] renders the term even when body is absent', () => {
+    const html = parse(':= TermOnly');
+    expect(html).toMatch(/TermOnly/);
+  });
+
+  it('definition block WITH body does NOT emit [E005]', () => {
+    parse(':= MyTerm\nThe body text.');
+    expect(getDiagnostics().some(d => d.code === 'E005')).toBe(false);
+  });
+
+  // ── W003: unterminated front matter ──────────────────────────────────────
+
+  it('[W003] is emitted when front matter has no closing @@', () => {
+    parse('@@\ntitle: No Close');
+    expect(getDiagnostics().some(d => d.code === 'W003')).toBe(true);
+  });
+
+  it('[W003] diagnostic message mentions the closing delimiter @@', () => {
+    parse('@@\ntitle: No Close');
+    const msg = getDiagnostics().find(d => d.code === 'W003')?.message || '';
+    expect(msg).toMatch(/@@/);
+  });
+
+  it('[W003] does not crash the parser', () => {
+    expect(() => parse('@@\ntitle: No Close')).not.toThrow();
+  });
+
+  it('properly closed front matter does NOT emit [W003]', () => {
+    parse('@@\ntitle: OK\n@@');
+    expect(getDiagnostics().some(d => d.code === 'W003')).toBe(false);
+  });
+
+  // ── W004: unterminated code block ─────────────────────────────────────────
+
+  it('[W004] is emitted when a code block has no closing !#', () => {
+    parse('#!bash\necho hi');
+    expect(getDiagnostics().some(d => d.code === 'W004')).toBe(true);
+  });
+
+  it('[W004] diagnostic message mentions the closing delimiter !#', () => {
+    parse('#!bash\necho hi');
+    const msg = getDiagnostics().find(d => d.code === 'W004')?.message || '';
+    expect(msg).toMatch(/!#/);
+  });
+
+  it('[W004] does not crash the parser', () => {
+    expect(() => parse('#!bash\necho hi')).not.toThrow();
+  });
+
+  it('properly closed code block does NOT emit [W004]', () => {
+    parse('#!bash\necho hi\n!#');
+    expect(getDiagnostics().some(d => d.code === 'W004')).toBe(false);
+  });
+
+  // ── W005: unterminated quote block ────────────────────────────────────────
+
+  it('[W005] is emitted when a block quote has no closing <|', () => {
+    parse('|>\nSome quoted text');
+    expect(getDiagnostics().some(d => d.code === 'W005')).toBe(true);
+  });
+
+  it('[W005] diagnostic message mentions the closing delimiter <|', () => {
+    parse('|>\nSome quoted text');
+    const msg = getDiagnostics().find(d => d.code === 'W005')?.message || '';
+    expect(msg).toMatch(/<\|/);
+  });
+
+  it('[W005] does not crash the parser', () => {
+    expect(() => parse('|>\nSome quoted text')).not.toThrow();
+  });
+
+  it('properly closed quote block does NOT emit [W005]', () => {
+    parse('|>\nSome text.\n<|');
+    expect(getDiagnostics().some(d => d.code === 'W005')).toBe(false);
+  });
+
+  // ── W006: unterminated math block ─────────────────────────────────────────
+
+  it('[W006] is emitted when a math block has no closing $$', () => {
+    parse('$$\nx = 1');
+    expect(getDiagnostics().some(d => d.code === 'W006')).toBe(true);
+  });
+
+  it('[W006] diagnostic message mentions the closing delimiter $$', () => {
+    parse('$$\nx = 1');
+    const msg = getDiagnostics().find(d => d.code === 'W006')?.message || '';
+    expect(msg).toMatch(/\$\$/);
+  });
+
+  it('[W006] does not crash the parser', () => {
+    expect(() => parse('$$\nx = 1')).not.toThrow();
+  });
+
+  it('properly closed math block does NOT emit [W006]', () => {
+    parse('$$\nx = 1\n$$');
+    expect(getDiagnostics().some(d => d.code === 'W006')).toBe(false);
+  });
+
+  // ── W007: duplicate definition term ──────────────────────────────────────
+
+  it('[W007] is emitted when a definition term is defined more than once', () => {
+    parse(':= MyTerm\nFirst body.\n\n:= MyTerm\nSecond body.');
+    expect(getDiagnostics().some(d => d.code === 'W007')).toBe(true);
+  });
+
+  it('[W007] diagnostic carries the duplicate term in its message', () => {
+    parse(':= MyTerm\nFirst body.\n\n:= MyTerm\nSecond body.');
+    expect(getDiagnostics().find(d => d.code === 'W007')?.message).toMatch(/MyTerm/);
+  });
+
+  it('[W007] is case-insensitive (same term in different cases is a duplicate)', () => {
+    parse(':= myterm\nFirst.\n\n:= MYTERM\nSecond.');
+    expect(getDiagnostics().some(d => d.code === 'W007')).toBe(true);
+  });
+
+  it('[W007] does not crash the parser (both definitions still render)', () => {
+    expect(() => parse(':= Alpha\nBody one.\n\n:= Alpha\nBody two.')).not.toThrow();
+    const html = parse(':= Alpha\nBody one.\n\n:= Alpha\nBody two.');
+    expect(html).toMatch(/Alpha/);
+  });
+
+  it('two distinct definition terms do NOT emit [W007]', () => {
+    parse(':= TermA\nBody A.\n\n:= TermB\nBody B.');
+    expect(getDiagnostics().some(d => d.code === 'W007')).toBe(false);
+  });
+
+  it('[W007] is reset between parse() calls (second parse is independent)', () => {
+    parse(':= Alpha\nBody.\n\n:= Alpha\nBody again.');
+    parse(':= Alpha\nFresh body.');
+    // Second parse is a clean document — only one definition, no duplicate
+    expect(getDiagnostics().some(d => d.code === 'W007')).toBe(false);
+  });
+
+  // ── W008: orphaned modifier ───────────────────────────────────────────────
+
+  it('[W008] is emitted for a modifier following a plain text paragraph', () => {
+    // Plain paragraphs do not accept modifiers; the @[...] is not consumed.
+    parse('Plain text line.\n@[class: lead]');
+    expect(getDiagnostics().some(d => d.code === 'W008')).toBe(true);
+  });
+
+  it('[W008] is emitted for a modifier after a blank line (metadata crosses blank lines)', () => {
+    // Modifiers must immediately follow their block with no intervening blank lines.
+    parse(':: Heading\n\n@[class: highlight]');
+    expect(getDiagnostics().some(d => d.code === 'W008')).toBe(true);
+  });
+
+  it('[W008] is emitted for a modifier after a horizontal rule (--- accepts no modifiers)', () => {
+    parse('---\n@[class: decorative]');
+    expect(getDiagnostics().some(d => d.code === 'W008')).toBe(true);
+  });
+
+  it('[W008] diagnostic message carries the modifier key and value', () => {
+    parse('Plain text.\n@[class: my-class]');
+    const msg = getDiagnostics().find(d => d.code === 'W008')?.message || '';
+    expect(msg).toMatch(/class/);
+    expect(msg).toMatch(/my-class/);
+  });
+
+  it('[W008] does not crash the parser', () => {
+    expect(() => parse('Plain.\n@[id: orphan]')).not.toThrow();
+  });
+
+  it('a modifier immediately after a heading (no blank line) does NOT emit [W008]', () => {
+    parse(':: My Heading\n@[class: highlight]');
+    expect(getDiagnostics().some(d => d.code === 'W008')).toBe(false);
+  });
+
+  it('a modifier immediately after a `: ` para block does NOT emit [W008]', () => {
+    parse(': Explicit para\n@[class: lead]');
+    expect(getDiagnostics().some(d => d.code === 'W008')).toBe(false);
+  });
+
+  it('every diagnostic emits console.warn with [CODE] prefix format', () => {
+    // All diagnostic codes must log [CODE] so users see the code in browser console.
+    // Also verifies the code appears in getDiagnostics() so both channels are covered.
+    const codes = [
+      { src: '@@\nbadkey: v\n@@',          code: 'E001' },
+      { src: '@[badmetakey: v]',            code: 'E002' },
+      { src: 'See [#ghost] for details.',   code: 'W001' },
+      { src: '@@\nno colon here\n@@',       code: 'W002' },
+      { src: ' - odd-indent item',          code: 'E003' },
+      { src: ':::::::: Too Deep',            code: 'E004' },
+      { src: ':= TermOnly',                  code: 'E005' },
+      { src: '@@\ntitle: Unterminated',      code: 'W003' },
+      { src: '#!bash\nno close',             code: 'W004' },
+      { src: '|>\nno close',                 code: 'W005' },
+      { src: '$$\nno close',                 code: 'W006' },
+      { src: ':= T\nB.\n\n:= T\nB2.',       code: 'W007' },
+      { src: 'Plain.\n@[class: orphan]',     code: 'W008' },
+    ];
+    for (const { src, code } of codes) {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        parse(src);
+        const logged = warnSpy.mock.calls.some(call => call[0]?.startsWith(`[${code}]`));
+        expect(logged).toBe(true);
+        expect(getDiagnostics().some(d => d.code === code)).toBe(true);
+      } finally {
+        warnSpy.mockRestore();
+      }
+    }
+  });
+
+  it('[E002] diagnostic message lists the allowed MetaKeys', () => {
+    // The message must tell users which keys ARE valid so they can fix the input.
+    parse('@[badmetakey: v]');
+    const msg = getDiagnostics().find(d => d.code === 'E002')?.message || '';
+    // At least one well-known allowed key (e.g. 'class') should appear in the message.
+    expect(msg).toMatch(/class/);
+  });
+
+  it('[E003] diagnostic message mentions "multiple" or "two" to guide the user', () => {
+    parse(' - odd-indent item');
+    const msg = getDiagnostics().find(d => d.code === 'E003')?.message || '';
+    expect(msg).toMatch(/two|multiple/i);
+  });
+
+  it('every diagnostic object has both a string code and a string message', () => {
+    // Consumers of getDiagnostics() rely on both fields being non-empty strings.
+    const cases = [
+      '@@\nbadkey: v\n@@',
+      '@[badmetakey: v]',
+      'See [#ghost] for details.',
+      '@@\nno colon here\n@@',
+      ' - odd-indent',
+      ':::::::: Too Deep',
+      ':= TermOnly',
+      '@@\ntitle: Unterminated',
+      '#!bash\nno close',
+      '|>\nno close',
+      '$$\nno close',
+      ':= T\nB.\n\n:= T\nB2.',
+      'Plain.\n@[class: orphan]',
+    ];
+    for (const src of cases) {
+      parse(src);
+      for (const d of getDiagnostics()) {
+        expect(typeof d.code).toBe('string');
+        expect(d.code.length).toBeGreaterThan(0);
+        expect(typeof d.message).toBe('string');
+        expect(d.message.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('multiple diagnostics in one parse all appear in getDiagnostics()', () => {
+    // A document with both an invalid front matter key AND an unresolved anchor ref
+    // must accumulate both diagnostics in a single parse call.
+    parse('@@\nbadkey: v\n@@\n\nSee [#ghost] for details.');
+    const codes = getDiagnostics().map(d => d.code);
+    expect(codes).toContain('E001');
+    expect(codes).toContain('W001');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §SecureFallback
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('§SecureFallback', () => {
+  // In this section every test verifies two things simultaneously:
+  //   1. The parser does NOT crash on bad input.
+  //   2. The correct output is still produced for the non-erroneous parts.
+
+  beforeEach(() => jest.spyOn(console, 'warn').mockImplementation(() => {}));
+  afterEach(() => jest.restoreAllMocks());
+
+  // ── [E001] invalid front matter key ─────────────────────────────────────
+
+  it('[E001] valid front matter entries still render when an invalid key is present', () => {
+    const html = parse('@@\ntitle: My Post\nbadkey: ignored\nauthor: Alice\n@@');
+    // Valid entries must appear; the bad key must be silently dropped.
+    expect(html).toMatch(/<dt>title<\/dt><dd>My Post<\/dd>/);
+    expect(html).toMatch(/<dt>author<\/dt><dd>Alice<\/dd>/);
+    expect(html).not.toMatch(/<dt>badkey<\/dt>/);
+  });
+
+  it('[E001] content after the front matter block still renders', () => {
+    const html = parse('@@\nbadkey: v\n@@\n\n:: My Heading');
+    expect(html).toMatch(/<h2 /);
+    expect(html).toMatch(/My Heading/);
+  });
+
+  // ── [E002] unknown MetaKey ───────────────────────────────────────────────
+
+  it('[E002] surrounding content still renders when an unknown MetaKey appears', () => {
+    const html = parse(':: Before\n@[badmetakey: v]\n:: After');
+    expect(html).toMatch(/Before/);
+    expect(html).toMatch(/After/);
+  });
+
+  it('[E002] unknown MetaKey modifier falls back to literal text (not injected as attribute)', () => {
+    const html = parse('@[badmetakey: value]');
+    // Must not appear as an attribute in any tag
+    expect(html).not.toMatch(/badmetakey="value"/);
+    expect(html).not.toMatch(/data-badmetakey/);
+    // The literal text should be present in the output as escaped content
+    expect(html).toMatch(/badmetakey/);
+  });
+
+  it('[E002] modifier value with HTML chars is escaped in the fallback text', () => {
+    const html = parse('@[badmetakey: <script>xss</script>]');
+    expect(html).not.toMatch(/<script>/i);
+    expect(html).toMatch(/&lt;script&gt;/);
+  });
+
+  // ── [W001] unresolved anchor reference ──────────────────────────────────
+
+  it('[W001] surrounding paragraph content still renders after an unresolved anchor ref', () => {
+    const html = parse('Before [#ghost] after.');
+    expect(html).toMatch(/Before/);
+    expect(html).toMatch(/after\./);
+  });
+
+  it('[W001] unresolved anchor renders the inner text as plain escaped text (not a link)', () => {
+    const html = parse('Read [#nowhere] here.');
+    expect(html).not.toMatch(/<a /);
+    // Inner text "nowhere" must still appear verbatim
+    expect(html).toMatch(/nowhere/);
+  });
+
+  it('[W001] unresolved anchor with HTML chars in the id is escaped in fallback text', () => {
+    // The inner text of [#<evil>] must be escaped, never injected as markup.
+    const html = parse('Text [#<evil>] text.');
+    expect(html).not.toMatch(/<evil>/);
+    expect(html).toMatch(/&lt;evil&gt;/);
+  });
+
+  // ── [W002] malformed front matter line ──────────────────────────────────
+
+  it('[W002] valid front matter entries still render despite a malformed line', () => {
+    const html = parse('@@\ntitle: Good Title\nthis line has no colon\nauthor: Bob\n@@');
+    expect(html).toMatch(/<dt>title<\/dt><dd>Good Title<\/dd>/);
+    expect(html).toMatch(/<dt>author<\/dt><dd>Bob<\/dd>/);
+  });
+
+  it('[W002] content after the front matter block still renders despite malformed line', () => {
+    const html = parse('@@\nmalformed\n@@\n\n:: Heading Still Renders');
+    expect(html).toMatch(/<h2 /);
+    expect(html).toMatch(/Heading Still Renders/);
+  });
+
+  // ── [E003] invalid list indentation ─────────────────────────────────────
+
+  it('[E003] bad-indent ordered list item content is still visible as plain text', () => {
+    const html = parse('   # three-space item');
+    // Content must appear; just not inside an <ol>/<li>
+    expect(html).toMatch(/three-space item/);
+    expect(html).not.toMatch(/<ol>/);
+  });
+
+  it('[E003] bad-indent unordered list item content is still visible as plain text', () => {
+    const html = parse(' - one-space item');
+    expect(html).toMatch(/one-space item/);
+    expect(html).not.toMatch(/<ul>/);
+  });
+
+  it('[E003] valid list items before and after bad-indent item still render', () => {
+    const html = parse('# good item\n   # bad indent\n# another good');
+    expect(html).toMatch(/<ol>/);
+    expect(html).toMatch(/good item/);
+    expect(html).toMatch(/another good/);
+  });
+
+  // ── Unterminated block constructs ────────────────────────────────────────
+
+  it('unterminated shebang block (no !#) does not crash and produces code output', () => {
+    let html;
+    expect(() => { html = parse('#!bash\necho hi'); }).not.toThrow();
+    expect(html).toMatch(/echo hi/);
+  });
+
+  it('unterminated front matter block (no closing @@) does not crash', () => {
+    expect(() => parse('@@\ntitle: Unterminated')).not.toThrow();
+  });
+
+  it('unterminated math block (no closing $$) does not crash', () => {
+    expect(() => parse('$$\nx = 1')).not.toThrow();
+  });
+
+  it('unterminated block quote (no closing <|) does not crash', () => {
+    expect(() => parse('|>\nSome quoted text')).not.toThrow();
+  });
+
+  it('document with multiple error types still renders all safe blocks', () => {
+    // E001 (bad fm key) + W002 (malformed fm line) + W001 (unresolved anchor ref) + E003 (odd indent)
+    const src = [
+      '@@',
+      'badkey: v',
+      'no colon here',
+      'title: OK',
+      '@@',
+      '',
+      ':: Safe Heading',
+      '',
+      ' - odd-indent item',
+      '',
+      'See [#ghost] for details.',
+    ].join('\n');
+    expect(() => parse(src)).not.toThrow();
+    const html = parse(src);
+    // The heading and the front matter title must appear
+    expect(html).toMatch(/<h2 /);
+    expect(html).toMatch(/Safe Heading/);
+    expect(html).toMatch(/OK/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1002,6 +1455,105 @@ describe('§Security', () => {
     // Auto-linked URL query strings containing & must be escaped to &amp; in href attributes.
     const html = parse('https://example.com/path?a=1&b=2');
     expect(html).toMatch(/href="https:\/\/example\.com\/path\?a=1&amp;b=2"/);
+  });
+
+  // ── HTML escaping in every output context ─────────────────────────────────
+
+  it('front matter value with <script> is escaped in output', () => {
+    const html = parse('@@\ntitle: <script>alert(1)</script>\n@@');
+    expect(html).not.toMatch(/<script>/i);
+    expect(html).toMatch(/&lt;script&gt;/);
+  });
+
+  it('front matter key is HTML-escaped in output', () => {
+    // x-* extension keys go through esc() when rendered
+    const html = parse('@@\nx-desc: a & b\n@@');
+    expect(html).toMatch(/a &amp; b/);
+  });
+
+  it('inline link label with HTML chars is escaped', () => {
+    const html = parse('[https://example.com <b>click</b>]');
+    expect(html).not.toMatch(/<b>/);
+    expect(html).toMatch(/&lt;b&gt;/);
+  });
+
+  it('list item text with <script> is escaped', () => {
+    const html = parse('- <script>xss</script>');
+    expect(html).not.toMatch(/<script>/i);
+    expect(html).toMatch(/&lt;script&gt;/);
+  });
+
+  it('ordered list item text with HTML is escaped', () => {
+    const html = parse('# <b>bold</b>');
+    expect(html).not.toMatch(/<b>/);
+    expect(html).toMatch(/&lt;b&gt;/);
+  });
+
+  it('inline blockquote content with <script> is escaped', () => {
+    const html = parse('> <script>xss</script>');
+    expect(html).not.toMatch(/<script>/i);
+    expect(html).toMatch(/&lt;script&gt;/);
+  });
+
+  it('block blockquote content with <script> is escaped', () => {
+    const html = parse('|>\n<script>xss</script>\n<|');
+    expect(html).not.toMatch(/<script>/i);
+    expect(html).toMatch(/&lt;script&gt;/);
+  });
+
+  it('definition term with HTML is escaped', () => {
+    const html = parse(':= <script>xss</script>\nBody text.');
+    expect(html).not.toMatch(/<script>/i);
+    expect(html).toMatch(/&lt;script&gt;/);
+  });
+
+  it('definition body with HTML is escaped', () => {
+    const html = parse(':= Term\n<script>xss</script>');
+    expect(html).not.toMatch(/<script>/i);
+    expect(html).toMatch(/&lt;script&gt;/);
+  });
+
+  it('math block content with < and > is escaped', () => {
+    const html = parse('$$\nx < y > z\n$$');
+    expect(html).not.toMatch(/<y>/);
+    expect(html).toMatch(/x &lt; y &gt; z/);
+  });
+
+  it('code block content with <script> is escaped', () => {
+    const html = parse('#!text\n<script>alert(1)</script>\n!#');
+    expect(html).not.toMatch(/<script>/i);
+    expect(html).toMatch(/&lt;script&gt;/);
+  });
+
+  it('anchor block label with HTML chars is escaped', () => {
+    const html = parse('[#<evil> section]');
+    // The label text must be escaped in the span output
+    expect(html).not.toMatch(/<evil>/);
+    expect(html).toMatch(/&lt;evil&gt;/);
+  });
+
+  it('footnote text with HTML chars is escaped', () => {
+    const html = parse('See[^<script>xss</script>] this.');
+    expect(html).not.toMatch(/<script>/i);
+  });
+
+  it('http:// standalone line is rendered as plain escaped text (not an auto-link)', () => {
+    const html = parse('http://insecure.example.com/path');
+    // Must not produce an <a> element
+    expect(html).not.toMatch(/<a /);
+    // Content must still appear in the output
+    expect(html).toMatch(/http:\/\/insecure\.example\.com\/path/);
+  });
+
+  it('URL with " in it is escaped in href attribute to prevent attribute injection', () => {
+    // esc() must prevent attribute boundary breakout in href.
+    // The " is escaped to &quot; so no real attribute injection occurs.
+    const url = 'https://example.com/path?x=1"onmouseover="alert(1)';
+    const html = parse(url);
+    // Must not contain a literal unescaped " that would break out of the href attribute.
+    expect(html).not.toMatch(/href="[^"]*"onmouseover/);
+    // The " must be escaped to &quot;
+    expect(html).toMatch(/&quot;/);
   });
 });
 
