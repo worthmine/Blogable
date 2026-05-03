@@ -24,15 +24,15 @@ Prism.languages.blogable = {
   'task-done':     { pattern:/^\[x\] .+$/mi,          alias:'inserted' },
   'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
   'anchor-block':  { pattern:/^\[#[^\]]+\]$/m,       alias:'symbol' },
-  'url-block':     { pattern:/^https?:\/\/\S+$/m,    alias:'url' },
-  'inline-link':   { pattern:/\[https?:\/\/[^\s\]]+\s[^\]]+\]/, alias:'url' },
+  'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
+  'inline-link':   { pattern:/\[https:\/\/[^ \]\n]+[ ][^\]\n]+\]/, alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
   'anchor-ref':    { pattern:/\[#[^\]]+\]/,          alias:'symbol' },
-  'bold':    { pattern:/\*\*[^*]+\*\*/ },
-  'italic':  { pattern:/\*[^*]+\*/ },
-  'ins':     { pattern:/\+\+[^+]+\+\+/, alias:'inserted' },
-  'del':     { pattern:/~~[^~]+~~/,     alias:'deleted' },
-  'code-inline': { pattern:/`[^`]+`/,   alias:'code' },
+  'bold':    { pattern:/\*\*[^*\n]+\*\*/ },
+  'italic':  { pattern:/\*[^*\n]+\*/ },
+  'ins':     { pattern:/\+\+[^+\n]+\+\+/, alias:'inserted' },
+  'del':     { pattern:/~~[^~\n]+~~/,     alias:'deleted' },
+  'code-inline': { pattern:/`[^`\n]*`/,   alias:'code' },
   'ol': { pattern:/^\s*\d+\.\s+.+$/m, inside:{ 'ol-marker':{ pattern:/^\s*\d+\.\s+/, alias:'punctuation' } } },
   'ul': { pattern:/^\s*- .+$/m,        inside:{ 'ul-marker':{ pattern:/^\s*- /, alias:'punctuation' } } },
 };
@@ -53,6 +53,9 @@ const SHEBANG_LANG_MAP = {
   blogable:'blogable',
   ebnf:'ebnf',
 };
+
+// MetaKey の許可リスト（spec §Metadata）
+const ALLOWED_META_KEYS = new Set(['class','id','title','cite','author','alt']);
 
 // ---- ユーティリティ ----
 function slugify(text) {
@@ -130,54 +133,87 @@ let footnotes=[];
 let headingIds={};
 
 function parseInline(text) {
-  // コードスパンを最優先で分割し、内部に他のインライン置換が走らないよう保護する
-  // split の捕捉グループにより奇数インデックスがコードスパン、偶数が通常テキスト
-  const parts = text.split(/(`[^`]*`)/g);
-  return parts.map((part, i) => {
-    if (i % 2 === 1) {
-      // コードスパン内: HTMLエスケープのみ、インライン置換なし
-      const inner = part.length >= 2 ? part.slice(1, -1) : '';
-      return '<code>' + esc(inner) + '</code>';
+  // Single-pass inline parser; implements spec evaluation order:
+  // Code > Link > Footnote > AnchorRef > Strong > Emphasis > Delete > Insert > Plain
+  // Inline elements MUST NOT nest (spec §InlineSyntax).
+  // The interior of every matched span is plain-escaped text only — never re-parsed.
+  let out = '';
+  let i = 0;
+  const len = text.length;
+
+  while (i < len) {
+    let m;
+    const rest = text.slice(i);
+
+    // ── Code  `[^`\n]*`  (CodeChar ≠ ` or NL) ─────────────────
+    if ((m = rest.match(/^`([^`\n]*)`/))) {
+      out += '<code>' + esc(m[1]) + '</code>';
+      i += m[0].length; continue;
     }
-    // コードスパン外: 通常のインライン処理
-    return esc(part)
-      // リンク
-      .replace(/\[(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (match,url,label)=>{
-        if (!isSafeUrl(url)) return match;
-        return extLink(url, label);
-      })
-      // 脚注
-      .replace(/\[\^(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (match,url,alt)=>{
-        if (!isSafeUrl(url)) return match;
-        const n=footnotes.length+1; footnotes.push({n,url,text:alt});
-        return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
-      })
-      .replace(/\[\^\s*([^\]]+)\]/g, (_,text)=>{
-        const n=footnotes.length+1; footnotes.push({n,url:null,text});
-        return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
-      })
-      // 内部アンカー参照
-      .replace(/\[#([^\]]+)\]/g, (_,id)=>{
-        const slug=slugify(id);
-        const hasHeadingTarget =
-          typeof headingIds !== 'undefined' &&
-          headingIds &&
-          typeof headingIds.has === 'function' &&
-          headingIds.has(slug);
-        if (!hasHeadingTarget) {
-          console.warn(`Unresolved internal anchor reference: [#${id}]`);
-          return esc(id);
-        }
-        return `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
-      })
-      // strong / em
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      // del
-      .replace(/~~([^~]+)~~/g, '<del>$1</del>')
-      // ins
-      .replace(/\+\+([^+]+)\+\+/g, '<ins>$1</ins>');
-  }).join('');
+
+    // ── Link  [HTTPS_URL SP TEXT]  (SP = single space) ─────────
+    if ((m = rest.match(/^\[(https:\/\/[^ \]\n]+) ([^\]\n]+)\]/))) {
+      const url = m[1], label = m[2];
+      out += isSafeUrl(url) ? extLink(url, esc(label)) : esc(m[0]);
+      i += m[0].length; continue;
+    }
+
+    // ── Footnote  [^TEXT] ───────────────────────────────────────
+    if ((m = rest.match(/^\[\^([^\]\n]*)\]/))) {
+      const inner = m[1];
+      const urlM = inner.match(/^(https:\/\/\S+) (.+)$/);
+      const n = footnotes.length + 1;
+      if (urlM && isSafeUrl(urlM[1])) {
+        footnotes.push({n, url: urlM[1], text: urlM[2]});
+      } else {
+        footnotes.push({n, url: null, text: inner});
+      }
+      out += `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
+      i += m[0].length; continue;
+    }
+
+    // ── AnchorRef  [#ID] ────────────────────────────────────────
+    if ((m = rest.match(/^\[#([^\]\n]+)\]/))) {
+      const id = m[1], slug = slugify(id);
+      if (Object.hasOwn(headingIds, slug)) {
+        out += `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
+      } else {
+        console.warn(`[W001] Unresolved internal anchor reference: [#${id}]`);
+        out += esc(id);
+      }
+      i += m[0].length; continue;
+    }
+
+    // ── Strong  **[^*\n]+**  (StrongChar ≠ * or NL) ────────────
+    if ((m = rest.match(/^\*\*([^*\n]+)\*\*/))) {
+      out += '<strong>' + esc(m[1]) + '</strong>';
+      i += m[0].length; continue;
+    }
+
+    // ── Emphasis  *[^*\n]+*  (EmphasisChar ≠ * or NL) ──────────
+    if ((m = rest.match(/^\*([^*\n]+)\*/))) {
+      out += '<em>' + esc(m[1]) + '</em>';
+      i += m[0].length; continue;
+    }
+
+    // ── Delete  ~~[^~\n]+~~  (DeleteChar ≠ ~ or NL) ────────────
+    if ((m = rest.match(/^~~([^~\n]+)~~/))) {
+      out += '<del>' + esc(m[1]) + '</del>';
+      i += m[0].length; continue;
+    }
+
+    // ── Insert  ++[^+\n]++  (InsertChar ≠ + or NL) ────────────
+    if ((m = rest.match(/^\+\+([^+\n]+)\+\+/))) {
+      out += '<ins>' + esc(m[1]) + '</ins>';
+      i += m[0].length; continue;
+    }
+
+    // ── Plain: single character ─────────────────────────────────
+    out += esc(text[i]);
+    i++;
+  }
+
+  return out;
 }
 
 // ============================================================
@@ -225,9 +261,17 @@ function tokenize(lines) {
     if (t==='|>')  { tokens.push({type:'quote_open'}); mode='quote'; continue; }
     if (t==='$$')  { tokens.push({type:'math_open'}); mode='math'; continue; }
 
-    // 修飾キー @[key: value]
-    const modM=t.match(/^@\[([a-z][a-z0-9-]*):\s+(.*)\]$/);
-    if (modM) { tokens.push({type:'modifier', key:modM[1], value:modM[2]}); continue; }
+    // 修飾キー @[key: value]  — SP は単一スペース（spec: SP = " "）
+    const modM=t.match(/^@\[([a-z][a-z0-9-]*): (.*)\]$/);
+    if (modM) {
+      const mk=modM[1];
+      if (!ALLOWED_META_KEYS.has(mk) && !/^x-[a-z0-9-]+$/.test(mk)) {
+        // [E002] Unknown MetaKey: fall back to literal text (spec: errors fall back safely)
+        console.warn(`[E002] Unknown MetaKey: ${mk}. Allowed keys: ${[...ALLOWED_META_KEYS].join(', ')}, or x-* custom keys`);
+        tokens.push({type:'text', text:t}); continue;
+      }
+      tokens.push({type:'modifier', key:mk, value:modM[2]}); continue;
+    }
 
     // シバン開始
     if (t.startsWith('#!')) {
@@ -328,33 +372,38 @@ function buildAST(tokens) {
   // フロントマターパース
   const ALLOWED_FRONT_MATTER_KEYS=new Set([
     'title',
-    'slug',
-    'date',
     'author',
+    'date',
+    'updated',
+    'description',
     'tags',
-    'category',
-    'summary',
-    'cover',
-    'layout'
+    'slug',
+    'draft',
+    'lang'
   ]);
 
   function isAllowedFrontMatterKey(key) {
-    return ALLOWED_FRONT_MATTER_KEYS.has(key) || key.startsWith('x-');
+    return ALLOWED_FRONT_MATTER_KEYS.has(key) || /^x-[a-z0-9-]+$/.test(key);
   }
 
   function parseFrontLines(lines) {
     const meta={};
     for (const line of lines) {
-      const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/i);
-      if (!m) continue;
-
-      const rawKey=m[1];
-      const normalizedKey=rawKey.toLowerCase();
-      if (!isAllowedFrontMatterKey(normalizedKey)) {
-        throw new Error(`Invalid front matter key: ${rawKey}`);
+      const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/);
+      if (!m) {
+        // [W002] Non-empty lines that do not match FrontMetaLine syntax are invalid
+        if (line !== '') console.warn(`[W002] Malformed front matter line: ${line}`);
+        continue;
       }
 
-      meta[rawKey]=m[2];
+      const key=m[1];
+      if (!isAllowedFrontMatterKey(key)) {
+        // [E001] Invalid key: invalidate this construct and continue (spec: errors fall back safely)
+        console.warn(`[E001] Invalid front matter key: ${key}`);
+        continue;
+      }
+
+      meta[key]=m[2];
     }
     return meta;
   }
@@ -661,9 +710,8 @@ function astToHtml(nodes, forDisplay=false) {
   case 'paragraph': return `<p>${node.html}</p>`;
   default: return '';
 }
-```
 
-}).join('\n');
+  }).join('\n');
 
 // 脚注
 if (footnotes.length>0) {
@@ -688,27 +736,27 @@ async function copyAll(id){const node=window._cb?.[id];if(!node)return;const all
 async function copyLine(id,idx){const node=window._cb?.[id];if(!node)return;const allRows=[...(node.shebangLine?[{text:node.shebangLine}]:[]),...node.lines.map(text=>({text}))];await navigator.clipboard.writeText(allRows[idx]?.text??'');const ln=document.getElementById(`${id}-ln-${idx}`);const lc=document.getElementById(`${id}-lc-${idx}`);if(ln){ln.classList.add('copied');setTimeout(()=>ln.classList.remove('copied'),1500);}if(lc){lc.classList.add('copied');setTimeout(()=>lc.classList.remove('copied'),1500);}}
 
 // –– UI ––
-let currentTab=‘preview’;
-function switchTab(tab,btn){currentTab=tab;document.querySelectorAll(’.tab-btn’).forEach(b=>b.classList.remove(‘active’));btn.classList.add(‘active’);document.getElementById(‘preview-out’).style.display=tab===‘preview’?’’:‘none’;document.getElementById(‘html-out’).style.display=tab===‘html’?’’:‘none’;render();}
+let currentTab='preview';
+function switchTab(tab,btn){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('preview-out').style.display=tab==='preview'?'':'none';document.getElementById('html-out').style.display=tab==='html'?'':'none';render();}
 function render(){
 cbCounter=0; window._cb={}; footnotes=[];
-const src=document.getElementById(‘source’).value;
+const src=document.getElementById('source').value;
 const ast=parseToAST(src);
-if (currentTab===‘preview’) {
-document.getElementById(‘preview-out’).innerHTML=astToHtml(ast,true);
-if (window.Prism) Prism.highlightAllUnder(document.getElementById(‘preview-out’));
+if (currentTab==='preview') {
+document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
+if (window.Prism) Prism.highlightAllUnder(document.getElementById('preview-out'));
 } else {
-document.getElementById(‘html-out’).textContent=astToHtml(ast,false);
+document.getElementById('html-out').textContent=astToHtml(ast,false);
 }
 }
 let renderTimer=null;
-document.getElementById(‘source’).addEventListener(‘input’,()=>{
+document.getElementById('source').addEventListener('input',()=>{
 clearTimeout(renderTimer);
-renderTimer=setTimeout(async()=>{render();const updated=await fetchNewOgps(document.getElementById(‘source’).value);if(updated)render();},150);
+renderTimer=setTimeout(async()=>{render();const updated=await fetchNewOgps(document.getElementById('source').value);if(updated)render();},150);
 });
 
 // –– デモソース ––
-document.getElementById(‘source’).value = `@@
+document.getElementById('source').value = `@@
 title: Blogable v1.1-alpha デモ
 author: worthmine(Yuki Yoshida)
 x-version: 1.1-alpha
@@ -720,7 +768,7 @@ x-version: 1.1-alpha
 
 :: フロントマター
 
-上記の `@@` ブロックがフロントマターです。パースされてドキュメント先頭のメタデータ一覧として表示されます。
+上記の \`@@\` ブロックがフロントマターです。パースされてドキュメント先頭のメタデータ一覧として表示されます。
 
 ---
 
@@ -734,7 +782,7 @@ x-version: 1.1-alpha
 :::# 連番 h3
 :::# 連番 h3（カウント継続）
 
------
+---
 
 :: 段落
 
@@ -743,25 +791,25 @@ x-version: 1.1-alpha
 これは強調用クラスを付けた段落です。
 @[class: lead]
 
------
+---
 
 :: 用語リスト
 
 - Deterministic: A parser is deterministic when the same input always produces the same output with no ambiguity in rule application.
 - Single-pass: Processing proceeds line by line in one forward pass. No lookahead or backtracking is performed.
 
------
+---
 
 :: 用語リスト
 
 - tokenize: 行をトークン列に変換する第1段階
 - buildAST: トークン列からASTノード配列を生成する第3段階
 
------
+---
 
 :: 水平線
 
------
+---
 
 :: リスト
 
@@ -779,7 +827,7 @@ x-version: 1.1-alpha
 [ ] 未完了タスク
 [x] 完了タスク 2
 
------
+---
 
 :: 引用ブロック
 
@@ -794,7 +842,7 @@ x-version: 1.1-alpha
 @[author: 著者名]
 @[cite: 出典書籍]
 
------
+---
 
 :: 数式ブロック
 
@@ -803,17 +851,17 @@ E = mc^2
 F = ma
 $$
 
------
+---
 
 :: インライン記法
 
-**strong** *emphasis* `inline code` ++inserted++ ~~deleted~~
+**strong** *emphasis* \`inline code\` ++inserted++ ~~deleted~~
 
 リンク: [https://example.com リンクテキスト]
 
 脚注: [^https://example.com 参考リンク] [^ URLなしの補足]
 
------
+---
 
 :: URL・画像
 
@@ -823,7 +871,7 @@ https://picsum.photos/seed/blogable1/600/200.jpg
 @[alt: サンプル画像]
 @[title: 画像キャプション]
 
------
+---
 
 :: #!blogable ブロック（ハイライトデモ）
 
@@ -835,25 +883,25 @@ Definition body paragraph.
 
 [x] タスク完了
 [ ] タスク未完了
-  **bold** *italic* `code` ++ins++ ~~del~~
+  **bold** *italic* \`code\` ++ins++ ~~del~~
   [https://example.com リンク]
   @[class: lead]
   @[cite: https://example.com]
   !#
   @[title: Blogable 記法ハイライト]
 
------
+---
 
 :: #!ebnf ブロック（ハイライトデモ）
 
 #!ebnf
 Document = [ FrontMatterBlock ] , { Block } ;
 Block    = Heading | Paragraph | CodeBlock | QuoteBlock ;
-Heading  = “::” , { “:” } , SP , InlineText , NL ;
+Heading  = "::" , { ":" } , SP , InlineText , NL ;
 !#
 @[title: EBNF 記法ハイライト]
 
------
+---
 
 :: 内部アンカー
 
@@ -863,4 +911,4 @@ Heading  = “::” , { “:” } , SP , InlineText , NL ;
 `;
 
 render();
-fetchNewOgps(document.getElementById(‘source’).value).then(u=>{if(u)render();});
+fetchNewOgps(document.getElementById('source').value).then(u=>{if(u)render();});
