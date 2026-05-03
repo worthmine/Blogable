@@ -209,7 +209,14 @@ Heading  = "::" , { ":" } , SP , InlineText , NL ;
 Heading reference: [#Inline Markup]
 `;
 render();
-fetchNewOgps(document.getElementById('source').value).then(u => { if (u) render(); });
+fetchNewOgps(document.getElementById('source').value).then(u => {
+  if (u) render();
+  const el = document.getElementById('ogp-status');
+  if (el) {
+    const m = el.textContent.match(/\d+/);
+    if (m) el.textContent = `URL labels: ${m[0]} generated`;
+  }
+});
 </script>
 
 </body>
