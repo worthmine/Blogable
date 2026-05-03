@@ -796,6 +796,16 @@ async function copyLine(id,idx){const node=window._cb?.[id];if(!node)return;cons
 
 // –– UI ––
 let currentTab='preview';
+const RENDER_BLOCKED_MSG='Render blocked — resolve errors shown on the DIAGNOSTICS tab.';
+function updateDiagnosticsPanel(diags){
+  const diagOut=document.getElementById('diag-out');
+  if(!diagOut) return;
+  if(!diags.length){
+    diagOut.innerHTML='<p class="diag-ok">✓ No diagnostics</p>';
+  }else{
+    diagOut.innerHTML=diags.map(d=>`<div class="diag-item diag-${d.code[0]==='E'?'error':'warn'}"><span class="diag-code">[${d.code}]</span> ${esc(d.message)}</div>`).join('');
+  }
+}
 function switchTab(tab,btn){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('preview-out').style.display=tab==='preview'?'':'none';document.getElementById('html-out').style.display=tab==='html'?'':'none';document.getElementById('diag-out').style.display=tab==='diag'?'':'none';render();}
 function render(){
 cbCounter=0; window._cb={}; footnotes=[];
@@ -809,13 +819,15 @@ if(diagBtn){
   const badge=eCount>0?` (${eCount}E)`:(wCount>0?` (${wCount}W)`:'');
   diagBtn.dataset.count=badge;
 }
-const diagOut=document.getElementById('diag-out');
-if(diagOut){
-  if(!diags.length){
-    diagOut.innerHTML='<p class="diag-ok">✓ No diagnostics</p>';
-  }else{
-    diagOut.innerHTML=diags.map(d=>`<div class="diag-item diag-${d.code[0]==='E'?'error':'warn'}"><span class="diag-code">[${d.code}]</span> ${esc(d.message)}</div>`).join('');
+updateDiagnosticsPanel(diags);
+const hasErrors=diags.some(d=>d.code[0]==='E');
+if(hasErrors){
+  if(currentTab==='preview'){
+    document.getElementById('preview-out').innerHTML=`<p class="render-blocked">⛔ ${RENDER_BLOCKED_MSG}</p>`;
+  }else if(currentTab==='html'){
+    document.getElementById('html-out').textContent=`// ${RENDER_BLOCKED_MSG}`;
   }
+  return;
 }
 if (currentTab==='preview') {
 document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
