@@ -340,7 +340,7 @@ describe('§Lists', () => {
   });
 
   it('ordered list items → <ol><li>…</li></ol>', () => {
-    const src = '1. First\n2. Second';
+    const src = '# First\n# Second';
     const html = parse(src);
     expect(html).toMatch(/<ol>/);
     expect(html).toMatch(/<li>First<\/li>/);
@@ -828,8 +828,8 @@ describe('§Tokenizer', () => {
     expect(toks[0].type).toBe('ul');
   });
 
-  it('1. item → ol token', () => {
-    const toks = tokenize('1. item text');
+  it('# item → ol token', () => {
+    const toks = tokenize('# item text');
     expect(toks[0].type).toBe('ol');
   });
 

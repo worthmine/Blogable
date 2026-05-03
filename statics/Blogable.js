@@ -33,7 +33,7 @@ Prism.languages.blogable = {
   'ins':     { pattern:/\+\+[^+\n]+\+\+/, alias:'inserted' },
   'del':     { pattern:/~~[^~\n]+~~/,     alias:'deleted' },
   'code-inline': { pattern:/`[^`\n]*`/,   alias:'code' },
-  'ol': { pattern:/^\s*\d+\.\s+.+$/m, inside:{ 'ol-marker':{ pattern:/^\s*\d+\.\s+/, alias:'punctuation' } } },
+  'ol': { pattern:/^\s*# .+$/m, inside:{ 'ol-marker':{ pattern:/^\s*# /, alias:'punctuation' } } },
   'ul': { pattern:/^\s*- .+$/m,        inside:{ 'ul-marker':{ pattern:/^\s*- /, alias:'punctuation' } } },
 };
 
@@ -309,9 +309,9 @@ function tokenize(lines) {
       tokens.push({type:'ul', indent:ulM[1].length, text:ulM[2]}); continue;
     }
 
-    // ol: 1. item  2. item など（インデントはスペースのみ・2個単位）
-    const olM=raw.match(/^((?:  )*)(\d+)\.\s+(.*)/);
-    if (olM) { tokens.push({type:'ol', indent:olM[1].length, text:olM[3]}); continue; }
+    // ol: # item（インデントはスペースのみ・2個単位）
+    const olM=raw.match(/^((?:  )*)#\s+(.*)/);
+    if (olM) { tokens.push({type:'ol', indent:olM[1].length, text:olM[2]}); continue; }
 
     // URL単独行（buildAST で安全に扱える HTTPS のみを URL ブロック化する）
     if (/^https:\/\/\S+$/.test(t)) { tokens.push({type:'url', url:t}); continue; }
@@ -820,9 +820,9 @@ x-version: 1.1-alpha
   - ネスト B-2
 - ul アイテム C
 
-1. ol アイテム 1
-1. ol アイテム 2
-1. ol アイテム 3
+# ol アイテム 1
+# ol アイテム 2
+# ol アイテム 3
 
 [x] 完了タスク
 [ ] 未完了タスク
