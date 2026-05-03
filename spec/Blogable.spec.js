@@ -757,8 +757,8 @@ describe('§Security', () => {
     expect(html).not.toMatch(/href="ftp:\/\//);
   });
 
-  it('image src attribute value is HTML-escaped (& → &amp;)', () => {
-    // URL query strings containing & must be escaped to &amp; in HTML attributes.
+  it('auto-linked URL href attribute value is HTML-escaped (& → &amp;)', () => {
+    // Auto-linked URL query strings containing & must be escaped to &amp; in href attributes.
     const html = parse('https://example.com/path?a=1&b=2');
     expect(html).toMatch(/href="https:\/\/example\.com\/path\?a=1&amp;b=2"/);
   });
