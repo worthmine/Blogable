@@ -51,12 +51,6 @@ Block = Heading
       | CodeBlock
       | BlogableBlock
       | EbnfBlock
-      | PerlBlock
-      | PythonBlock
-      | RustBlock
-      | GoBlock
-      | SwiftBlock
-      | ShellBlock
       | QuoteBlock
       | MathBlock
       | UrlBlock
@@ -149,11 +143,12 @@ HorizontalRule = "---" , NL ;
 
 ```ebnf
 CodeBlock =
-  "#!" , TEXT , NL ,
+  "#!" , LangTag , NL ,
   { CodeLine , NL } ,
   "!#" , NL ,
   { Meta } ;
 
+LangTag = TEXT ;
 CodeLine = TEXT ;
 ```
 
@@ -162,6 +157,26 @@ CodeLine = TEXT ;
 Code blocks are literal regions.
 Inline parsing is disabled inside code blocks.
 A line beginning with `\!#` MUST be treated as a literal `!#`.
+
+The opener `#!<lang>` sets the `language-<lang>` class on the rendered block.
+A native shebang line (`#!/path/to/interpreter` or `#!/usr/bin/env <cmd>`) is also accepted as a block opener; the interpreter name is mapped to a canonical language class via the shebang map.
+
+Recognised language tags and shebang aliases:
+
+| Language class | `#!` tags | Accepted shebang commands |
+|---|---|---|
+| `javascript` | `javascript`, `node`, `nodejs` | — |
+| `python` | `python`, `python2`, `python3` | `python3`, `python`, `env python`, `env python3` |
+| `ruby` | `ruby` | — |
+| `perl` | `perl` | `perl`, `env perl` |
+| `bash` | `bash`, `sh`, `zsh` | `bash`, `sh`, `zsh`, `env bash`, `env zsh` |
+| `php` | `php` | — |
+| `lua` | `lua` | — |
+| `rust` | `rust` | — |
+| `go` | `go` | — |
+| `swift` | `swift` | `swift`, `env swift` |
+| `text` | `text` | — |
+| *(any)* | any other tag | — |
 
 ---
 
@@ -196,114 +211,6 @@ EbnfBlock =
 
 Ebnf blocks present grammar definitions literally.
 No re-parse is performed inside the block.
-
----
-
-## Perl Blocks
-
-```ebnf
-PerlBlock =
-  "#!perl" , NL ,
-  { CodeLine , NL } ,
-  "!#" , NL ,
-  { Meta } ;
-```
-
-**PerlBlock**
-
-Perl blocks present Perl source code literally.
-No re-parse is performed inside the block.
-The shebang lines `#!/usr/bin/perl` and `#!/usr/bin/env perl` are also accepted as block openers.
-
----
-
-## Python Blocks
-
-```ebnf
-PythonBlock =
-  "#!python" , NL ,
-  { CodeLine , NL } ,
-  "!#" , NL ,
-  { Meta } ;
-```
-
-**PythonBlock**
-
-Python blocks present Python source code literally.
-No re-parse is performed inside the block.
-The shebang lines `#!/usr/bin/python3`, `#!/usr/bin/env python`, and `#!/usr/bin/env python3` are also accepted as block openers.
-`python2` and `python3` are normalised to the `python` language class.
-
----
-
-## Rust Blocks
-
-```ebnf
-RustBlock =
-  "#!rust" , NL ,
-  { CodeLine , NL } ,
-  "!#" , NL ,
-  { Meta } ;
-```
-
-**RustBlock**
-
-Rust blocks present Rust source code literally.
-No re-parse is performed inside the block.
-
----
-
-## Go Blocks
-
-```ebnf
-GoBlock =
-  "#!go" , NL ,
-  { CodeLine , NL } ,
-  "!#" , NL ,
-  { Meta } ;
-```
-
-**GoBlock**
-
-Go blocks present Go source code literally.
-No re-parse is performed inside the block.
-
----
-
-## Swift Blocks
-
-```ebnf
-SwiftBlock =
-  "#!swift" , NL ,
-  { CodeLine , NL } ,
-  "!#" , NL ,
-  { Meta } ;
-```
-
-**SwiftBlock**
-
-Swift blocks present Swift source code literally.
-No re-parse is performed inside the block.
-The shebang lines `#!/usr/bin/swift` and `#!/usr/bin/env swift` are also accepted as block openers.
-
----
-
-## Shell Blocks
-
-```ebnf
-ShellBlock =
-  "#!bash" , NL ,
-  { CodeLine , NL } ,
-  "!#" , NL ,
-  { Meta } ;
-```
-
-**ShellBlock**
-
-Shell blocks present shell script source code literally.
-No re-parse is performed inside the block.
-The openers `#!sh` and `#!zsh` are also accepted; all three normalise to the `bash` language class.
-The shebang lines `#!/bin/bash`, `#!/bin/sh`, `#!/bin/zsh`, `#!/usr/bin/env bash`, and `#!/usr/bin/env zsh` are also accepted as block openers.
 
 ---
 
