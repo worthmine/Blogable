@@ -624,7 +624,7 @@ function buildAST(tokens) {
         lines.push(tokens[i].text);
         i++;
       }
-      nodes.push({type:'paragraph', html:parseInline(lines.join('\n'))});
+      nodes.push({type:'paragraph', html:lines.map(l=>parseInline(l)).join('<br>')});
       continue;
     }
 
