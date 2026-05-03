@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blogable Parser v1.1-alpha — Live Demo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="statics/Blogable.css">
+
+</head>
+<body>
+<header>
+  <span class="logo">Blogable</span>
+  <span class="version">parser v1.1-alpha</span>
+  <span id="ogp-status"></span>
+</header>
+<div class="main">
+  <div class="pane pane-left">
+    <div class="pane-label">SOURCE</div>
+    <textarea id="source" spellcheck="false"></textarea>
+  </div>
+  <div class="pane">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('preview',this)">PREVIEW</button>
+      <button class="tab-btn"        onclick="switchTab('html',this)">HTML</button>
+    </div>
+    <div class="output">
+      <div id="preview-out" class="bp" style="line-height:1.9;font-size:15px;"></div>
+      <pre id="html-out" style="display:none"></pre>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-ruby.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
+
+<script src="statics/Blogable.js"></script>
+
+<script>
+// Override demo source with English content
+document.getElementById('source').value = `@@
+title: Blogable v1.1-alpha Demo
+author: worthmine(Yuki Yoshida)
+x-version: 1.1-alpha
+@@
+
+:: Blogable v1.1-alpha Demo
+
+---
+
+:: Front Matter
+
+The \`@@\` block above is the front matter. It is parsed and displayed as a metadata
+list at the top of the document.
+
+---
+
+:: Headings
+
+:: h2 Heading
+
+::: h3 Heading
+
+:::: h4 Heading
+
+::# Numbered h2
+:::# Numbered h3
+:::# Numbered h3 (counter continues)
+
+---
+
+:: Paragraphs
+
+A regular line of text becomes a paragraph.
+
+This paragraph has a lead class applied to it.
+@[class: lead]
+
+---
+
+:: Bullet List
+
+- Item A
+- Item B
+  - Nested B-1
+  - Nested B-2
+- Item C
+
+---
+
+:: Ordered List
+
+1. First item
+1. Second item
+1. Third item
+
+---
+
+:: Task List
+
+[x] Completed task
+[ ] Open task
+[x] Another completed task
+
+---
+
+:: Definition List
+
+:= Deterministic
+A parser is deterministic when the same input always produces the same output with no ambiguity.
+
+:= Single-pass
+Processing proceeds line by line in one forward pass — no lookahead or backtracking.
+
+---
+
+:: Horizontal Rule
+
+---
+
+:: Block Quote
+
+> A single-line block quote.
+
+|>
+A multi-line block quote.
+**Inline markup** works inside quotes too.
+
+A blank line starts a new paragraph within the block.
+<|
+@[author: Author Name]
+@[cite: Source Title]
+
+---
+
+:: Math Block
+
+$$
+E = mc^2
+F = ma
+$$
+
+---
+
+:: Inline Markup
+
+**strong** *emphasis* \`inline code\` ++inserted++ ~~deleted~~
+
+Link: [https://example.com link text]
+
+Footnote with URL: [^https://example.com reference] [^ note without URL]
+
+---
+
+:: URL & Image
+
+https://www.wikipedia.org/
+
+https://picsum.photos/seed/blogable1/600/200.jpg
+@[alt: Sample image]
+@[title: Image caption]
+
+---
+
+:: Code Block (Blogable highlight demo)
+
+#!blogable
+:: h2 Heading
+::: h3 Heading
+:= Term
+Definition body paragraph.
+
+[x] Done task
+[ ] Open task
+  **bold** *italic* \`code\` ++ins++ ~~del~~
+  [https://example.com link]
+  @[class: lead]
+  @[cite: https://example.com]
+!#
+@[title: Blogable syntax highlight]
+
+---
+
+:: EBNF Block (highlight demo)
+
+#!ebnf
+Document = [ FrontMatterBlock ] , { Block } ;
+Block    = Heading | Paragraph | CodeBlock | QuoteBlock ;
+Heading  = "::" , { ":" } , SP , InlineText , NL ;
+!#
+@[title: EBNF syntax highlight]
+
+---
+
+:: Internal Anchor
+
+[#blogable-v11-alpha-demo]
+
+Heading reference: [#Inline Markup]
+`;
+render();
+fetchNewOgps(document.getElementById('source').value).then(u => {
+  if (u) render();
+  const el = document.getElementById('ogp-status');
+  if (el) {
+    const m = el.textContent.match(/(\d+)件/);
+    el.textContent = m ? `URL labels: ${m[1]} generated` : 'URL labels: status unavailable';
+  }
+});
+</script>
+
+</body>
+</html>
