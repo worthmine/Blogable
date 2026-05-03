@@ -25,14 +25,14 @@ Prism.languages.blogable = {
   'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
   'anchor-block':  { pattern:/^\[#[^\]]+\]$/m,       alias:'symbol' },
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
-  'inline-link':   { pattern:/\[https:\/\/[^\s\]]+\s[^\]]+\]/, alias:'url' },
+  'inline-link':   { pattern:/\[https:\/\/[^ \]\n]+[ ][^\]\n]+\]/, alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
   'anchor-ref':    { pattern:/\[#[^\]]+\]/,          alias:'symbol' },
   'bold':    { pattern:/\*\*[^*\n]+\*\*/ },
   'italic':  { pattern:/\*[^*\n]+\*/ },
   'ins':     { pattern:/\+\+[^+\n]+\+\+/, alias:'inserted' },
   'del':     { pattern:/~~[^~\n]+~~/,     alias:'deleted' },
-  'code-inline': { pattern:/`[^`\n]+`/,   alias:'code' },
+  'code-inline': { pattern:/`[^`\n]*`/,   alias:'code' },
   'ol': { pattern:/^\s*\d+\.\s+.+$/m, inside:{ 'ol-marker':{ pattern:/^\s*\d+\.\s+/, alias:'punctuation' } } },
   'ul': { pattern:/^\s*- .+$/m,        inside:{ 'ul-marker':{ pattern:/^\s*- /, alias:'punctuation' } } },
 };
@@ -133,50 +133,87 @@ let footnotes=[];
 let headingIds={};
 
 function parseInline(text) {
-  // コードスパンを最優先で分割し、内部に他のインライン置換が走らないよう保護する
-  // split の捕捉グループにより奇数インデックスがコードスパン、偶数が通常テキスト
-  const parts = text.split(/(`[^`\n]*`)/g);
-  return parts.map((part, i) => {
-    if (i % 2 === 1) {
-      // コードスパン内: HTMLエスケープのみ、インライン置換なし
-      const inner = part.length >= 2 ? part.slice(1, -1) : '';
-      return '<code>' + esc(inner) + '</code>';
+  // Single-pass inline parser; implements spec evaluation order:
+  // Code > Link > Footnote > AnchorRef > Strong > Emphasis > Delete > Insert > Plain
+  // Inline elements MUST NOT nest (spec §InlineSyntax).
+  // The interior of every matched span is plain-escaped text only — never re-parsed.
+  let out = '';
+  let i = 0;
+  const len = text.length;
+
+  while (i < len) {
+    let m;
+    const rest = text.slice(i);
+
+    // ── Code  `[^`\n]*`  (CodeChar ≠ ` or NL) ─────────────────
+    if ((m = rest.match(/^`([^`\n]*)`/))) {
+      out += '<code>' + esc(m[1]) + '</code>';
+      i += m[0].length; continue;
     }
-    // コードスパン外: 通常のインライン処理
-    return esc(part)
-      // リンク
-      .replace(/\[(https:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (match,url,label)=>{
-        if (!isSafeUrl(url)) return match;
-        return extLink(url, label);
-      })
-      // 脚注
-      .replace(/\[\^(https:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (match,url,alt)=>{
-        if (!isSafeUrl(url)) return match;
-        const n=footnotes.length+1; footnotes.push({n,url,text:alt});
-        return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
-      })
-      .replace(/\[\^\s*([^\]]+)\]/g, (_,text)=>{
-        const n=footnotes.length+1; footnotes.push({n,url:null,text});
-        return `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
-      })
-      // 内部アンカー参照
-      .replace(/\[#([^\]]+)\]/g, (_,id)=>{
-        const slug=slugify(id);
-        const hasHeadingTarget = headingIds[slug];
-        if (!hasHeadingTarget) {
-          console.warn(`Unresolved internal anchor reference: [#${id}]`);
-          return esc(id);
-        }
-        return `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
-      })
-      // strong / em
-      .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
-      // del
-      .replace(/~~([^~\n]+)~~/g, '<del>$1</del>')
-      // ins
-      .replace(/\+\+([^+\n]+)\+\+/g, '<ins>$1</ins>');
-  }).join('');
+
+    // ── Link  [HTTPS_URL SP TEXT]  (SP = single space) ─────────
+    if ((m = rest.match(/^\[(https:\/\/[^ \]\n]+) ([^\]\n]+)\]/))) {
+      const url = m[1], label = m[2];
+      out += isSafeUrl(url) ? extLink(url, esc(label)) : esc(m[0]);
+      i += m[0].length; continue;
+    }
+
+    // ── Footnote  [^TEXT] ───────────────────────────────────────
+    if ((m = rest.match(/^\[\^([^\]\n]*)\]/))) {
+      const inner = m[1];
+      const urlM = inner.match(/^(https:\/\/\S+) (.+)$/);
+      const n = footnotes.length + 1;
+      if (urlM && isSafeUrl(urlM[1])) {
+        footnotes.push({n, url: urlM[1], text: urlM[2]});
+      } else {
+        footnotes.push({n, url: null, text: inner});
+      }
+      out += `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
+      i += m[0].length; continue;
+    }
+
+    // ── AnchorRef  [#ID] ────────────────────────────────────────
+    if ((m = rest.match(/^\[#([^\]\n]+)\]/))) {
+      const id = m[1], slug = slugify(id);
+      if (Object.hasOwn(headingIds, slug)) {
+        out += `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
+      } else {
+        console.warn(`[W001] Unresolved internal anchor reference: [#${id}]`);
+        out += esc(id);
+      }
+      i += m[0].length; continue;
+    }
+
+    // ── Strong  **[^*\n]+**  (StrongChar ≠ * or NL) ────────────
+    if ((m = rest.match(/^\*\*([^*\n]+)\*\*/))) {
+      out += '<strong>' + esc(m[1]) + '</strong>';
+      i += m[0].length; continue;
+    }
+
+    // ── Emphasis  *[^*\n]+*  (EmphasisChar ≠ * or NL) ──────────
+    if ((m = rest.match(/^\*([^*\n]+)\*/))) {
+      out += '<em>' + esc(m[1]) + '</em>';
+      i += m[0].length; continue;
+    }
+
+    // ── Delete  ~~[^~\n]+~~  (DeleteChar ≠ ~ or NL) ────────────
+    if ((m = rest.match(/^~~([^~\n]+)~~/))) {
+      out += '<del>' + esc(m[1]) + '</del>';
+      i += m[0].length; continue;
+    }
+
+    // ── Insert  ++[^+\n]++  (InsertChar ≠ + or NL) ────────────
+    if ((m = rest.match(/^\+\+([^+\n]+)\+\+/))) {
+      out += '<ins>' + esc(m[1]) + '</ins>';
+      i += m[0].length; continue;
+    }
+
+    // ── Plain: single character ─────────────────────────────────
+    out += esc(text[i]);
+    i++;
+  }
+
+  return out;
 }
 
 // ============================================================
@@ -228,8 +265,11 @@ function tokenize(lines) {
     const modM=t.match(/^@\[([a-z][a-z0-9-]*): (.*)\]$/);
     if (modM) {
       const mk=modM[1];
-      if (!ALLOWED_META_KEYS.has(mk) && !/^x-[a-z0-9-]+$/.test(mk))
-        console.warn(`Unknown MetaKey: ${mk}. Allowed keys: ${[...ALLOWED_META_KEYS].join(', ')}, or x-* custom keys`);
+      if (!ALLOWED_META_KEYS.has(mk) && !/^x-[a-z0-9-]+$/.test(mk)) {
+        // [E002] Unknown MetaKey: fall back to literal text (spec: errors fall back safely)
+        console.warn(`[E002] Unknown MetaKey: ${mk}. Allowed keys: ${[...ALLOWED_META_KEYS].join(', ')}, or x-* custom keys`);
+        tokens.push({type:'text', text:t}); continue;
+      }
       tokens.push({type:'modifier', key:mk, value:modM[2]}); continue;
     }
 
@@ -350,11 +390,17 @@ function buildAST(tokens) {
     const meta={};
     for (const line of lines) {
       const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/);
-      if (!m) continue;
+      if (!m) {
+        // [W002] Non-empty lines that do not match FrontMetaLine syntax are invalid
+        if (line !== '') console.warn(`[W002] Malformed front matter line: ${line}`);
+        continue;
+      }
 
       const key=m[1];
       if (!isAllowedFrontMatterKey(key)) {
-        throw new Error(`Invalid front matter key: ${key}`);
+        // [E001] Invalid key: invalidate this construct and continue (spec: errors fall back safely)
+        console.warn(`[E001] Invalid front matter key: ${key}`);
+        continue;
       }
 
       meta[key]=m[2];
