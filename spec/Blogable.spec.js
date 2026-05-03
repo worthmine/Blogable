@@ -220,6 +220,91 @@ describe('§CodeBlocks', () => {
     expect(html).toMatch(/language-perl/);
     expect(html).toMatch(/\$#arr/);
   });
+
+  it('#!python block is rendered as a code block with lang="python"', () => {
+    const src = '#!python\nprint("hello")\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-python/);
+    expect(html).toMatch(/print/);
+  });
+
+  it('#!/usr/bin/python3 shebang opens a python code block', () => {
+    const src = '#!/usr/bin/python3\nimport sys\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-python/);
+    expect(html).toMatch(/import sys/);
+  });
+
+  it('#!/usr/bin/env python3 shebang opens a python code block', () => {
+    const src = '#!/usr/bin/env python3\nx = 1\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-python/);
+  });
+
+  it('#!rust block is rendered as a code block with lang="rust"', () => {
+    const src = '#!rust\nfn main() {}\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-rust/);
+    expect(html).toMatch(/fn main/);
+  });
+
+  it('#!go block is rendered as a code block with lang="go"', () => {
+    const src = '#!go\npackage main\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-go/);
+    expect(html).toMatch(/package main/);
+  });
+
+  it('#!swift block is rendered as a code block with lang="swift"', () => {
+    const src = '#!swift\nprint("hi")\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-swift/);
+  });
+
+  it('#!/usr/bin/swift shebang opens a swift code block', () => {
+    const src = '#!/usr/bin/swift\nlet x = 1\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-swift/);
+    expect(html).toMatch(/let x/);
+  });
+
+  it('#!/usr/bin/env swift shebang opens a swift code block', () => {
+    const src = '#!/usr/bin/env swift\nvar y = 2\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-swift/);
+  });
+
+  it('#!bash block is rendered as a code block with lang="bash"', () => {
+    const src = '#!bash\necho "hello"\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-bash/);
+    expect(html).toMatch(/echo/);
+  });
+
+  it('#!sh block normalises to lang="bash"', () => {
+    const src = '#!sh\necho "hi"\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-bash/);
+  });
+
+  it('#!zsh block normalises to lang="bash"', () => {
+    const src = '#!zsh\necho "zsh"\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-bash/);
+  });
+
+  it('#!/bin/bash shebang opens a bash code block', () => {
+    const src = '#!/bin/bash\nset -e\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-bash/);
+    expect(html).toMatch(/set -e/);
+  });
+
+  it('#!/usr/bin/env bash shebang opens a bash code block', () => {
+    const src = '#!/usr/bin/env bash\necho ok\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-bash/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

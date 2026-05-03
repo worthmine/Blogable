@@ -51,6 +51,7 @@ const SHEBANG_LANG_MAP = {
   ruby:'ruby', perl:'perl',
   bash:'bash', sh:'bash', zsh:'bash',
   php:'php', lua:'lua',
+  rust:'rust', go:'go', swift:'swift',
   blogable:'blogable',
   ebnf:'ebnf',
 };

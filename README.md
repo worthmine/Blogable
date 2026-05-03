@@ -52,6 +52,11 @@ Block = Heading
       | BlogableBlock
       | EbnfBlock
       | PerlBlock
+      | PythonBlock
+      | RustBlock
+      | GoBlock
+      | SwiftBlock
+      | ShellBlock
       | QuoteBlock
       | MathBlock
       | UrlBlock
@@ -209,6 +214,96 @@ PerlBlock =
 Perl blocks present Perl source code literally.
 No re-parse is performed inside the block.
 The shebang lines `#!/usr/bin/perl` and `#!/usr/bin/env perl` are also accepted as block openers.
+
+---
+
+## Python Blocks
+
+```ebnf
+PythonBlock =
+  "#!python" , NL ,
+  { CodeLine , NL } ,
+  "!#" , NL ,
+  { Meta } ;
+```
+
+**PythonBlock**
+
+Python blocks present Python source code literally.
+No re-parse is performed inside the block.
+The shebang lines `#!/usr/bin/python3`, `#!/usr/bin/env python`, and `#!/usr/bin/env python3` are also accepted as block openers.
+`python2` and `python3` are normalised to the `python` language class.
+
+---
+
+## Rust Blocks
+
+```ebnf
+RustBlock =
+  "#!rust" , NL ,
+  { CodeLine , NL } ,
+  "!#" , NL ,
+  { Meta } ;
+```
+
+**RustBlock**
+
+Rust blocks present Rust source code literally.
+No re-parse is performed inside the block.
+
+---
+
+## Go Blocks
+
+```ebnf
+GoBlock =
+  "#!go" , NL ,
+  { CodeLine , NL } ,
+  "!#" , NL ,
+  { Meta } ;
+```
+
+**GoBlock**
+
+Go blocks present Go source code literally.
+No re-parse is performed inside the block.
+
+---
+
+## Swift Blocks
+
+```ebnf
+SwiftBlock =
+  "#!swift" , NL ,
+  { CodeLine , NL } ,
+  "!#" , NL ,
+  { Meta } ;
+```
+
+**SwiftBlock**
+
+Swift blocks present Swift source code literally.
+No re-parse is performed inside the block.
+The shebang lines `#!/usr/bin/swift` and `#!/usr/bin/env swift` are also accepted as block openers.
+
+---
+
+## Shell Blocks
+
+```ebnf
+ShellBlock =
+  "#!bash" , NL ,
+  { CodeLine , NL } ,
+  "!#" , NL ,
+  { Meta } ;
+```
+
+**ShellBlock**
+
+Shell blocks present shell script source code literally.
+No re-parse is performed inside the block.
+The openers `#!sh` and `#!zsh` are also accepted; all three normalise to the `bash` language class.
+The shebang lines `#!/bin/bash`, `#!/bin/sh`, `#!/bin/zsh`, `#!/usr/bin/env bash`, and `#!/usr/bin/env zsh` are also accepted as block openers.
 
 ---
 
