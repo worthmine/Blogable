@@ -807,7 +807,7 @@ if(diagBtn){
   const eCount=diags.filter(d=>d.code[0]==='E').length;
   const wCount=diags.filter(d=>d.code[0]==='W').length;
   const badge=eCount>0?` (${eCount}E)`:(wCount>0?` (${wCount}W)`:'');
-  if(diagBtn.dataset) diagBtn.dataset.count=badge;
+  diagBtn.dataset.count=badge;
 }
 if (currentTab==='preview') {
 document.getElementById('preview-out').innerHTML=astToHtml(ast,true);

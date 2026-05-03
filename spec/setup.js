@@ -23,6 +23,7 @@ function makeFakeElement() {
     textContent: '',
     innerHTML: '',
     classList: { add() {}, remove() {} },
+    dataset: {},
   };
 }
 
