@@ -193,6 +193,33 @@ describe('§CodeBlocks', () => {
     const html = parse(src);
     expect(html).toMatch(/language-ebnf/);
   });
+
+  it('#!perl block is rendered as a code block with lang="perl"', () => {
+    const src = '#!perl\nprint "Hello, World!\\n";\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-perl/);
+    expect(html).toMatch(/Hello, World!/);
+  });
+
+  it('#!/usr/bin/perl shebang opens a perl code block', () => {
+    const src = '#!/usr/bin/perl\nuse strict;\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-perl/);
+    expect(html).toMatch(/use strict/);
+  });
+
+  it('#!/usr/bin/env perl shebang opens a perl code block', () => {
+    const src = '#!/usr/bin/env perl\nuse warnings;\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-perl/);
+  });
+
+  it('perl code block: $# is treated as literal code (no block close)', () => {
+    const src = '#!perl\nmy @arr = (1, 2, 3);\nprint $#arr;\n!#';
+    const html = parse(src);
+    expect(html).toMatch(/language-perl/);
+    expect(html).toMatch(/\$#arr/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

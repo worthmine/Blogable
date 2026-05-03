@@ -51,6 +51,7 @@ Block = Heading
       | CodeBlock
       | BlogableBlock
       | EbnfBlock
+      | PerlBlock
       | QuoteBlock
       | MathBlock
       | UrlBlock
@@ -190,6 +191,24 @@ EbnfBlock =
 
 Ebnf blocks present grammar definitions literally.
 No re-parse is performed inside the block.
+
+---
+
+## Perl Blocks
+
+```ebnf
+PerlBlock =
+  "#!perl" , NL ,
+  { CodeLine , NL } ,
+  "!#" , NL ,
+  { Meta } ;
+```
+
+**PerlBlock**
+
+Perl blocks present Perl source code literally.
+No re-parse is performed inside the block.
+The shebang lines `#!/usr/bin/perl` and `#!/usr/bin/env perl` are also accepted as block openers.
 
 ---
 
