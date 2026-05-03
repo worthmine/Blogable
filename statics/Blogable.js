@@ -148,6 +148,8 @@ function getBlogableDiagnostics(){ return diagnostics.slice(); }
 let footnotes=[];
 // ヘッドのIDマップ（内部アンカー解決用）
 let headingIds={};
+// 定義用語の重複チェック
+let definitionTerms=new Set();
 
 function parseInline(text) {
   // Single-pass inline parser; implements spec evaluation order:
@@ -305,6 +307,13 @@ function tokenize(lines) {
     const plnH=t.match(/^(:{2,6})\s+(.*)/);
     if (plnH) { tokens.push({type:'heading', colons:plnH[1].length, numbered:false, text:plnH[2]}); continue; }
 
+    // 見出しレベル超過（7コロン以上） — [E004]: fall back to text
+    const overH=t.match(/^(:{7,})(\s|#)/);
+    if (overH) {
+      pushDiag('E004',`Heading level out of range: ${overH[1].length} colons. The maximum heading level is h6 (6 colons).`);
+      tokens.push({type:'text', text:t}); continue;
+    }
+
     // 1行引用
     if (t.startsWith('> ')) { tokens.push({type:'bq_inline', text:t.slice(2)}); continue; }
 
@@ -347,6 +356,11 @@ function tokenize(lines) {
     // 通常テキスト
     tokens.push({type:'text', text:t});
   }
+  // 未閉鎖ブロックの検知 — EOF 時点でブロックが閉じていない場合に警告を発する
+  if (mode==='front')   pushDiag('W003','Unterminated front matter block: missing closing @@');
+  if (mode==='shebang') pushDiag('W004','Unterminated code block: missing closing !#');
+  if (mode==='quote')   pushDiag('W005','Unterminated quote block: missing closing <|');
+  if (mode==='math')    pushDiag('W006','Unterminated math block: missing closing $$');
   return tokens;
 }
 
@@ -529,6 +543,17 @@ function buildAST(tokens) {
         }
         break;
       }
+      // [E005] 定義本文（DD）が空の場合 — spec: DefinitionBlock requires at least one paragraph (DD)
+      if (ddLines.length===0) {
+        pushDiag('E005',`Definition block for "${term}" has no body text. A DefinitionBlock requires at least one paragraph (DD).`);
+      }
+      // [W007] 定義用語の重複 — spec: Definition-list terms are unique across the document
+      const termKey=term.toLowerCase();
+      if (definitionTerms.has(termKey)) {
+        pushDiag('W007',`Duplicate definition term: "${term}" is already defined in this document.`);
+      } else {
+        definitionTerms.add(termKey);
+      }
       const mods=cm();
       const termHtml=parseInline(term);
       const ddHtml=ddLines.map(l=>`<p>${parseInline(l)}</p>`).join('\n');
@@ -644,6 +669,10 @@ function buildAST(tokens) {
       continue;
     }
 
+    // [W008] 孤立したモディファイア — どのブロックにも消費されなかった修飾キー
+    if (tok.type==='modifier') {
+      pushDiag('W008',`Orphaned modifier @[${tok.key}: ${tok.value}]: not associated with any block. Modifiers must immediately follow a block that accepts them, with no intervening blank lines.`);
+    }
     i++;
   }
   return nodes;
@@ -787,6 +816,7 @@ function parseToAST(src) {
 headingIds={};
 footnotes=[];
 diagnostics=[];
+definitionTerms=new Set();
 return buildAST(tokenize(src.split('\n')));
 }
 

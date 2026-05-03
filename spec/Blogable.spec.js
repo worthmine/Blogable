@@ -959,7 +959,223 @@ describe('§Diagnostics', () => {
     expect(() => parse('     # five-space indent')).not.toThrow();
   });
 
-  // ── Warning quality — each message helps the user understand the problem ──
+  // ── E004: heading level out of range ─────────────────────────────────────
+
+  it('[E004] is emitted for a heading with 7 colons', () => {
+    parse(':::::::: Heading Seven');
+    expect(getDiagnostics().some(d => d.code === 'E004')).toBe(true);
+  });
+
+  it('[E004] is emitted for a numbered heading with 7 colons', () => {
+    parse(':::::::# Numbered Heading Seven');
+    expect(getDiagnostics().some(d => d.code === 'E004')).toBe(true);
+  });
+
+  it('[E004] diagnostic message mentions the colon count and the h6 maximum', () => {
+    parse(':::::::: Too Deep');
+    const msg = getDiagnostics().find(d => d.code === 'E004')?.message || '';
+    expect(msg).toMatch(/6/);
+  });
+
+  it('[E004] falls back to plain text (does not emit a heading element)', () => {
+    const html = parse(':::::::: Too Deep');
+    expect(html).not.toMatch(/<h[0-9]/);
+    expect(html).toMatch(/Too Deep/);
+  });
+
+  it('exactly 6 colons (h6) does NOT emit [E004]', () => {
+    parse(':::::: Valid h6');
+    expect(getDiagnostics().some(d => d.code === 'E004')).toBe(false);
+  });
+
+  // ── E005: definition block with no body ──────────────────────────────────
+
+  it('[E005] is emitted for a definition block with no body', () => {
+    parse(':= TermOnly');
+    expect(getDiagnostics().some(d => d.code === 'E005')).toBe(true);
+  });
+
+  it('[E005] diagnostic carries the term name in its message', () => {
+    parse(':= TermOnly');
+    expect(getDiagnostics().find(d => d.code === 'E005')?.message).toMatch(/TermOnly/);
+  });
+
+  it('[E005] does not crash the parser (falls back safely)', () => {
+    expect(() => parse(':= TermOnly')).not.toThrow();
+  });
+
+  it('[E005] renders the term even when body is absent', () => {
+    const html = parse(':= TermOnly');
+    expect(html).toMatch(/TermOnly/);
+  });
+
+  it('definition block WITH body does NOT emit [E005]', () => {
+    parse(':= MyTerm\nThe body text.');
+    expect(getDiagnostics().some(d => d.code === 'E005')).toBe(false);
+  });
+
+  // ── W003: unterminated front matter ──────────────────────────────────────
+
+  it('[W003] is emitted when front matter has no closing @@', () => {
+    parse('@@\ntitle: No Close');
+    expect(getDiagnostics().some(d => d.code === 'W003')).toBe(true);
+  });
+
+  it('[W003] diagnostic message mentions the closing delimiter @@', () => {
+    parse('@@\ntitle: No Close');
+    const msg = getDiagnostics().find(d => d.code === 'W003')?.message || '';
+    expect(msg).toMatch(/@@/);
+  });
+
+  it('[W003] does not crash the parser', () => {
+    expect(() => parse('@@\ntitle: No Close')).not.toThrow();
+  });
+
+  it('properly closed front matter does NOT emit [W003]', () => {
+    parse('@@\ntitle: OK\n@@');
+    expect(getDiagnostics().some(d => d.code === 'W003')).toBe(false);
+  });
+
+  // ── W004: unterminated code block ─────────────────────────────────────────
+
+  it('[W004] is emitted when a code block has no closing !#', () => {
+    parse('#!bash\necho hi');
+    expect(getDiagnostics().some(d => d.code === 'W004')).toBe(true);
+  });
+
+  it('[W004] diagnostic message mentions the closing delimiter !#', () => {
+    parse('#!bash\necho hi');
+    const msg = getDiagnostics().find(d => d.code === 'W004')?.message || '';
+    expect(msg).toMatch(/!#/);
+  });
+
+  it('[W004] does not crash the parser', () => {
+    expect(() => parse('#!bash\necho hi')).not.toThrow();
+  });
+
+  it('properly closed code block does NOT emit [W004]', () => {
+    parse('#!bash\necho hi\n!#');
+    expect(getDiagnostics().some(d => d.code === 'W004')).toBe(false);
+  });
+
+  // ── W005: unterminated quote block ────────────────────────────────────────
+
+  it('[W005] is emitted when a block quote has no closing <|', () => {
+    parse('|>\nSome quoted text');
+    expect(getDiagnostics().some(d => d.code === 'W005')).toBe(true);
+  });
+
+  it('[W005] diagnostic message mentions the closing delimiter <|', () => {
+    parse('|>\nSome quoted text');
+    const msg = getDiagnostics().find(d => d.code === 'W005')?.message || '';
+    expect(msg).toMatch(/<\|/);
+  });
+
+  it('[W005] does not crash the parser', () => {
+    expect(() => parse('|>\nSome quoted text')).not.toThrow();
+  });
+
+  it('properly closed quote block does NOT emit [W005]', () => {
+    parse('|>\nSome text.\n<|');
+    expect(getDiagnostics().some(d => d.code === 'W005')).toBe(false);
+  });
+
+  // ── W006: unterminated math block ─────────────────────────────────────────
+
+  it('[W006] is emitted when a math block has no closing $$', () => {
+    parse('$$\nx = 1');
+    expect(getDiagnostics().some(d => d.code === 'W006')).toBe(true);
+  });
+
+  it('[W006] diagnostic message mentions the closing delimiter $$', () => {
+    parse('$$\nx = 1');
+    const msg = getDiagnostics().find(d => d.code === 'W006')?.message || '';
+    expect(msg).toMatch(/\$\$/);
+  });
+
+  it('[W006] does not crash the parser', () => {
+    expect(() => parse('$$\nx = 1')).not.toThrow();
+  });
+
+  it('properly closed math block does NOT emit [W006]', () => {
+    parse('$$\nx = 1\n$$');
+    expect(getDiagnostics().some(d => d.code === 'W006')).toBe(false);
+  });
+
+  // ── W007: duplicate definition term ──────────────────────────────────────
+
+  it('[W007] is emitted when a definition term is defined more than once', () => {
+    parse(':= MyTerm\nFirst body.\n\n:= MyTerm\nSecond body.');
+    expect(getDiagnostics().some(d => d.code === 'W007')).toBe(true);
+  });
+
+  it('[W007] diagnostic carries the duplicate term in its message', () => {
+    parse(':= MyTerm\nFirst body.\n\n:= MyTerm\nSecond body.');
+    expect(getDiagnostics().find(d => d.code === 'W007')?.message).toMatch(/MyTerm/);
+  });
+
+  it('[W007] is case-insensitive (same term in different cases is a duplicate)', () => {
+    parse(':= myterm\nFirst.\n\n:= MYTERM\nSecond.');
+    expect(getDiagnostics().some(d => d.code === 'W007')).toBe(true);
+  });
+
+  it('[W007] does not crash the parser (both definitions still render)', () => {
+    let html;
+    expect(() => { html = parse(':= Alpha\nBody one.\n\n:= Alpha\nBody two.'); }).not.toThrow();
+    expect(html).toMatch(/Alpha/);
+  });
+
+  it('two distinct definition terms do NOT emit [W007]', () => {
+    parse(':= TermA\nBody A.\n\n:= TermB\nBody B.');
+    expect(getDiagnostics().some(d => d.code === 'W007')).toBe(false);
+  });
+
+  it('[W007] is reset between parse() calls (second parse is independent)', () => {
+    parse(':= Alpha\nBody.\n\n:= Alpha\nBody again.');
+    parse(':= Alpha\nFresh body.');
+    // Second parse is a clean document — only one definition, no duplicate
+    expect(getDiagnostics().some(d => d.code === 'W007')).toBe(false);
+  });
+
+  // ── W008: orphaned modifier ───────────────────────────────────────────────
+
+  it('[W008] is emitted for a modifier following a plain text paragraph', () => {
+    // Plain paragraphs do not accept modifiers; the @[...] is not consumed.
+    parse('Plain text line.\n@[class: lead]');
+    expect(getDiagnostics().some(d => d.code === 'W008')).toBe(true);
+  });
+
+  it('[W008] is emitted for a modifier after a blank line (metadata crosses blank lines)', () => {
+    // Modifiers must immediately follow their block with no intervening blank lines.
+    parse(':: Heading\n\n@[class: highlight]');
+    expect(getDiagnostics().some(d => d.code === 'W008')).toBe(true);
+  });
+
+  it('[W008] is emitted for a modifier after a horizontal rule (--- accepts no modifiers)', () => {
+    parse('---\n@[class: decorative]');
+    expect(getDiagnostics().some(d => d.code === 'W008')).toBe(true);
+  });
+
+  it('[W008] diagnostic message carries the modifier key and value', () => {
+    parse('Plain text.\n@[class: my-class]');
+    const msg = getDiagnostics().find(d => d.code === 'W008')?.message || '';
+    expect(msg).toMatch(/class/);
+    expect(msg).toMatch(/my-class/);
+  });
+
+  it('[W008] does not crash the parser', () => {
+    expect(() => parse('Plain.\n@[id: orphan]')).not.toThrow();
+  });
+
+  it('a modifier immediately after a heading (no blank line) does NOT emit [W008]', () => {
+    parse(':: My Heading\n@[class: highlight]');
+    expect(getDiagnostics().some(d => d.code === 'W008')).toBe(false);
+  });
+
+  it('a modifier immediately after a `: ` para block does NOT emit [W008]', () => {
+    parse(': Explicit para\n@[class: lead]');
+    expect(getDiagnostics().some(d => d.code === 'W008')).toBe(false);
+  });
 
   it('every diagnostic emits console.warn with [CODE] prefix format', () => {
     // All diagnostic codes must log [CODE] so users see the code in browser console.
@@ -969,6 +1185,14 @@ describe('§Diagnostics', () => {
       { src: 'See [#ghost] for details.',   code: 'W001' },
       { src: '@@\nno colon here\n@@',       code: 'W002' },
       { src: ' - odd-indent item',          code: 'E003' },
+      { src: ':::::::: Too Deep',            code: 'E004' },
+      { src: ':= TermOnly',                  code: 'E005' },
+      { src: '@@\ntitle: Unterminated',      code: 'W003' },
+      { src: '#!bash\nno close',             code: 'W004' },
+      { src: '|>\nno close',                 code: 'W005' },
+      { src: '$$\nno close',                 code: 'W006' },
+      { src: ':= T\nB.\n\n:= T\nB2.',       code: 'W007' },
+      { src: 'Plain.\n@[class: orphan]',     code: 'W008' },
     ];
     for (const { src, code } of codes) {
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -1004,6 +1228,14 @@ describe('§Diagnostics', () => {
       'See [#ghost] for details.',
       '@@\nno colon here\n@@',
       ' - odd-indent',
+      ':::::::: Too Deep',
+      ':= TermOnly',
+      '@@\ntitle: Unterminated',
+      '#!bash\nno close',
+      '|>\nno close',
+      '$$\nno close',
+      ':= T\nB.\n\n:= T\nB2.',
+      'Plain.\n@[class: orphan]',
     ];
     for (const src of cases) {
       parse(src);
