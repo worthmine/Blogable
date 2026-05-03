@@ -424,8 +424,8 @@ Parsing proceeds in three stages:
 **Diagnostics**
 
 The parser produces diagnostics with fixed codes.
-Errors block the rendered output; the preview and HTML panels show a blocked state until all errors are resolved.
-Warnings allow rendering to continue and appear as notifications on the diagnostics tab.
+Errors invalidate the construct and fall back safely.
+Warnings notify without stopping rendering.
 
 ---
 

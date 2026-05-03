@@ -796,7 +796,6 @@ async function copyLine(id,idx){const node=window._cb?.[id];if(!node)return;cons
 
 // –– UI ––
 let currentTab='preview';
-const RENDER_BLOCKED_MSG='Render blocked — resolve errors shown on the DIAGNOSTICS tab.';
 function updateDiagnosticsPanel(diags){
   const diagOut=document.getElementById('diag-out');
   if(!diagOut) return;
@@ -820,15 +819,6 @@ if(diagBtn){
   diagBtn.dataset.count=badge;
 }
 updateDiagnosticsPanel(diags);
-const hasErrors=diags.some(d=>d.code[0]==='E');
-if(hasErrors){
-  if(currentTab==='preview'){
-    document.getElementById('preview-out').innerHTML=`<p class="render-blocked">⛔ ${RENDER_BLOCKED_MSG}</p>`;
-  }else if(currentTab==='html'){
-    document.getElementById('html-out').textContent=`// ${RENDER_BLOCKED_MSG}`;
-  }
-  return;
-}
 if (currentTab==='preview') {
 document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
 if (window.Prism) Prism.highlightAllUnder(document.getElementById('preview-out'));

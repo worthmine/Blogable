@@ -136,4 +136,3 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 .diag-item.diag-error { color:#c87a7a; }
 .diag-item.diag-warn  { color:#c8b87a; }
 #diag-tab-btn::after { content:attr(data-count); font-size:9px; margin-left:2px; opacity:.8; }
-.render-blocked { color:#c87a7a; padding:8px 0; font-family:monospace; font-size:13px; }
