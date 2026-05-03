@@ -18,6 +18,7 @@ Prism.languages.blogable = {
     }
   },
   'def-block':     { pattern:/^:=\s+.+$/m,          alias:'variable' },
+  'para-block':    { pattern:/^: .+$/m, inside:{ 'para-marker':{ pattern:/^: /, alias:'punctuation' } } },
   'heading-numbered':{ pattern:/^:{2,6}#.+$/m, inside:{ 'hm':{ pattern:/^:{2,6}#/, alias:'punctuation' }, 'ht':{ pattern:/.+/, alias:'bold' } } },
   'heading':         { pattern:/^:{2,6} .+$/m, inside:{ 'hm':{ pattern:/^:{2,6}/, alias:'punctuation' }, 'ht':{ pattern:/.+/, alias:'bold' } } },
   'bq-inline':     { pattern:/^> .+$/m,             alias:'string' },
@@ -96,6 +97,13 @@ function buildAttrs(mods) {
     if (/^x-[a-z0-9-]+$/.test(key)) da.push(`data-${esc(key.slice(2))}="${esc(value)}"`);
   }
   return Object.entries(attrs).map(([k,v])=>` ${k}="${v}"`).join('')+(da.length?' '+da.join(' '):'');
+}
+
+// Like buildAttrs but merges any `class` modifier value into an existing baseClass.
+function mergeAttrs(baseClass, mods) {
+  const extra=(mods||[]).find(m=>m.key==='class')?.value;
+  const cls=extra?`${baseClass} ${esc(extra)}`:baseClass;
+  return ` class="${cls}"`+buildAttrs((mods||[]).filter(m=>m.key!=='class'));
 }
 
 // ---- OGP ----
@@ -295,6 +303,10 @@ function tokenize(lines) {
     const defM=t.match(/^:=\s+(.*)/);
     if (defM) { tokens.push({type:'def_term', text:defM[1]}); continue; }
 
+    // `: ` 段落ブロック（明示的な段落 — モディファイア使用可）
+    const paraM=t.match(/^: (.+)/);
+    if (paraM) { tokens.push({type:'para_block', text:paraM[1]}); continue; }
+
     // 内部アンカーブロック [#text]
     const anchorM=t.match(/^\[#([^\]]+)\]$/);
     if (anchorM) { tokens.push({type:'anchor_block', id:slugify(anchorM[1]), label:anchorM[1]}); continue; }
@@ -442,7 +454,12 @@ function buildAST(tokens) {
     }
 
     // 1行引用
-    if (tok.type==='bq_inline') { i++; nodes.push({type:'blockquote_inline', html:parseInline(tok.text)}); continue; }
+    if (tok.type==='bq_inline') {
+      i++;
+      const mods=cm();
+      nodes.push({type:'blockquote_inline', html:parseInline(tok.text), mods});
+      continue;
+    }
 
     // 引用ブロック
     if (tok.type==='quote_open') {
@@ -461,7 +478,8 @@ function buildAST(tokens) {
         type:'blockquote_block',
         paragraphs:lineGroups.filter(g=>g.length>0).map(g=>g.map(l=>parseInline(l)).join('<br>')),
         cite:mods.find(m=>m.key==='cite')?.value||'',
-        author:mods.find(m=>m.key==='author')?.value||''
+        author:mods.find(m=>m.key==='author')?.value||'',
+        mods
       });
       continue;
     }
@@ -472,7 +490,8 @@ function buildAST(tokens) {
       const lines=[];
       while (i<tokens.length && tokens[i].type!=='math_close') lines.push(tokens[i++].text||'');
       if (tokens[i]?.type==='math_close') i++;
-      nodes.push({type:'math', lines});
+      const mods=cm();
+      nodes.push({type:'math', lines, mods});
       continue;
     }
 
@@ -501,7 +520,8 @@ function buildAST(tokens) {
         }
         break;
       }
-      nodes.push({type:'def_block', term, ddLines});
+      const mods=cm();
+      nodes.push({type:'def_block', term, ddLines, mods});
       continue;
     }
 
@@ -518,7 +538,8 @@ function buildAST(tokens) {
       const mods=cm();
       nodes.push({type:'codeblock', shebangLine, lang, lines:codeLines,
         title:mods.find(m=>m.key==='title')?.value||'',
-        cite:mods.find(m=>m.key==='cite')?.value||''});
+        cite:mods.find(m=>m.key==='cite')?.value||'',
+        mods});
       continue;
     }
 
@@ -528,14 +549,16 @@ function buildAST(tokens) {
       while (i<tokens.length && tokens[i].type==='task') {
         items.push({listType:'task', checked:tokens[i].checked, text:tokens[i].text}); i++;
       }
-      nodes.push({type:'list', html:renderListItems(items)});
+      const mods=cm();
+      nodes.push({type:'list', html:renderListItems(items), mods});
       continue;
     }
 
     // ul / ol
     if (tok.type==='ul'||tok.type==='ol') {
       const items=parseListItems(tok.indent, tok.type);
-      nodes.push({type:'list', html:renderListItems(items)});
+      const mods=cm();
+      nodes.push({type:'list', html:renderListItems(items), mods});
       continue;
     }
 
@@ -585,7 +608,15 @@ function buildAST(tokens) {
       continue;
     }
 
-    // 通常テキスト
+    // `: ` 段落ブロック（明示的な段落 — モディファイア使用可）
+    if (tok.type==='para_block') {
+      i++;
+      const mods=cm();
+      nodes.push({type:'paragraph', html:parseInline(tok.text), mods});
+      continue;
+    }
+
+    // 通常テキスト（モディファイア不可）
     if (tok.type==='text') {
       const lines=[tok.text];
       i++;
@@ -593,8 +624,7 @@ function buildAST(tokens) {
         lines.push(tokens[i].text);
         i++;
       }
-      const mods=cm();
-      nodes.push({type:'paragraph', html:parseInline(lines.join('\n')), mods});
+      nodes.push({type:'paragraph', html:parseInline(lines.join('\n'))});
       continue;
     }
 
@@ -634,11 +664,11 @@ function astToHtml(nodes, forDisplay=false) {
         return `<h${node.level} id="${esc(node.id)}"${attrs}>${esc(node.label)}</h${node.level}>`;
       }
 
-      case 'blockquote_inline': return `<blockquote><p>${node.html}</p></blockquote>`;
+      case 'blockquote_inline': return `<blockquote${buildAttrs(node.mods)}><p>${node.html}</p></blockquote>`;
 
       case 'blockquote_block': {
         const cu=isSafeUrl(node.cite);
-        let h='<blockquote>\n';
+        let h=`<blockquote${buildAttrs(node.mods)}>\n`;
         for (const p of node.paragraphs) h+=`  <p>${p}</p>\n`;
         if (node.cite||node.author) {
           h+='  <footer>\n';
@@ -650,24 +680,29 @@ function astToHtml(nodes, forDisplay=false) {
       }
 
       case 'math': {
-        return `<div class="math-block">${node.lines.map(l=>esc(l)).join('\n')}</div>`;
+        return `<div${mergeAttrs('math-block', node.mods)}>${node.lines.map(l=>esc(l)).join('\n')}</div>`;
       }
 
       case 'def_block': {
         const ddHtml=node.ddLines.map(l=>`<p>${parseInline(l)}</p>`).join('\n');
-        return `<dl class="def-block"><dt>${parseInline(node.term)}</dt><dd>${ddHtml}</dd></dl>`;
+        return `<dl${mergeAttrs('def-block', node.mods)}><dt>${parseInline(node.term)}</dt><dd>${ddHtml}</dd></dl>`;
       }
 
       case 'anchor_block': {
         return `<span class="anchor-block" id="${esc(node.id)}">[#${esc(node.label)}]</span>`;
       }
 
-      case 'list': return node.html;
+      case 'list': {
+        const attrs=buildAttrs(node.mods);
+        if (!attrs) return node.html;
+        return node.html.replace(/^<(ul|ol)/, `<$1${attrs}`);
+      }
 
       case 'codeblock': {
+        const figAttrs=mergeAttrs('blogable-code', node.mods);
         if (!forDisplay) {
           const allLines=[node.shebangLine,...node.lines];
-          let h='<figure class="blogable-code">\n';
+          let h=`<figure${figAttrs}>\n`;
           if (node.title||node.lang) h+=`  <figcaption>${esc(node.title)}${node.lang?` <span class="lang-badge">${esc(node.lang)}</span>`:''}</figcaption>\n`;
           h+=`  <pre><code${node.lang?` class="language-${esc(node.lang)}"`:''}>${allLines.map(l=>esc(l)).join('\n')}</code></pre>\n`;
 
@@ -684,7 +719,7 @@ function astToHtml(nodes, forDisplay=false) {
       const cc='code-cell'+(row.isShebang?' shebang':'');
       return `<tr class="code-row" onclick="copyLine('${id}',${idx})"><td class="${nc}" id="${id}-ln-${idx}">${idx+1}</td><td class="${cc}" id="${id}-lc-${idx}">${esc(row.text)}</td></tr>`;
     }).join('\n');
-    let h=`<figure class="blogable-code" id="${id}">`;
+    let h=`<figure${figAttrs} id="${id}">`;
     if (node.title||node.lang) h+=`<figcaption><span>${esc(node.title)}</span>${node.lang?`<span class="lang-badge">${esc(node.lang)}</span>`:''}</figcaption>`;
     h+=`<div class="code-area"><button class="copy-all-btn" onclick="copyAll('${id}')">copy</button><table class="code-table"><tbody>${rows}</tbody></table></div>`;
     if (node.cite) h+=`<cite>${isSafeUrl(node.cite)?extLink(node.cite,getHostname(node.cite)):esc(node.cite)}</cite>`;
@@ -714,7 +749,7 @@ function astToHtml(nodes, forDisplay=false) {
     return `<p>${extLink(node.url, esc(label))}</p>`;
   }
 
-  case 'paragraph': return `<p>${node.html}</p>`;
+  case 'paragraph': return `<p${node.mods?buildAttrs(node.mods):''}>${node.html}</p>`;
   default: return '';
 }
 

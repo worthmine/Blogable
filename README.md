@@ -46,6 +46,7 @@ Document = [ FrontMatterBlock ] , { Block } ;
 
 Block = Heading
       | Paragraph
+      | ParaBlock
       | ListBlock
       | CodeBlock
       | BlogableBlock
@@ -113,6 +114,20 @@ InlineLine = InlineText , NL ;
 **Paragraph**
 
 Paragraphs are separated by blank lines or by the start of a recognized block.
+Plain paragraphs do not accept metadata modifiers.
+
+---
+
+## Explicit Paragraphs
+
+```ebnf
+ParaBlock = ": " , InlineText , NL , { Meta } ;
+```
+
+**ParaBlock**
+
+An explicit paragraph begins with `: ` (colon + space) and accepts trailing metadata modifiers.
+The `: ` prefix is stripped from output.
 
 ---
 
@@ -204,7 +219,8 @@ Inline parsing is enabled inside quote text.
 MathBlock =
   "$$" , NL ,
   { MathLine , NL } ,
-  "$$" , NL ;
+  "$$" , NL ,
+  { Meta } ;
 
 MathLine = TEXT ;
 ```
@@ -249,7 +265,7 @@ SVG MUST NOT be treated as an image.
 ## Lists
 
 ```ebnf
-ListBlock = { ListItem } ;
+ListBlock = { ListItem } , { Meta } ;
 
 ListItem = IndentLevel , ( ULItem | OLItem | TaskItem | DLItem ) ;
 
@@ -336,7 +352,7 @@ Unresolved references produce a warning.
 ## Definitions
 
 ```ebnf
-DefinitionBlock = ":=" , SP , Term , NL , DD ;
+DefinitionBlock = ":=" , SP , Term , NL , DD , { Meta } ;
 ```
 
 **DefinitionBlock**

@@ -663,6 +663,62 @@ describe('§Metadata', () => {
     expect(html).toMatch(/data-foo="bar"/);
   });
 
+  it('@[class: lead] after a paragraph adds class to <p>', () => {
+    const html = parse(': Hello world\n@[class: lead]');
+    expect(html).toMatch(/<p class="lead">/);
+  });
+
+  it('@[id: intro] after a paragraph sets id on <p>', () => {
+    const html = parse(': Intro text\n@[id: intro]');
+    expect(html).toMatch(/<p id="intro">/);
+  });
+
+  it('@[x-role: note] after a paragraph adds data-role on <p>', () => {
+    const html = parse(': A note\n@[x-role: note]');
+    expect(html).toMatch(/data-role="note"/);
+  });
+
+  it('plain paragraph (no `: ` prefix) does NOT accept modifiers', () => {
+    // @[class: lead] after a plain paragraph must NOT be applied
+    const html = parse('Hello world\n@[class: lead]');
+    expect(html).not.toMatch(/<p class="lead">/);
+  });
+
+  it('@[class: items] after an unordered list adds class to <ul>', () => {
+    const html = parse('- item one\n- item two\n@[class: items]');
+    expect(html).toMatch(/<ul class="items">/);
+  });
+
+  it('@[class: steps] after an ordered list adds class to <ol>', () => {
+    const html = parse('# step one\n# step two\n@[class: steps]');
+    expect(html).toMatch(/<ol class="steps">/);
+  });
+
+  it('@[class: callout] after an inline blockquote adds class to <blockquote>', () => {
+    const html = parse('> A quote\n@[class: callout]');
+    expect(html).toMatch(/<blockquote class="callout">/);
+  });
+
+  it('@[class: callout] after a block blockquote adds class to <blockquote>', () => {
+    const html = parse('|>\nA quoted paragraph\n<|\n@[class: callout]');
+    expect(html).toMatch(/<blockquote class="callout">/);
+  });
+
+  it('@[class: equation] after a math block adds class to the math wrapper', () => {
+    const html = parse('$$\nx = 1\n$$\n@[class: equation]');
+    expect(html).toMatch(/class="math-block equation"/);
+  });
+
+  it('@[class: glossary] after a definition block adds class to <dl>', () => {
+    const html = parse(':= Term\nBody text\n@[class: glossary]');
+    expect(html).toMatch(/<dl[^>]*class="[^"]*glossary[^"]*">/);
+  });
+
+  it('@[class: highlight] after a code block adds class to <figure>', () => {
+    const html = parse('#!bash\necho hi\n!#\n@[class: highlight]');
+    expect(html).toMatch(/<figure[^>]*class="[^"]*highlight[^"]*">/);
+  });
+
   it('unknown MetaKey emits [E002] and falls back to literal text', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     try {
