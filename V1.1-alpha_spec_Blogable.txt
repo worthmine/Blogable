@@ -123,11 +123,14 @@ HorizontalRule = "---" , NL ;
 
 #!ebnf
 CodeBlock =
-  "#!" , TEXT , NL ,
+  "#!" , LangTag , NL ,
   { CodeLine , NL } ,
   "!#" , NL ,
   { Meta } ;
 
+LangTag    = LangName | ShebangPath ;
+LangName   = WORD ;
+ShebangPath = "/" , PATH ;
 CodeLine = TEXT ;
 !#
 
@@ -135,6 +138,24 @@ CodeLine = TEXT ;
 Code blocks are literal regions.
 Inline parsing is disabled inside code blocks.
 A line beginning with "\!#" MUST be treated as a literal "!#".
+
+The opener #!<lang> sets the language-<lang> class on the rendered block.
+A native shebang line (#!/path/to/interpreter or #!/usr/bin/env <cmd>) is also accepted as a block opener; the interpreter name is mapped to a canonical language class via the shebang map.
+
+Recognised language tags and shebang aliases:
+
+  javascript  : tags: javascript, node, nodejs
+  python      : tags: python, python2, python3 — shebang: python3, python, env python, env python3
+  ruby        : tags: ruby
+  perl        : tags: perl — shebang: perl, env perl
+  bash        : tags: bash, sh, zsh — shebang: bash, sh, zsh, env bash, env zsh
+  php         : tags: php
+  lua         : tags: lua
+  rust        : tags: rust
+  go          : tags: go
+  swift       : tags: swift — shebang: swift, env swift
+  text        : tags: text
+  (any)       : any other tag
 
 ---
 
