@@ -24,10 +24,12 @@
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('preview',this)">PREVIEW</button>
       <button class="tab-btn"        onclick="switchTab('html',this)">HTML</button>
+      <button class="tab-btn" id="diag-tab-btn" onclick="switchTab('diag',this)">DIAGNOSTICS</button>
     </div>
     <div class="output">
       <div id="preview-out" class="bp" style="line-height:1.9;font-size:15px;"></div>
       <pre id="html-out" style="display:none"></pre>
+      <div id="diag-out" style="display:none"></div>
     </div>
   </div>
 </div>

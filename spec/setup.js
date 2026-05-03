@@ -80,4 +80,9 @@ function buildAST(src) {
   return ctx.buildAST(ctx.tokenize(src.split('\n')));
 }
 
-module.exports = { parse, tokenize, buildAST };
+/** Returns the diagnostics collected during the most recent parse() call. */
+function getDiagnostics() {
+  return ctx.getBlogableDiagnostics();
+}
+
+module.exports = { parse, tokenize, buildAST, getDiagnostics };
