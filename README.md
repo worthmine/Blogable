@@ -148,7 +148,9 @@ CodeBlock =
   "!#" , NL ,
   { Meta } ;
 
-LangTag = TEXT ;
+LangTag    = LangName | ShebangPath ;
+LangName   = WORD ;
+ShebangPath = "/" , PATH ;
 CodeLine = TEXT ;
 ```
 
