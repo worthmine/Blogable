@@ -126,7 +126,7 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 ::-webkit-scrollbar-thumb { background:#2a2a2a; border-radius:3px; }
 
 /* –– Diagnostics panel –– */
-#diag-out { font-family:'Fira Code','Courier New',monospace; font-size:12px; }
+#diag-out { font-family:'Fira Code','Courier New',monospace; font-size:12px; border-bottom:1px solid #2a2a2a; margin-bottom:12px; padding-bottom:8px; }
 .diag-ok { color:#5a8a5a; padding:8px 0; }
 .diag-item { padding:5px 0; border-bottom:1px solid #1a1a1a; line-height:1.5; }
 .diag-item:last-child { border-bottom:none; }
@@ -135,4 +135,3 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 .diag-item.diag-warn  .diag-code { color:#c8b87a; }
 .diag-item.diag-error { color:#c87a7a; }
 .diag-item.diag-warn  { color:#c8b87a; }
-#diag-tab-btn::after { content:attr(data-count); font-size:9px; margin-left:2px; opacity:.8; }

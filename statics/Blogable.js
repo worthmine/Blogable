@@ -830,24 +830,19 @@ function updateDiagnosticsPanel(diags){
   const diagOut=document.getElementById('diag-out');
   if(!diagOut) return;
   if(!diags.length){
-    diagOut.innerHTML='<p class="diag-ok">✓ No diagnostics</p>';
+    diagOut.innerHTML='';
+    diagOut.style.display='none';
   }else{
     diagOut.innerHTML=diags.map(d=>`<div class="diag-item diag-${d.code[0]==='E'?'error':'warn'}"><span class="diag-code">[${d.code}]</span> ${esc(d.message)}</div>`).join('');
+    diagOut.style.display=currentTab==='preview'?'':'none';
   }
 }
-function switchTab(tab,btn){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('preview-out').style.display=tab==='preview'?'':'none';document.getElementById('html-out').style.display=tab==='html'?'':'none';document.getElementById('diag-out').style.display=tab==='diag'?'':'none';render();}
+function switchTab(tab,btn){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('preview-out').style.display=tab==='preview'?'':'none';document.getElementById('html-out').style.display=tab==='html'?'':'none';render();}
 function render(){
 cbCounter=0; window._cb={}; footnotes=[];
 const src=document.getElementById('source').value;
 const ast=parseToAST(src);
 const diags=getBlogableDiagnostics();
-const diagBtn=document.getElementById('diag-tab-btn');
-if(diagBtn){
-  const eCount=diags.filter(d=>d.code[0]==='E').length;
-  const wCount=diags.filter(d=>d.code[0]==='W').length;
-  const badge=eCount>0?` (${eCount}E)`:(wCount>0?` (${wCount}W)`:'');
-  diagBtn.dataset.count=badge;
-}
 updateDiagnosticsPanel(diags);
 if (currentTab==='preview') {
 document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
