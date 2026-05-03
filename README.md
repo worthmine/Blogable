@@ -11,6 +11,7 @@ slug: blogable-bootstrap-ebnf
 
 Blogable is a deterministic, single-pass markup language with semantic output and strict diagnostics.
 Blogable prioritizes deterministic parsing, semantic structure, and secure rendering over maximal syntax flexibility.
+
 ---
 
 ## Scope
