@@ -601,7 +601,8 @@ function buildAST(tokens) {
     if (tok.type==='ul'||tok.type==='ol') {
       const items=parseListItems(tok.indent);
       const mods=cm();
-      nodes.push({type:'list', html:renderListItems(items), mods});
+      const mixed=items.length>0&&items.some((it,k)=>k>0&&it.listType!==items[k-1].listType);
+      nodes.push({type:'list', html:renderListItems(items), mixed, mods});
       continue;
     }
 
@@ -746,7 +747,7 @@ function astToHtml(nodes, forDisplay=false) {
       case 'list': {
         const attrs=buildAttrs(node.mods);
         if (!attrs) return node.html;
-        if (/\n<(?:ul|ol)/.test(node.html)) return `<div${attrs}>\n${node.html}\n</div>`;
+        if (node.mixed) return `<div${attrs}>\n${node.html}\n</div>`;
         return node.html.replace(/^<(ul|ol)/, `<$1${attrs}`);
       }
 
