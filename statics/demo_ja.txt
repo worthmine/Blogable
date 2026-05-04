@@ -164,6 +164,40 @@ Meta      = "@[" , MetaKey , ":" , SP , TEXT , "]" , NL ;
 
 ---
 
+:: JavaScript ブロック（ハイライトデモ）
+
+#!javascript
+// フィボナッチ数列（反復処理）
+function fibonacci(n) {
+  let a = 0, b = 1;
+  for (let i = 0; i < n; i++) [a, b] = [b, a + b];
+  return a;
+}
+
+const results = Array.from({ length: 8 }, (_, i) => fibonacci(i));
+console.log('フィボナッチ:', results.join(', '));
+!#
+@[title: JavaScript 構文ハイライト]
+
+---
+
+:: Python ブロック（ハイライトデモ）
+
+#!python
+# フィボナッチ数列（反復処理）
+def fibonacci(n):
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
+
+results = [fibonacci(i) for i in range(8)]
+print('フィボナッチ:', ', '.join(map(str, results)))
+!#
+@[title: Python 構文ハイライト]
+
+---
+
 :: 内部アンカー
 
 [#blogable-v11-alpha-デモ]

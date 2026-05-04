@@ -164,6 +164,40 @@ Meta      = "@[" , MetaKey , ":" , SP , TEXT , "]" , NL ;
 
 ---
 
+:: JavaScript Block (highlight demo)
+
+#!javascript
+// Fibonacci sequence (iterative)
+function fibonacci(n) {
+  let a = 0, b = 1;
+  for (let i = 0; i < n; i++) [a, b] = [b, a + b];
+  return a;
+}
+
+const results = Array.from({ length: 8 }, (_, i) => fibonacci(i));
+console.log('Fibonacci:', results.join(', '));
+!#
+@[title: JavaScript syntax highlight]
+
+---
+
+:: Python Block (highlight demo)
+
+#!python
+# Fibonacci sequence (iterative)
+def fibonacci(n):
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
+
+results = [fibonacci(i) for i in range(8)]
+print('Fibonacci:', ', '.join(map(str, results)))
+!#
+@[title: Python syntax highlight]
+
+---
+
 :: Internal Anchor
 
 [#blogable-v11-alpha-demo]
