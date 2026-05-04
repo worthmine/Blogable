@@ -66,6 +66,21 @@ Multiple consecutive lines form one paragraph joined with line breaks.
 
 ---
 
+:: Nested / Mixed List
+
+# Step 1
+  - Note A
+  - Note B
+# Step 2
+  - Note C
+
+- Parent A
+  # Sub-step 1
+  # Sub-step 2
+- Parent B
+
+---
+
 :: Task List
 
 [x] Completed task
