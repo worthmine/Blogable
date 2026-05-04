@@ -372,20 +372,17 @@ function buildAST(tokens) {
 
   function cm() { const mods=[]; while(i<tokens.length&&tokens[i].type==='modifier') mods.push(tokens[i++]); return mods; }
 
-  function parseListItems(baseIndent, listType) {
+  function parseListItems(baseIndent) {
     const items=[];
     while (i<tokens.length) {
       const tok=tokens[i];
-      if (tok.type==='task' && listType==='task') {
+      if ((tok.type==='ul'||tok.type==='ol') && tok.indent===baseIndent) {
         i++;
-        items.push({listType:'task', checked:tok.checked, text:tok.text, children:null});
-      } else if ((tok.type==='ul'||tok.type==='ol') && tok.type===listType && tok.indent===baseIndent) {
-        i++;
-        const item={listType, text:tok.text, children:null};
+        const item={listType:tok.type, text:tok.text, children:null};
         if (i<tokens.length) {
           const next=tokens[i];
           if ((next.type==='ul'||next.type==='ol') && next.indent===baseIndent+2)
-            item.children=parseListItems(next.indent, next.type);
+            item.children=parseListItems(next.indent);
         }
         items.push(item);
       } else break;
@@ -395,20 +392,30 @@ function buildAST(tokens) {
 
   function renderListItems(items) {
     if (!items?.length) return '';
-    const isTask=items[0].listType==='task';
-    const isOl=items[0].listType==='ol';
-    const tag=isOl?'ol':'ul';
-    let h=`<${tag}>\n`;
+    const groups=[];
+    let cur=null;
     for (const item of items) {
-      if (isTask) {
-        h+=`  <li class="task-item"><input type="checkbox" disabled${item.checked?' checked':''}> ${parseInline(item.text)}</li>\n`;
-      } else {
-        h+=`  <li>${parseInline(item.text)}`;
-        if (item.children) h+='\n'+renderListItems(item.children).split('\n').map(l=>'  '+l).join('\n')+'\n  ';
-        h+=`</li>\n`;
-      }
+      if (!cur||cur.type!==item.listType) { cur={type:item.listType,items:[]}; groups.push(cur); }
+      cur.items.push(item);
     }
-    return h+`</${tag}>`;
+    let html='';
+    for (const group of groups) {
+      const isTask=group.type==='task';
+      const tag=group.type==='ol'?'ol':'ul';
+      if (html) html+='\n';
+      html+=`<${tag}>\n`;
+      for (const item of group.items) {
+        if (isTask) {
+          html+=`  <li class="task-item"><input type="checkbox" disabled${item.checked?' checked':''}> ${parseInline(item.text)}</li>\n`;
+        } else {
+          html+=`  <li>${parseInline(item.text)}`;
+          if (item.children) html+='\n'+renderListItems(item.children).split('\n').map(l=>'  '+l).join('\n')+'\n  ';
+          html+=`</li>\n`;
+        }
+      }
+      html+=`</${tag}>`;
+    }
+    return html;
   }
 
   // フロントマターパース
@@ -592,7 +599,7 @@ function buildAST(tokens) {
 
     // ul / ol
     if (tok.type==='ul'||tok.type==='ol') {
-      const items=parseListItems(tok.indent, tok.type);
+      const items=parseListItems(tok.indent);
       const mods=cm();
       nodes.push({type:'list', html:renderListItems(items), mods});
       continue;
@@ -739,6 +746,7 @@ function astToHtml(nodes, forDisplay=false) {
       case 'list': {
         const attrs=buildAttrs(node.mods);
         if (!attrs) return node.html;
+        if (/\n<(?:ul|ol)/.test(node.html)) return `<div${attrs}>\n${node.html}\n</div>`;
         return node.html.replace(/^<(ul|ol)/, `<$1${attrs}`);
       }
 

@@ -528,6 +528,39 @@ describe('§Lists', () => {
     const html = parse('- **bold item**');
     expect(html).toMatch(/<strong>bold item<\/strong>/);
   });
+
+  it('mixed list (ul then ol, no blank line) → both <ul> and <ol> in one block', () => {
+    const src = '- Alpha\n- Beta\n# First\n# Second';
+    const html = parse(src);
+    expect(html).toMatch(/<ul>/);
+    expect(html).toMatch(/<ol>/);
+    expect(html).toMatch(/<li>Alpha<\/li>/);
+    expect(html).toMatch(/<li>First<\/li>/);
+  });
+
+  it('mixed list (ol then ul, no blank line) → both <ol> and <ul> in one block', () => {
+    const src = '# Step 1\n# Step 2\n- Note A\n- Note B';
+    const html = parse(src);
+    expect(html).toMatch(/<ol>/);
+    expect(html).toMatch(/<ul>/);
+    expect(html).toMatch(/<li>Step 1<\/li>/);
+    expect(html).toMatch(/<li>Note A<\/li>/);
+  });
+
+  it('mixed nested children (ul parent, ol+ul children) → correct nesting', () => {
+    const src = '- Parent\n  # Child OL\n  - Child UL';
+    const html = parse(src);
+    expect(html).toMatch(/<ul>/);
+    expect(html).toMatch(/<li>Parent[\s\S]*<ol>[\s\S]*<li>Child OL<\/li>/);
+    expect(html).toMatch(/<li>Parent[\s\S]*<ul>[\s\S]*<li>Child UL<\/li>/);
+  });
+
+  it('@[class: mixed] after a mixed list wraps in <div>', () => {
+    const html = parse('- Alpha\n# First\n@[class: mixed]');
+    expect(html).toMatch(/<div class="mixed">/);
+    expect(html).toMatch(/<ul>/);
+    expect(html).toMatch(/<ol>/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

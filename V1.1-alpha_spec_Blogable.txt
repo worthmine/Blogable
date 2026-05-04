@@ -275,9 +275,10 @@ DD   = Paragraph , { Paragraph } ;
 !#
 
 := ListBlock
-A ListBlock contains one item type at a time.
+A ListBlock can contain mixed item types (ul and ol).
+Each consecutive run of the same type is wrapped in its own ul or ol element.
 Indentation must use spaces only and must advance in multiples of two spaces.
-List blocks split when the item type changes, a blank line appears, or a non-list block appears.
+List blocks split when a blank line appears or a non-list block appears.
 Definition-list terms are unique across the document.
 
 ---
