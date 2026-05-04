@@ -275,10 +275,9 @@ DD   = Paragraph , { Paragraph } ;
 !#
 
 := ListBlock
-A ListBlock contains one item type at a time at any given indent level.
+A ListBlock contains one item type at a time.
 Indentation must use spaces only and must advance in multiples of two spaces.
-List blocks split when the item type changes at the same level, a blank line appears, or a non-list block appears.
-A nested child list may be a different type from its parent (e.g. a ul parent may contain an ol sub-list, and vice versa).
+List blocks split when the item type changes, a blank line appears, or a non-list block appears.
 Definition-list terms are unique across the document.
 
 ---
