@@ -834,7 +834,7 @@ function updateDiagnosticsPanel(diags){
     diagOut.style.display='none';
   }else{
     diagOut.innerHTML=diags.map(d=>`<div class="diag-item diag-${d.code[0]==='E'?'error':'warn'}"><span class="diag-code">[${d.code}]</span> ${esc(d.message)}</div>`).join('');
-    diagOut.style.display=currentTab==='preview'?'':'none';
+    diagOut.style.display='';
   }
 }
 function switchTab(tab,btn){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('preview-out').style.display=tab==='preview'?'':'none';document.getElementById('html-out').style.display=tab==='html'?'':'none';render();}
