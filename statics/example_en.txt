@@ -76,6 +76,8 @@ Multiple consecutive lines form one paragraph joined with line breaks.
 
 :: Definition List
 
+: A definition block starts with `:= Term` followed by a body paragraph on the next line.
+
 := Deterministic
 A parser is deterministic when the same input always produces the same output with no ambiguity.
 
