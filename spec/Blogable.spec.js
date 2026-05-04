@@ -529,22 +529,23 @@ describe('§Lists', () => {
     expect(html).toMatch(/<strong>bold item<\/strong>/);
   });
 
-  it('mixed list (ul then ol, no blank line) → both <ul> and <ol> in one block', () => {
+  it('mixed list (ul then ol, no blank line) → still two separate list blocks (type splits)', () => {
     const src = '- Alpha\n- Beta\n# First\n# Second';
     const html = parse(src);
+    // The type change causes a split; both tags must be present but in separate blocks
     expect(html).toMatch(/<ul>/);
     expect(html).toMatch(/<ol>/);
+    expect(html).toMatch(/<\/ul>[\s\S]*<ol>/);
     expect(html).toMatch(/<li>Alpha<\/li>/);
     expect(html).toMatch(/<li>First<\/li>/);
   });
 
-  it('mixed list (ol then ul, no blank line) → both <ol> and <ul> in one block', () => {
-    const src = '# Step 1\n# Step 2\n- Note A\n- Note B';
+  it('ol parent with ul nested children → <ol><li>…<ul>…</ul></li></ol>', () => {
+    const src = '# Step 1\n  - Note A\n  - Note B\n# Step 2';
     const html = parse(src);
     expect(html).toMatch(/<ol>/);
-    expect(html).toMatch(/<ul>/);
-    expect(html).toMatch(/<li>Step 1<\/li>/);
-    expect(html).toMatch(/<li>Note A<\/li>/);
+    expect(html).toMatch(/<li>Step 1[\s\S]*<ul>[\s\S]*<li>Note A<\/li>/);
+    expect(html).toMatch(/<li>Step 2<\/li>/);
   });
 
   it('mixed nested children (ul parent, ol+ul children) → correct nesting', () => {
@@ -555,10 +556,9 @@ describe('§Lists', () => {
     expect(html).toMatch(/<li>Parent[\s\S]*<ul>[\s\S]*<li>Child UL<\/li>/);
   });
 
-  it('@[class: mixed] after a mixed list wraps in <div>', () => {
-    const html = parse('- Alpha\n# First\n@[class: mixed]');
-    expect(html).toMatch(/<div class="mixed">/);
-    expect(html).toMatch(/<ul>/);
+  it('@[class: steps] after a ul-with-ol-children list adds class to outer <ul>', () => {
+    const html = parse('- Parent\n  # Child OL\n@[class: steps]');
+    expect(html).toMatch(/<ul class="steps">/);
     expect(html).toMatch(/<ol>/);
   });
 });

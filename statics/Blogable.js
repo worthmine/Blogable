@@ -372,15 +372,19 @@ function buildAST(tokens) {
 
   function cm() { const mods=[]; while(i<tokens.length&&tokens[i].type==='modifier') mods.push(tokens[i++]); return mods; }
 
-  function parseListItems(baseIndent) {
+  function parseListItems(baseIndent, listType) {
+    // listType: enforced at this level (same-level items must share a type).
+    //           Omit (undefined) to allow mixed types — used when recursing for children.
     const items=[];
     while (i<tokens.length) {
       const tok=tokens[i];
-      if ((tok.type==='ul'||tok.type==='ol') && tok.indent===baseIndent) {
+      const typeOk=!listType||tok.type===listType;
+      if ((tok.type==='ul'||tok.type==='ol') && tok.indent===baseIndent && typeOk) {
         i++;
         const item={listType:tok.type, text:tok.text, children:null};
         if (i<tokens.length) {
           const next=tokens[i];
+          // Nested children may be a different type — recurse without listType constraint
           if ((next.type==='ul'||next.type==='ol') && next.indent===baseIndent+2)
             item.children=parseListItems(next.indent);
         }
@@ -599,10 +603,9 @@ function buildAST(tokens) {
 
     // ul / ol
     if (tok.type==='ul'||tok.type==='ol') {
-      const items=parseListItems(tok.indent);
+      const items=parseListItems(tok.indent, tok.type);
       const mods=cm();
-      const mixed=items.length>0&&items.some((it,k)=>k>0&&it.listType!==items[k-1].listType);
-      nodes.push({type:'list', html:renderListItems(items), mixed, mods});
+      nodes.push({type:'list', html:renderListItems(items), mods});
       continue;
     }
 
@@ -747,7 +750,6 @@ function astToHtml(nodes, forDisplay=false) {
       case 'list': {
         const attrs=buildAttrs(node.mods);
         if (!attrs) return node.html;
-        if (node.mixed) return `<div${attrs}>\n${node.html}\n</div>`;
         return node.html.replace(/^<(ul|ol)/, `<$1${attrs}`);
       }
 

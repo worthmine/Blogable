@@ -307,10 +307,10 @@ DD   = Paragraph , { Paragraph } ;
 
 **ListBlock**
 
-A ListBlock can contain mixed item types (ul and ol).
-Each consecutive run of the same type is wrapped in its own `<ul>` or `<ol>` element.
+A ListBlock contains one item type at a time at any given indent level.
 Indentation must use spaces only and must advance in multiples of two spaces.
-List blocks split when a blank line appears or a non-list block appears.
+List blocks split when the item type changes at the same level, a blank line appears, or a non-list block appears.
+A nested child list may be a different type from its parent (e.g. a `ul` parent may contain an `ol` sub-list, and vice versa).
 Definition-list terms are unique across the document.
 
 ---
