@@ -56,7 +56,7 @@
 let currentLang = 'en';
 
 function loadLang(lang) {
-  const file = lang === 'ja' ? 'statics/demo_ja.txt' : 'statics/demo_en.txt';
+  const file = lang === 'ja' ? 'statics/example_ja.txt' : 'statics/example_en.txt';
   fetch(file)
     .then(r => r.text())
     .then(text => {
