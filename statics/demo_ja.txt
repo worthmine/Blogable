@@ -1,6 +1,6 @@
 @@
 title: Blogable v1.1-alpha デモ
-author: worthmine(吉田有己)
+author: worthmine(Yuki Yoshida)
 date: 2026-05-04
 lang: ja
 x-version: 1.1-alpha
