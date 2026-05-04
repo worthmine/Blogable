@@ -183,7 +183,7 @@ console.log('フィボナッチ:', results.join(', '));
 
 :: Python ブロック（ハイライトデモ）
 
-#!python
+#!/usr/bin/env python3
 # フィボナッチ数列（反復処理）
 def fibonacci(n):
     a, b = 0, 1

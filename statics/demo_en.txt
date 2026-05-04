@@ -183,7 +183,7 @@ console.log('Fibonacci:', results.join(', '));
 
 :: Python Block (highlight demo)
 
-#!python
+#!/usr/bin/env python3
 # Fibonacci sequence (iterative)
 def fibonacci(n):
     a, b = 0, 1
