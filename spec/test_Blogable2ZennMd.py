@@ -12,6 +12,8 @@ import sys
 import os
 import unittest
 import textwrap
+import subprocess
+import tempfile
 
 # Make sure the root of the repo is on sys.path so we can import the module.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -250,12 +252,12 @@ class TestConvertFrontMatter(unittest.TestCase):
         out = self._fm([])
         self.assertIn('topics: []', out)
 
-    # x-published
+    # published
     def test_published_is_always_false(self):
-        """x-published: false is always emitted regardless of front-matter content."""
-        self.assertIn('x-published: false', self._fm([]))
-        self.assertIn('x-published: false', self._fm(['draft: false']))
-        self.assertIn('x-published: false', self._fm(['draft: true']))
+        """published: false is always emitted regardless of front-matter content."""
+        self.assertIn('published: false', self._fm([]))
+        self.assertIn('published: false', self._fm(['draft: false']))
+        self.assertIn('published: false', self._fm(['draft: true']))
 
     # slug
     def test_slug_included(self):
@@ -296,7 +298,7 @@ class TestConvert(unittest.TestCase):
         out = convert(src)
         self.assertIn('title: "Hello Zenn"', out)
         self.assertIn('topics: ["python"]', out)
-        self.assertIn('x-published: false', out)
+        self.assertIn('published: false', out)
 
     # ── headings ────────────────────────────────────────────────────────────
 
@@ -320,6 +322,14 @@ class TestConvert(unittest.TestCase):
         # Second :::# should restart at 1 after the h2 counter advances
         self.assertIn('### 1. Child', out)
         self.assertIn('### 1. Child2', out)
+
+    def test_plain_h2_resets_numbered_h3_counter(self):
+        """Plain :: heading must also reset deeper numbered-heading counters."""
+        src = ':: Chapter One\n:::# Section\n:: Chapter Two\n:::# Section\n'
+        out = convert(src)
+        self.assertIn('### 1. Section', out)
+        # Both occurrences should be '### 1. Section', not '### 2. Section'
+        self.assertNotIn('### 2. Section', out)
 
     # ── code blocks ─────────────────────────────────────────────────────────
 
@@ -390,6 +400,27 @@ class TestConvert(unittest.TestCase):
         out = convert(src)
         self.assertIn('**Term**', out)
         self.assertIn('The definition body.', out)
+
+    def test_definition_block_stops_at_horizontal_rule(self):
+        """A horizontal rule after a definition body must not be consumed."""
+        src = ':= Term\nDefinition text.\n---\n'
+        out = convert(src)
+        self.assertIn('**Term**', out)
+        self.assertIn('Definition text.', out)
+        self.assertIn('---', out)
+
+    def test_definition_block_stops_at_math_block(self):
+        src = ':= Term\nDefinition text.\n$$\nE = mc^2\n$$\n'
+        out = convert(src)
+        self.assertIn('**Term**', out)
+        self.assertIn('$$', out)
+        self.assertIn('E = mc^2', out)
+
+    def test_definition_block_stops_at_quote_block(self):
+        src = ':= Term\nDefinition text.\n|>\nquoted\n<|\n'
+        out = convert(src)
+        self.assertIn('**Term**', out)
+        self.assertIn('> quoted', out)
 
     # ── para blocks ──────────────────────────────────────────────────────────
 
@@ -524,11 +555,14 @@ class TestFixtureArticle(unittest.TestCase):
     that key structural elements appear in the output."""
 
     FIXTURE = os.path.join(os.path.dirname(__file__), 'fixture_article.txt')
+    FIXTURE_MD = os.path.join(os.path.dirname(__file__), 'fixture_article.md')
+    SCRIPT = os.path.join(os.path.dirname(__file__), '..', 'Blogable2ZennMd.py')
 
     @classmethod
     def setUpClass(cls):
         with open(cls.FIXTURE, encoding='utf-8') as fh:
-            cls.out = convert(fh.read())
+            cls.src = fh.read()
+        cls.out = convert(cls.src)
 
     # front matter
     def test_fixture_title(self):
@@ -537,8 +571,8 @@ class TestFixtureArticle(unittest.TestCase):
     def test_fixture_topics(self):
         self.assertIn('topics: ["blogable", "markdown"]', self.out)
 
-    def test_fixture_x_published(self):
-        self.assertIn('x-published: false', self.out)
+    def test_fixture_published(self):
+        self.assertIn('published: false', self.out)
 
     def test_fixture_slug(self):
         self.assertIn('slug: "blogable-feature-sampler"', self.out)
@@ -597,6 +631,139 @@ class TestFixtureArticle(unittest.TestCase):
     # math block
     def test_fixture_math(self):
         self.assertIn('$$', self.out)
+
+    def test_fixture_file_matches_generated_slug_output(self):
+        slug = extract_slug(self.src)
+        self.assertIsNotNone(slug)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            subprocess.run(
+                [sys.executable, self.SCRIPT, self.FIXTURE],
+                cwd=tmpdir,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            generated = os.path.join(tmpdir, slug + '.md')
+            self.assertTrue(os.path.exists(generated))
+
+            with open(generated, encoding='utf-8') as fh:
+                generated_md = fh.read()
+            with open(self.FIXTURE_MD, encoding='utf-8') as fh:
+                fixture_md = fh.read()
+
+            self.assertEqual(generated_md, fixture_md)
+
+
+# ---------------------------------------------------------------------------
+# End-to-end fixture test (Japanese)
+# ---------------------------------------------------------------------------
+
+class TestFixtureArticleJa(unittest.TestCase):
+    """Run the full converter against spec/fixture_article_ja.txt and verify
+    that key structural elements appear in the Japanese output."""
+
+    FIXTURE = os.path.join(os.path.dirname(__file__), 'fixture_article_ja.txt')
+    FIXTURE_MD = os.path.join(os.path.dirname(__file__), 'fixture_article_ja.md')
+    SCRIPT = os.path.join(os.path.dirname(__file__), '..', 'Blogable2ZennMd.py')
+
+    @classmethod
+    def setUpClass(cls):
+        with open(cls.FIXTURE, encoding='utf-8') as fh:
+            cls.src = fh.read()
+        cls.out = convert(cls.src)
+
+    # front matter
+    def test_fixture_ja_title(self):
+        self.assertIn('title: "Blogable 機能サンプラー"', self.out)
+
+    def test_fixture_ja_topics(self):
+        self.assertIn('topics: ["blogable", "markdown"]', self.out)
+
+    def test_fixture_ja_published(self):
+        self.assertIn('published: false', self.out)
+
+    def test_fixture_ja_slug(self):
+        self.assertIn('slug: "blogable-feature-sampler-ja"', self.out)
+
+    # headings
+    def test_fixture_ja_h2(self):
+        self.assertIn('## はじめに', self.out)
+
+    def test_fixture_ja_h3(self):
+        self.assertIn('### レベル 3', self.out)
+
+    def test_fixture_ja_h4(self):
+        self.assertIn('#### レベル 4', self.out)
+
+    def test_fixture_ja_numbered_headings(self):
+        self.assertIn('## 1. 番号付き 1', self.out)
+        self.assertIn('## 2. 番号付き 2', self.out)
+
+    # inline markup
+    def test_fixture_ja_bold(self):
+        self.assertIn('**太字**', self.out)
+
+    def test_fixture_ja_italic(self):
+        self.assertIn('*イタリック*', self.out)
+
+    def test_fixture_ja_strikethrough(self):
+        self.assertIn('~~取り消し線~~', self.out)
+
+    def test_fixture_ja_insert(self):
+        self.assertIn('<ins>挿入</ins>', self.out)
+
+    def test_fixture_ja_link(self):
+        self.assertIn('[リンクラベル](https://example.com)', self.out)
+
+    def test_fixture_ja_image(self):
+        self.assertIn('![サンプル写真](https://picsum.photos/seed/blogable1/600/200.jpg', self.out)
+
+    # code block
+    def test_fixture_ja_code_block(self):
+        self.assertIn('```python:hello.py', self.out)
+        self.assertIn('こんにちは', self.out)
+
+    # quote block
+    def test_fixture_ja_quote(self):
+        self.assertIn('> 引用の 1 行目。', self.out)
+        self.assertIn('著名な著者', self.out)
+
+    # ordered list
+    def test_fixture_ja_ordered_list(self):
+        self.assertIn('1. 1 番目の順序付きアイテム', self.out)
+
+    # definition block
+    def test_fixture_ja_definition(self):
+        self.assertIn('**用語**', self.out)
+
+    # math block
+    def test_fixture_ja_math(self):
+        self.assertIn('$$', self.out)
+
+    def test_fixture_ja_file_matches_generated_slug_output(self):
+        slug = extract_slug(self.src)
+        self.assertIsNotNone(slug)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            subprocess.run(
+                [sys.executable, self.SCRIPT, self.FIXTURE],
+                cwd=tmpdir,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            generated = os.path.join(tmpdir, slug + '.md')
+            self.assertTrue(os.path.exists(generated))
+
+            with open(generated, encoding='utf-8') as fh:
+                generated_md = fh.read()
+            with open(self.FIXTURE_MD, encoding='utf-8') as fh:
+                fixture_md = fh.read()
+
+            self.assertEqual(generated_md, fixture_md)
 
 
 if __name__ == '__main__':
