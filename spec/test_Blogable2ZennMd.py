@@ -222,12 +222,12 @@ class TestConvertFrontMatter(unittest.TestCase):
         out = self._fm([])
         self.assertIn('topics: []', out)
 
-    # published
+    # x-published
     def test_published_is_always_false(self):
-        """published: false is always emitted regardless of front-matter content."""
-        self.assertIn('published: false', self._fm([]))
-        self.assertIn('published: false', self._fm(['draft: false']))
-        self.assertIn('published: false', self._fm(['draft: true']))
+        """x-published: false is always emitted regardless of front-matter content."""
+        self.assertIn('x-published: false', self._fm([]))
+        self.assertIn('x-published: false', self._fm(['draft: false']))
+        self.assertIn('x-published: false', self._fm(['draft: true']))
 
     # slug
     def test_slug_included(self):
@@ -268,7 +268,7 @@ class TestConvert(unittest.TestCase):
         out = convert(src)
         self.assertIn('title: "Hello Zenn"', out)
         self.assertIn('topics: ["python"]', out)
-        self.assertIn('published: false', out)
+        self.assertIn('x-published: false', out)
 
     # ── headings ────────────────────────────────────────────────────────────
 
@@ -484,6 +484,91 @@ class TestConvert(unittest.TestCase):
         src = 'a\n\n\n\nb\n'
         out = convert(src)
         self.assertNotIn('\n\n\n', out)
+
+
+
+# ---------------------------------------------------------------------------
+# End-to-end fixture test
+# ---------------------------------------------------------------------------
+
+class TestFixtureArticle(unittest.TestCase):
+    """Run the full converter against spec/fixture_article.txt and verify
+    that key structural elements appear in the output."""
+
+    FIXTURE = os.path.join(os.path.dirname(__file__), 'fixture_article.txt')
+
+    @classmethod
+    def setUpClass(cls):
+        with open(cls.FIXTURE, encoding='utf-8') as fh:
+            cls.out = convert(fh.read())
+
+    # front matter
+    def test_fixture_title(self):
+        self.assertIn('title: "Blogable Feature Sampler"', self.out)
+
+    def test_fixture_topics(self):
+        self.assertIn('topics: ["blogable", "markdown"]', self.out)
+
+    def test_fixture_x_published(self):
+        self.assertIn('x-published: false', self.out)
+
+    def test_fixture_slug(self):
+        self.assertIn('slug: "blogable-feature-sampler"', self.out)
+
+    # headings
+    def test_fixture_h2(self):
+        self.assertIn('## Introduction', self.out)
+
+    def test_fixture_h3(self):
+        self.assertIn('### Level Three', self.out)
+
+    def test_fixture_h4(self):
+        self.assertIn('#### Level Four', self.out)
+
+    def test_fixture_numbered_headings(self):
+        self.assertIn('## 1. Numbered One', self.out)
+        self.assertIn('## 2. Numbered Two', self.out)
+
+    # inline markup
+    def test_fixture_bold(self):
+        self.assertIn('**bold**', self.out)
+
+    def test_fixture_italic(self):
+        self.assertIn('*italic*', self.out)
+
+    def test_fixture_strikethrough(self):
+        self.assertIn('~~strikethrough~~', self.out)
+
+    def test_fixture_insert(self):
+        self.assertIn('<ins>inserted</ins>', self.out)
+
+    def test_fixture_link(self):
+        self.assertIn('[link label](https://example.com)', self.out)
+
+    def test_fixture_image(self):
+        self.assertIn('![sample photo](https://example.com/photo.png', self.out)
+
+    # code block
+    def test_fixture_code_block(self):
+        self.assertIn('```python:hello.py', self.out)
+        self.assertIn('def hello(name):', self.out)
+
+    # quote block
+    def test_fixture_quote(self):
+        self.assertIn('> First line of the quote.', self.out)
+        self.assertIn('Famous Author', self.out)
+
+    # ordered list
+    def test_fixture_ordered_list(self):
+        self.assertIn('1. First ordered item', self.out)
+
+    # definition block
+    def test_fixture_definition(self):
+        self.assertIn('**Term**', self.out)
+
+    # math block
+    def test_fixture_math(self):
+        self.assertIn('$$', self.out)
 
 
 if __name__ == '__main__':
