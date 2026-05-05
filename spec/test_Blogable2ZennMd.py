@@ -222,35 +222,12 @@ class TestConvertFrontMatter(unittest.TestCase):
         out = self._fm([])
         self.assertIn('topics: []', out)
 
-    # published / draft
-    def test_published_default_is_false(self):
-        """No draft key -> published: false (safe default)."""
-        out = self._fm(['title: Test'])
-        self.assertIn('published: false', out)
-
-    def test_draft_true_yields_published_false(self):
-        out = self._fm(['draft: true'])
-        self.assertIn('published: false', out)
-
-    def test_draft_1_yields_published_false(self):
-        out = self._fm(['draft: 1'])
-        self.assertIn('published: false', out)
-
-    def test_draft_yes_yields_published_false(self):
-        out = self._fm(['draft: yes'])
-        self.assertIn('published: false', out)
-
-    def test_draft_false_yields_published_true(self):
-        out = self._fm(['draft: false'])
-        self.assertIn('published: true', out)
-
-    def test_draft_0_yields_published_true(self):
-        out = self._fm(['draft: 0'])
-        self.assertIn('published: true', out)
-
-    def test_draft_no_yields_published_true(self):
-        out = self._fm(['draft: no'])
-        self.assertIn('published: true', out)
+    # published
+    def test_published_is_always_false(self):
+        """published: false is always emitted regardless of front-matter content."""
+        self.assertIn('published: false', self._fm([]))
+        self.assertIn('published: false', self._fm(['draft: false']))
+        self.assertIn('published: false', self._fm(['draft: true']))
 
     # slug
     def test_slug_included(self):

@@ -164,12 +164,11 @@ def convert_front_matter(fm_lines):
     """
     Convert Blogable front-matter lines to Zenn YAML front-matter.
 
-    Blogable keys  →  Zenn keys
-    title          →  title
-    tags           →  topics  (comma-separated → YAML array)
-    draft          →  published  (inverted; defaults to false for safety)
-    slug           →  slug
-    author/date/updated/description/lang/x-* → omitted
+    Blogable keys  ->  Zenn keys
+    title          ->  title
+    tags           ->  topics  (comma-separated -> YAML array)
+    slug           ->  slug
+    author/date/updated/description/lang/draft/x-* -> omitted
     """
     meta = {}
     for line in fm_lines:
@@ -177,7 +176,7 @@ def convert_front_matter(fm_lines):
         if not m:
             continue
         key, value = m.group(1), m.group(2)
-        # Strip inline comments (e.g. "1.1-alpha # comment" → "1.1-alpha")
+        # Strip inline comments (e.g. "1.1-alpha # comment" -> "1.1-alpha")
         value = re.sub(r'\s+#.*$', '', value).strip()
         meta[key] = value
 
@@ -200,12 +199,8 @@ def convert_front_matter(fm_lines):
     else:
         out.append('topics: []')
 
-    # published (invert Blogable's draft; defaults to false for safety –
-    # set draft: false in Blogable to opt-in to publishing)
-    if meta.get('draft', '').lower() in ('false', '0', 'no'):
-        out.append('published: true')
-    else:
-        out.append('published: false')
+    # published: always false; set manually in Zenn after review
+    out.append('published: false')
 
     # slug
     if 'slug' in meta:
