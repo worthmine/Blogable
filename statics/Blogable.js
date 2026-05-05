@@ -849,6 +849,24 @@ function updateDiagnosticsPanel(diags){
   }
 }
 function switchTab(tab,btn){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('preview-out').style.display=tab==='preview'?'':'none';document.getElementById('html-out').style.display=tab==='html'?'':'none';render();}
+function highlightCodeTables(container) {
+  if (!window.Prism) return;
+  container.querySelectorAll('figure.blogable-code').forEach(fig => {
+    const badge = fig.querySelector('.lang-badge');
+    if (!badge) return;
+    const lang = badge.textContent.trim().toLowerCase();
+    const grammar = Prism.languages[lang];
+    if (!grammar) return;
+    const cells = fig.querySelectorAll('td.code-cell:not(.shebang)');
+    if (!cells.length) return;
+    const lines = Array.from(cells).map(td => td.textContent);
+    const highlighted = Prism.highlight(lines.join('\n'), grammar, lang);
+    const highlightedLines = highlighted.split('\n');
+    cells.forEach((td, i) => {
+      if (highlightedLines[i] !== undefined) td.innerHTML = highlightedLines[i];
+    });
+  });
+}
 function render(){
 cbCounter=0; window._cb={}; footnotes=[];
 const src=document.getElementById('source').value;
@@ -857,7 +875,7 @@ const diags=getBlogableDiagnostics();
 updateDiagnosticsPanel(diags);
 if (currentTab==='preview') {
 document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
-if (window.Prism) Prism.highlightAllUnder(document.getElementById('preview-out'));
+if (window.Prism) highlightCodeTables(document.getElementById('preview-out'));
 } else if (currentTab==='html') {
 document.getElementById('html-out').textContent=astToHtml(ast,false);
 }
