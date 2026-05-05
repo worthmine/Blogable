@@ -79,6 +79,18 @@ describe('§FrontMatter', () => {
     // Either empty dl or no output — must not crash
     expect(html).not.toMatch(/<dt>/);
   });
+
+  it('strips inline YAML comments from front matter values', () => {
+    const html = parse('@@\ntitle: My Doc # this is a comment\n@@');
+    expect(html).toMatch(/<dt>title<\/dt><dd>My Doc<\/dd>/);
+    expect(html).not.toMatch(/this is a comment/);
+  });
+
+  it('strips inline YAML comment, preserving the value before the comment marker', () => {
+    const html = parse('@@\nx-version: 1.1-alpha # Blogable version\n@@');
+    expect(html).toMatch(/<dt>x-version<\/dt><dd>1.1-alpha<\/dd>/);
+    expect(html).not.toMatch(/Blogable version/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
