@@ -12,6 +12,8 @@ import sys
 import os
 import unittest
 import textwrap
+import subprocess
+import tempfile
 
 # Make sure the root of the repo is on sys.path so we can import the module.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -524,11 +526,14 @@ class TestFixtureArticle(unittest.TestCase):
     that key structural elements appear in the output."""
 
     FIXTURE = os.path.join(os.path.dirname(__file__), 'fixture_article.txt')
+    FIXTURE_MD = os.path.join(os.path.dirname(__file__), 'fixture_article.md')
+    SCRIPT = os.path.join(os.path.dirname(__file__), '..', 'Blogable2ZennMd.py')
 
     @classmethod
     def setUpClass(cls):
         with open(cls.FIXTURE, encoding='utf-8') as fh:
-            cls.out = convert(fh.read())
+            cls.src = fh.read()
+        cls.out = convert(cls.src)
 
     # front matter
     def test_fixture_title(self):
@@ -597,6 +602,29 @@ class TestFixtureArticle(unittest.TestCase):
     # math block
     def test_fixture_math(self):
         self.assertIn('$$', self.out)
+
+    def test_fixture_file_matches_generated_slug_output(self):
+        slug = extract_slug(self.src)
+        self.assertIsNotNone(slug)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            subprocess.run(
+                [sys.executable, self.SCRIPT, self.FIXTURE],
+                cwd=tmpdir,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            generated = os.path.join(tmpdir, slug + '.md')
+            self.assertTrue(os.path.exists(generated))
+
+            with open(generated, encoding='utf-8') as fh:
+                generated_md = fh.read()
+            with open(self.FIXTURE_MD, encoding='utf-8') as fh:
+                fixture_md = fh.read()
+
+            self.assertEqual(generated_md, fixture_md)
 
 
 if __name__ == '__main__':
