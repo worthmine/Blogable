@@ -114,6 +114,30 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 .blogable-code pre[class*="language-"] { margin:0; padding:0; background:transparent; }
 .blogable-code code[class*="language-"] { background:transparent; font-size:13px; }
 
+/* Prism: 共通トークン（すべての言語） */
+.blogable-code .token.comment,
+.blogable-code .token.prolog,
+.blogable-code .token.doctype     { color:#5a8a5a; font-style:normal; }
+.blogable-code .token.keyword     { color:#c8b87a; }
+.blogable-code .token.string,
+.blogable-code .token.char        { color:#8a7ab8; }
+.blogable-code .token.number      { color:#a0b8d0; }
+.blogable-code .token.function    { color:#7ab8c8; }
+.blogable-code .token.class-name  { color:#d4c090; }
+.blogable-code .token.boolean,
+.blogable-code .token.null        { color:#e8a07a; }
+.blogable-code .token.operator    { color:#888; }
+.blogable-code .token.punctuation { color:#666; }
+.blogable-code .token.variable,
+.blogable-code .token.parameter   { color:#b8c4a0; }
+.blogable-code .token.builtin     { color:#c8b87a; }
+.blogable-code .token.property    { color:#b8c4a0; }
+.blogable-code .token.constant    { color:#d4c090; }
+.blogable-code .token.important   { color:#e8a07a; }
+.blogable-code .token.namespace   { color:#d4c090; }
+.blogable-code .token.inserted    { color:#6a9a6a; }
+.blogable-code .token.deleted     { color:#a87a7a; }
+
 /* Prism: blogable言語 */
 .language-blogable .token.comment     { color:#5a9a5a; font-style:normal; }
 .language-blogable .token.keyword     { color:#5a9a5a; }
@@ -128,6 +152,59 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 .language-blogable .token.url         { color:#7a9ab8; text-decoration:underline; }
 .language-blogable .token.symbol      { color:#c8b87a; }
 .language-blogable .token.code        { color:#8ab87a; }
+
+/* Prism: JavaScript / Node.js */
+.language-javascript .token.regex,
+.language-js         .token.regex          { color:#a07ab8; }
+.language-javascript .token.template-string,
+.language-js         .token.template-string { color:#8a7ab8; }
+
+/* Prism: Python */
+.language-python .token.decorator          { color:#e8a07a; }
+.language-python .token.builtin            { color:#c8b87a; }
+
+/* Prism: Bash / Shell */
+.language-bash   .token.assign-left,
+.language-bash   .token.environment,
+.language-shell  .token.assign-left,
+.language-shell  .token.environment        { color:#b8c4a0; }
+.language-bash   .token.builtin,
+.language-shell  .token.builtin            { color:#c8b87a; }
+
+/* Prism: Ruby */
+.language-ruby .token.symbol              { color:#c8b87a; }
+.language-ruby .token.regex               { color:#a07ab8; }
+.language-ruby .token.constant            { color:#d4c090; }
+
+/* Prism: PHP */
+.language-php .token.delimiter            { color:#888; }
+.language-php .token.variable             { color:#b8c4a0; }
+.language-php .token.namespace            { color:#d4c090; }
+
+/* Prism: EBNF */
+.language-ebnf .token.definition          { color:#7ab8c8; }
+.language-ebnf .token.rule                { color:#b8c4a0; }
+
+/* Prism: Rust */
+.language-rust .token.macro               { color:#c8b87a; }
+.language-rust .token.lifetime,
+.language-rust .token.lifetime-annotation { color:#a07ab8; }
+.language-rust .token.attribute           { color:#e8a07a; }
+
+/* Prism: Go */
+.language-go .token.builtin               { color:#c8b87a; }
+.language-go .token.function              { color:#7ab8c8; }
+
+/* Prism: Lua */
+.language-lua .token.builtin              { color:#c8b87a; }
+
+/* Prism: Swift */
+.language-swift .token.class-name         { color:#d4c090; }
+.language-swift .token.builtin            { color:#c8b87a; }
+
+/* Prism: Perl */
+.language-perl .token.regex               { color:#a07ab8; }
+.language-perl .token.variable            { color:#b8c4a0; }
 
 footer { border-top:1px solid #222; padding:10px 24px; display:flex; align-items:center; gap:20px; flex-shrink:0; background:#0a0a0a; }
 .social-link { display:flex; align-items:center; gap:6px; color:#555; font-size:11px; font-family:monospace; text-decoration:none; transition:color .15s; }
