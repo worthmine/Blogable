@@ -397,6 +397,9 @@ def convert(src):
         if pln_h:
             level = len(pln_h.group(1))   # 2–6
             text = pln_h.group(2)
+            # Reset deeper numbered-heading counters, same as numbered headings.
+            for j in range(level - 1, 5):
+                h_counters[j] = 0
             prefix = '#' * level
             out.append(f'{prefix} {convert_inline(text, footnotes)}')
             i += 1
@@ -410,7 +413,12 @@ def convert(src):
             body_lines = []
             while i < total:
                 ns = lines[i].strip()
-                if ns == '' or ns.startswith(':=') or ns.startswith('::') or ns.startswith('#!'):
+                if (ns == ''
+                        or ns in ('---', '$$', '|>', '<|')
+                        or ns.startswith(':=')
+                        or ns.startswith('::')
+                        or ns.startswith('#!')
+                        or ns.startswith('> ')):
                     break
                 if re.match(r'^@\[', ns):
                     break
