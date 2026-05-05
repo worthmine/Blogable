@@ -1,4 +1,4 @@
-@@
+.@@
 title: Blogable v1.1-alpha デモ
 author: worthmine(Yuki Yoshida)
 date: 2026-05-04
@@ -197,7 +197,7 @@ print('フィボナッチ:', ', '.join(map(str, results)))
 
 [#blogable-v11-alpha-デモ]
 
-見出し参照: [#インラインマークアップ]
+見出し参照: [#番号付き-h2]
 
 ---
 
