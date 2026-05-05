@@ -205,8 +205,8 @@ def convert_front_matter(fm_lines):
     title = meta.get('title', '')
     out.append(f'title: "{title}"')
 
-    # x-emoji: placeholder – rename to 'emoji' when uploading to Zenn
-    out.append('x-emoji: "🚀"')
+    # emoji: default placeholder emoji for new articles
+    out.append('emoji: "🚀"')
 
     # type (Zenn: "tech" or "idea"; not in Blogable – default tech)
     out.append('type: "tech"')
@@ -218,8 +218,8 @@ def convert_front_matter(fm_lines):
     else:
         out.append('topics: []')
 
-    # x-published: always false – rename to 'published' when uploading to Zenn
-    out.append('x-published: false')
+    # published: always false by default for safety
+    out.append('published: false')
 
     # slug
     if 'slug' in meta:

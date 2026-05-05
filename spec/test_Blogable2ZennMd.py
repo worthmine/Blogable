@@ -250,12 +250,12 @@ class TestConvertFrontMatter(unittest.TestCase):
         out = self._fm([])
         self.assertIn('topics: []', out)
 
-    # x-published
+    # published
     def test_published_is_always_false(self):
-        """x-published: false is always emitted regardless of front-matter content."""
-        self.assertIn('x-published: false', self._fm([]))
-        self.assertIn('x-published: false', self._fm(['draft: false']))
-        self.assertIn('x-published: false', self._fm(['draft: true']))
+        """published: false is always emitted regardless of front-matter content."""
+        self.assertIn('published: false', self._fm([]))
+        self.assertIn('published: false', self._fm(['draft: false']))
+        self.assertIn('published: false', self._fm(['draft: true']))
 
     # slug
     def test_slug_included(self):
@@ -296,7 +296,7 @@ class TestConvert(unittest.TestCase):
         out = convert(src)
         self.assertIn('title: "Hello Zenn"', out)
         self.assertIn('topics: ["python"]', out)
-        self.assertIn('x-published: false', out)
+        self.assertIn('published: false', out)
 
     # ── headings ────────────────────────────────────────────────────────────
 
@@ -537,8 +537,8 @@ class TestFixtureArticle(unittest.TestCase):
     def test_fixture_topics(self):
         self.assertIn('topics: ["blogable", "markdown"]', self.out)
 
-    def test_fixture_x_published(self):
-        self.assertIn('x-published: false', self.out)
+    def test_fixture_published(self):
+        self.assertIn('published: false', self.out)
 
     def test_fixture_slug(self):
         self.assertIn('slug: "blogable-feature-sampler"', self.out)
