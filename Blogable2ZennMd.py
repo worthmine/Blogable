@@ -167,7 +167,7 @@ def convert_front_matter(fm_lines):
     Blogable keys  →  Zenn keys
     title          →  title
     tags           →  topics  (comma-separated → YAML array)
-    draft          →  published  (inverted; defaults to false for safety)
+    draft          →  published  (inverted; defaults to true)
     slug           →  slug
     author/date/updated/description/lang/x-* → omitted
     """
@@ -200,12 +200,12 @@ def convert_front_matter(fm_lines):
     else:
         out.append('topics: []')
 
-    # published (invert Blogable's draft; defaults to false so articles need
-    # explicit opt-in to publishing – set draft: false in Blogable to publish)
-    if meta.get('draft', '').lower() in ('false', '0', 'no'):
-        out.append('published: true')
-    else:
+    # published (invert Blogable's draft; defaults to true – only suppress
+    # publishing when draft: true (or "1"/"yes") is explicitly set)
+    if meta.get('draft', '').lower() in ('true', '1', 'yes'):
         out.append('published: false')
+    else:
+        out.append('published: true')
 
     # slug
     if 'slug' in meta:
