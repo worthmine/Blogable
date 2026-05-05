@@ -718,7 +718,7 @@ function astToHtml(nodes, forDisplay=false) {
             attrs=' class="numbered"'+attrs;
           }
         }
-        return `<h${node.level} id="${esc(node.id)}"${attrs}>${esc(node.label)}</h${node.level}>`;
+        return `<h${node.level} id="${esc(node.id)}"${attrs}><a href="#${esc(node.id)}">${esc(node.label)}</a></h${node.level}>`;
       }
 
       case 'blockquote_inline': return `<blockquote${buildAttrs(node.mods)}><p>${node.html}</p></blockquote>`;
