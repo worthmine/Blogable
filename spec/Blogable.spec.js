@@ -139,6 +139,16 @@ describe('§Headings', () => {
     expect(html).not.toMatch(/<script>/i);
     expect(html).toMatch(/&lt;script&gt;/);
   });
+
+  it('heading contains a self-referential anchor link', () => {
+    const html = parse(':: My Section');
+    expect(html).toMatch(/<h2 id="my-section"[^>]*><a href="#my-section">My Section<\/a><\/h2>/);
+  });
+
+  it('numbered heading contains a self-referential anchor link', () => {
+    const html = parse('::# Section One');
+    expect(html).toMatch(/<h2 [^>]*><a href="#section-one">Section One<\/a><\/h2>/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
