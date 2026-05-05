@@ -3,9 +3,9 @@ spec/test_Blogable2ZennMd.py
 Unit tests for Blogable2ZennMd.py
 
 Run with:
-  python -m pytest spec/test_Blogable2ZennMd.py -v
-  # or
-  python -m unittest spec/test_Blogable2ZennMd.py
+  python -m unittest discover -s spec -p 'test_*.py' -v
+  # or (if pytest is installed)
+  pytest spec/test_Blogable2ZennMd.py -v
 """
 
 import sys
@@ -224,7 +224,7 @@ class TestConvertFrontMatter(unittest.TestCase):
 
     # published / draft
     def test_published_default_is_false(self):
-        """No draft key → published: false (safe default)."""
+        """No draft key -> published: false (safe default)."""
         out = self._fm(['title: Test'])
         self.assertIn('published: false', out)
 
