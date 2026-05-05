@@ -9,7 +9,7 @@ x-version: 1.1-alpha
 
 ---
 
-:: Front Matter
+:::# Front Matter
 
 The `@@` block above is the front matter.
 Allowed keys: title, author, date, updated, description, tags, slug, draft, lang, and x-* extensions.
@@ -34,39 +34,21 @@ Allowed keys: title, author, date, updated, description, tags, slug, draft, lang
 
 ---
 
-:: Paragraphs
+:::# Paragraphs
 
 A regular line of text becomes a paragraph.
 Multiple consecutive lines form one paragraph joined with line breaks.
 
 ---
 
-:: Explicit Paragraph (ParaBlock)
+:::# Explicit Paragraph (ParaBlock)
 
 : An explicit paragraph begins with `: ` and accepts trailing metadata modifiers.
 @[class: lead]
 
 ---
 
-:: Bullet List
-
-- Item A
-- Item B
-  - Nested B-1
-  - Nested B-2
-- Item C
-
----
-
-:: Ordered List
-
-# First item
-# Second item
-# Third item
-
----
-
-:: Nested / Mixed List
+:::# Nested / Mixed Bullet and Ordered Lists
 
 # Step 1
   - Note A
@@ -81,7 +63,7 @@ Multiple consecutive lines form one paragraph joined with line breaks.
 
 ---
 
-:: Task List
+:::# Task List
 
 [x] Completed task
 [ ] Open task
@@ -89,7 +71,7 @@ Multiple consecutive lines form one paragraph joined with line breaks.
 
 ---
 
-:: Definition List
+:::# Definition List
 
 : A definition block starts with `:= Term` followed by a body paragraph on the next line.
 
@@ -101,11 +83,7 @@ Processing proceeds line by line in one forward pass — no lookahead or backtra
 
 ---
 
-:: Horizontal Rule
-
----
-
-:: Block Quote
+:::# Block Quote
 
 > A single-line block quote.
 
@@ -120,7 +98,7 @@ A blank line starts a new paragraph within the block.
 
 ---
 
-:: Math Block
+:::# Math Block
 
 $$
 E = mc^2
@@ -129,7 +107,7 @@ $$
 
 ---
 
-:: Inline Markup
+:::# Inline Markup
 
 **strong** *emphasis* `inline code` ++inserted++ ~~deleted~~
 
@@ -139,7 +117,7 @@ Footnote with URL: [^https://example.com reference] [^ note without URL]
 
 ---
 
-:: URL & Image
+:::# URL & Image
 
 https://www.wikipedia.org/
 
@@ -149,7 +127,7 @@ https://picsum.photos/seed/blogable1/600/200.jpg
 
 ---
 
-:: Code Block (Blogable highlight demo)
+:::# Code Block (Blogable highlight demo)
 
 #!blogable
 :: h2 Heading
@@ -168,7 +146,7 @@ Definition body paragraph.
 
 ---
 
-:: EBNF Block (highlight demo)
+:::# EBNF Block (highlight demo)
 
 #!ebnf
 Document  = [ FrontMatterBlock ] , { Block } ;
@@ -181,7 +159,7 @@ Meta      = "@[" , MetaKey , ":" , SP , TEXT , "]" , NL ;
 
 ---
 
-:: JavaScript Block (highlight demo)
+:::# JavaScript Block (highlight demo)
 
 #!javascript
 // Fibonacci sequence (iterative)
@@ -198,7 +176,7 @@ console.log('Fibonacci:', results.join(', '));
 
 ---
 
-:: Python Block (highlight demo)
+:::# Python Block (highlight demo)
 
 #!/usr/bin/env python3
 # Fibonacci sequence (iterative)
@@ -215,8 +193,12 @@ print('Fibonacci:', ', '.join(map(str, results)))
 
 ---
 
-:: Internal Anchor
+:::# Internal Anchor
 
 [#blogable-v11-alpha-demo]
 
 Heading reference: [#Inline Markup]
+
+---
+
+:::# Horizontal Rule
