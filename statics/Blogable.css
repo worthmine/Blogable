@@ -25,6 +25,7 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 .bp h2,.bp h3,.bp h4,.bp h5,.bp h6 { color:#c8b87a; font-weight:normal; margin:1.4em 0 .4em; line-height:1.4; }
 .bp h2 { font-size:1.5em; border-bottom:1px solid #222; padding-bottom:.3em; }
 .bp h3 { font-size:1.25em; } .bp h4 { font-size:1.1em; }
+.bp h5 { font-size:1em; } .bp h6 { font-size:.9em; color:#aaa; }
 .bp ul,.bp ol { padding-left:1.5em; margin:.5em 0; } .bp li { margin:.3em 0; }
 .bp li.task-item { list-style:none; margin-left:-1em; }
 .bp li.task-item input { margin-right:.5em; accent-color:#c8b87a; }
@@ -81,6 +82,10 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 .bp h3.numbered::before { content:counter(h2) "." counter(h3) ". "; }
 .bp h4.numbered { counter-reset:h5; counter-increment:h4; }
 .bp h4.numbered::before { content:counter(h2) "." counter(h3) "." counter(h4) ". "; }
+.bp h5.numbered { counter-reset:h6; counter-increment:h5; }
+.bp h5.numbered::before { content:counter(h2) "." counter(h3) "." counter(h4) "." counter(h5) ". "; }
+.bp h6.numbered { counter-increment:h6; }
+.bp h6.numbered::before { content:counter(h2) "." counter(h3) "." counter(h4) "." counter(h5) "." counter(h6) ". "; }
 
 /* 脚注 */
 .bp .blogable-footnotes { margin-top:2em; padding-top:1em; border-top:1px solid #222; font-size:.85em; color:#888; }
@@ -143,3 +148,15 @@ footer { border-top:1px solid #222; padding:10px 24px; display:flex; align-items
 .diag-item.diag-warn  .diag-code { color:#c8b87a; }
 .diag-item.diag-error { color:#c87a7a; }
 .diag-item.diag-warn  { color:#c8b87a; }
+
+/* アクセシビリティ: キーボードフォーカス */
+.tab-btn:focus-visible    { outline:1px solid #c8b87a; outline-offset:2px; }
+.copy-all-btn:focus-visible { outline:1px solid #8ab87a; outline-offset:2px; }
+.lang-toggle:focus-visible  { outline:1px solid #c8b87a; outline-offset:2px; }
+
+/* レスポンシブレイアウト */
+@media (max-width: 768px) {
+  .main { grid-template-columns:1fr; }
+  .pane-left { border-right:none; border-bottom:1px solid #222; max-height:40vh; }
+  header { flex-wrap:wrap; gap:8px; }
+}
