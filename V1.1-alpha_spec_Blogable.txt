@@ -12,14 +12,14 @@ Blogable is a deterministic, single-pass markup language with semantic output an
 
 ---
 
-:: Scope
+:::# Scope
 
 := Scope
 This document defines the bootstrap EBNF for Blogable v1.1-alpha.
 
 ---
 
-:: Lexical Elements
+:::# Lexical Elements
 
 #!ebnf
 NL        = "\n" ;
@@ -37,7 +37,7 @@ ID        = { ALNUM | "-" } ;
 
 ---
 
-:: Document Structure
+:::# Document Structure
 
 #!ebnf
 Document = [ FrontMatterBlock ] , { Block } ;
@@ -58,7 +58,7 @@ Block = Heading
 
 ---
 
-:: Front Matter
+:::# Front Matter
 
 #!ebnf
 FrontMatterBlock =
@@ -87,7 +87,7 @@ Front matter is parsed and preserved as metadata, but it does not alter core bod
 
 ---
 
-:: Headings
+:::# Headings
 
 #!ebnf
 Heading = "::" , { ":" } , SP , InlineText , NL ;
@@ -99,7 +99,7 @@ The level range is h2 through h6.
 
 ---
 
-:: Paragraphs
+:::# Paragraphs
 
 #!ebnf
 Paragraph = InlineLine , { InlineLine } , NL ;
@@ -111,7 +111,7 @@ Paragraphs are separated by blank lines or by the start of a recognized block.
 
 ---
 
-:: Horizontal Rule
+:::# Horizontal Rule
 
 #!ebnf
 HorizontalRule = "---" , NL ;
@@ -119,7 +119,7 @@ HorizontalRule = "---" , NL ;
 
 ---
 
-:: Code Blocks
+:::# Code Blocks
 
 #!ebnf
 CodeBlock =
@@ -159,7 +159,7 @@ Recognised language tags and shebang aliases:
 
 ---
 
-:: Blogable Blocks
+:::# Blogable Blocks
 
 #!ebnf
 BlogableBlock =
@@ -175,7 +175,7 @@ No re-parse is performed inside the block.
 
 ---
 
-:: EBNF Blocks
+:::# EBNF Blocks
 
 #!ebnf
 EbnfBlock =
@@ -191,7 +191,7 @@ No re-parse is performed inside the block.
 
 ---
 
-:: Quote Blocks
+:::# Quote Blocks
 
 #!ebnf
 QuoteBlock =
@@ -210,7 +210,7 @@ Inline parsing is enabled inside quote text.
 
 ---
 
-:: Math Blocks
+:::# Math Blocks
 
 #!ebnf
 MathBlock =
@@ -227,7 +227,7 @@ Inline parsing is disabled inside math blocks.
 
 ---
 
-:: URLs
+:::# URLs
 
 #!ebnf
 UrlBlock = HTTPS_URL , NL , { Meta } ;
@@ -239,7 +239,7 @@ Inline URLs MUST NOT auto-link.
 
 ---
 
-:: Images
+:::# Images
 
 := ImageURL
 An ImageURL is a UrlBlock whose path ends with one of the allowed image extensions.
@@ -255,7 +255,7 @@ SVG MUST NOT be treated as an image.
 
 ---
 
-:: Lists
+:::# Lists
 
 #!ebnf
 ListBlock = { ListItem } ;
@@ -282,7 +282,7 @@ Definition-list terms are unique across the document.
 
 ---
 
-:: Inline Syntax
+:::# Inline Syntax
 
 #!ebnf
 InlineText = { Inline } ;
@@ -327,7 +327,7 @@ Inline code has no escape syntax.
 
 ---
 
-:: Internal Anchors
+:::# Internal Anchors
 
 #!ebnf
 InternalAnchorBlock = "[#" , TEXT , "]" , NL ;
@@ -339,7 +339,7 @@ Unresolved references produce a warning.
 
 ---
 
-:: Definitions
+:::# Definitions
 
 #!ebnf
 DefinitionBlock = ":=" , SP , Term , NL , DD ;
@@ -351,7 +351,7 @@ The definition body is one or more paragraphs.
 
 ---
 
-:: Metadata
+:::# Metadata
 
 #!ebnf
 Meta = "@[" , MetaKey , ":" , SP , TEXT , "]" , NL ;
@@ -372,7 +372,7 @@ Metadata does not cross blank lines.
 
 ---
 
-:: Parsing Model
+:::# Parsing Model
 
 := Parsing
 Parsing proceeds in three stages:
@@ -382,7 +382,7 @@ Parsing proceeds in three stages:
 
 ---
 
-:: Diagnostics
+:::# Diagnostics
 
 := Diagnostics
 The parser produces diagnostics with fixed codes.
@@ -407,7 +407,7 @@ Diagnostic codes:
 
 ---
 
-:: Security
+:::# Security
 
 := Security
 The core parser MUST not access the network.
@@ -417,17 +417,17 @@ Only HTTPS URLs are accepted by the strict core parser.
 
 ---
 
-:: Self-Hosting
+:::# Self-Hosting
 
 #!blogable
-:: Blogable Bootstrap EBNF
+:::# Blogable Bootstrap EBNF
 := Blogable
 Blogable is a deterministic, single-pass markup language with semantic output and strict diagnostics.
 !#
 
 ---
 
-:: Conclusion
+:::# Conclusion
 
 Blogable v1.1-alpha is deterministic, self-describing, and semantically stable.
 
