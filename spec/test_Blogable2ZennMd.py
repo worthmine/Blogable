@@ -23,6 +23,7 @@ from Blogable2ZennMd import (
     convert_inline,
     convert_front_matter,
     convert,
+    extract_slug,
 )
 
 
@@ -189,6 +190,33 @@ class TestConvertInline(unittest.TestCase):
     def test_mixed_inline(self):
         result, _ = self._ci('**bold** and *em* and `code`')
         self.assertEqual(result, '**bold** and *em* and `code`')
+
+
+# ---------------------------------------------------------------------------
+# extract_slug
+# ---------------------------------------------------------------------------
+
+class TestExtractSlug(unittest.TestCase):
+
+    def test_slug_present(self):
+        src = '@@\ntitle: My Article\nslug: my-article\n@@\n'
+        self.assertEqual(extract_slug(src), 'my-article')
+
+    def test_slug_absent(self):
+        src = '@@\ntitle: My Article\n@@\n'
+        self.assertIsNone(extract_slug(src))
+
+    def test_no_front_matter(self):
+        src = 'Just some text.\n'
+        self.assertIsNone(extract_slug(src))
+
+    def test_slug_with_inline_comment(self):
+        src = '@@\nslug: my-slug # ignore\n@@\n'
+        self.assertEqual(extract_slug(src), 'my-slug')
+
+    def test_slug_empty_value(self):
+        src = '@@\nslug: \n@@\n'
+        self.assertIsNone(extract_slug(src))
 
 
 # ---------------------------------------------------------------------------

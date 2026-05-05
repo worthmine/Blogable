@@ -3,7 +3,7 @@
 Blogable2ZennMd.py – Convert Blogable v1.1-alpha markup to Zenn-compatible Markdown.
 
 Usage:
-  python Blogable2ZennMd.py input.txt            # writes input.md
+  python Blogable2ZennMd.py input.txt            # writes <slug>.md (from front-matter) or input.md
   python Blogable2ZennMd.py input.txt output.md  # writes output.md
   python Blogable2ZennMd.py -                    # reads stdin, writes stdout
 """
@@ -46,6 +46,25 @@ def slugify(text):
 def is_image_url(url):
     path = url.split('?')[0]
     return bool(IMAGE_EXTS.search(path))
+
+
+def extract_slug(src):
+    """Return the slug value from Blogable front-matter (@@...@@), or None."""
+    lines = src.splitlines()
+    in_fm = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped == '@@':
+            if not in_fm:
+                in_fm = True
+            else:
+                break
+        elif in_fm:
+            m = re.match(r'^slug: (.*)$', stripped)
+            if m:
+                value = re.sub(r'\s+#.*$', '', m.group(1)).strip()
+                return value if value else None
+    return None
 
 
 def detect_lang(line):
@@ -544,7 +563,7 @@ def main():
     )
     parser.add_argument(
         'output', nargs='?', default=None,
-        help='Output Markdown file (default: same name as input with .md extension, or stdout for stdin)'
+        help='Output Markdown file (default: <slug>.md from front-matter, or <input>.md, or stdout for stdin)'
     )
     args = parser.parse_args()
 
@@ -554,7 +573,11 @@ def main():
     else:
         in_path = Path(args.input)
         src = in_path.read_text(encoding='utf-8')
-        out_path = Path(args.output) if args.output else in_path.with_suffix('.md')
+        if args.output:
+            out_path = Path(args.output)
+        else:
+            slug = extract_slug(src)
+            out_path = Path(slug + '.md') if slug else in_path.with_suffix('.md')
 
     result = convert(src)
 
