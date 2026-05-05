@@ -3,7 +3,7 @@ title: Blogable v1.1-alpha デモ
 author: worthmine(Yuki Yoshida)
 date: 2026-05-04
 lang: ja
-x-version: 1.1-alpha
+x-version: 1.1-alpha # Blogable のバージョン
 @@
 
 :: Blogable v1.1-alpha デモ
@@ -13,7 +13,7 @@ x-version: 1.1-alpha
 :::# フロントマター
 
 上の `@@` ブロックがフロントマターです。
-使用可能なキー: title, author, date, updated, description, tags, slug, draft, lang, および x-* 拡張。
+使用可能なキー: title, author, date, updated, description, tags, slug, draft, lang, および x-* 拡張。フロントマターの値には `# コメント` を付けることができます（行末インラインコメント）。
 
 ---
 
@@ -197,7 +197,7 @@ print('フィボナッチ:', ', '.join(map(str, results)))
 
 [#blogable-v11-alpha-デモ]
 
-見出し参照: [#インラインマークアップ]
+見出し参照: [#番号付き-h2]
 
 ---
 

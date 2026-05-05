@@ -2,7 +2,7 @@
 title: Blogable v1.1-alpha Demo
 author: worthmine(Yuki Yoshida)
 date: 2026-05-04
-x-version: 1.1-alpha
+x-version: 1.1-alpha # Blogable version
 @@
 
 :: Blogable v1.1-alpha Demo
@@ -12,7 +12,7 @@ x-version: 1.1-alpha
 :::# Front Matter
 
 The `@@` block above is the front matter.
-Allowed keys: title, author, date, updated, description, tags, slug, draft, lang, and x-* extensions.
+Allowed keys: title, author, date, updated, description, tags, slug, draft, lang, and x-* extensions. Front matter values can include `# comments` (inline comment after the value).
 
 ---
 

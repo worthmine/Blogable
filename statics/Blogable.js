@@ -456,7 +456,8 @@ function buildAST(tokens) {
         continue;
       }
 
-      meta[key]=m[2];
+      // Strip inline YAML comment: per YAML spec, comments start after whitespace before '#'
+      meta[key]=m[2].replace(/\s+#.*$/, '');
     }
     return meta;
   }
