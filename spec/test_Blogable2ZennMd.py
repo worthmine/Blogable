@@ -360,8 +360,8 @@ class TestConvert(unittest.TestCase):
         """The anchor slug is derived from plain text, not raw Blogable source."""
         src = ':: **Bold** Title\n'
         out = convert(src)
-        # Slug must NOT contain asterisks
-        self.assertNotIn('**', out.split('](#')[1].split(')')[0])
+        # The full auto-link should use plain text for both label and anchor
+        self.assertIn('## [Bold Title](#bold-title)', out)
 
     # ── code blocks ─────────────────────────────────────────────────────────
 
