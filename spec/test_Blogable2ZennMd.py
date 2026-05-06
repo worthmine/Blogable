@@ -303,33 +303,33 @@ class TestConvert(unittest.TestCase):
     # ── headings ────────────────────────────────────────────────────────────
 
     def test_h2(self):
-        self.assertIn('## My Heading', convert(':: My Heading\n'))
+        self.assertIn('## [My Heading](#my-heading)', convert(':: My Heading\n'))
 
     def test_h3(self):
-        self.assertIn('### Sub', convert('::: Sub\n'))
+        self.assertIn('### [Sub](#sub)', convert('::: Sub\n'))
 
     def test_h4(self):
-        self.assertIn('#### Deep', convert(':::: Deep\n'))
+        self.assertIn('#### [Deep](#deep)', convert(':::: Deep\n'))
 
     def test_numbered_h2(self):
         out = convert('::# First\n::# Second\n')
-        self.assertIn('## 1. First', out)
-        self.assertIn('## 2. Second', out)
+        self.assertIn('## [1. First](#1-first)', out)
+        self.assertIn('## [2. Second](#2-second)', out)
 
     def test_numbered_h3_counter_reset_on_h2(self):
         src = '::# Parent\n:::# Child\n::# Another\n:::# Child2\n'
         out = convert(src)
         # Second :::# should restart at 1 after the h2 counter advances
-        self.assertIn('### 1. Child', out)
-        self.assertIn('### 1. Child2', out)
+        self.assertIn('### [1. Child](#1-child)', out)
+        self.assertIn('### [1. Child2](#1-child2)', out)
 
     def test_plain_h2_resets_numbered_h3_counter(self):
         """Plain :: heading must also reset deeper numbered-heading counters."""
         src = ':: Chapter One\n:::# Section\n:: Chapter Two\n:::# Section\n'
         out = convert(src)
-        self.assertIn('### 1. Section', out)
-        # Both occurrences should be '### 1. Section', not '### 2. Section'
-        self.assertNotIn('### 2. Section', out)
+        self.assertIn('### [1. Section](#1-section)', out)
+        # Both occurrences should be '### [1. Section](#1-section)', not '### [2. Section]...'
+        self.assertNotIn('### [2. Section]', out)
 
     # ── code blocks ─────────────────────────────────────────────────────────
 
@@ -579,17 +579,17 @@ class TestFixtureArticle(unittest.TestCase):
 
     # headings
     def test_fixture_h2(self):
-        self.assertIn('## Introduction', self.out)
+        self.assertIn('## [Introduction](#introduction)', self.out)
 
     def test_fixture_h3(self):
-        self.assertIn('### Level Three', self.out)
+        self.assertIn('### [Level Three](#level-three)', self.out)
 
     def test_fixture_h4(self):
-        self.assertIn('#### Level Four', self.out)
+        self.assertIn('#### [Level Four](#level-four)', self.out)
 
     def test_fixture_numbered_headings(self):
-        self.assertIn('## 1. Numbered One', self.out)
-        self.assertIn('## 2. Numbered Two', self.out)
+        self.assertIn('## [1. Numbered One](#1-numbered-one)', self.out)
+        self.assertIn('## [2. Numbered Two](#2-numbered-two)', self.out)
 
     # inline markup
     def test_fixture_bold(self):
@@ -689,17 +689,17 @@ class TestFixtureArticleJa(unittest.TestCase):
 
     # headings
     def test_fixture_ja_h2(self):
-        self.assertIn('## はじめに', self.out)
+        self.assertIn('## [はじめに](#はじめに)', self.out)
 
     def test_fixture_ja_h3(self):
-        self.assertIn('### レベル 3', self.out)
+        self.assertIn('### [レベル 3](#レベル-3)', self.out)
 
     def test_fixture_ja_h4(self):
-        self.assertIn('#### レベル 4', self.out)
+        self.assertIn('#### [レベル 4](#レベル-4)', self.out)
 
     def test_fixture_ja_numbered_headings(self):
-        self.assertIn('## 1. 番号付き 1', self.out)
-        self.assertIn('## 2. 番号付き 2', self.out)
+        self.assertIn('## [1. 番号付き 1](#1-番号付き-1)', self.out)
+        self.assertIn('## [2. 番号付き 2](#2-番号付き-2)', self.out)
 
     # inline markup
     def test_fixture_ja_bold(self):

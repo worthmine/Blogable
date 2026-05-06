@@ -388,7 +388,9 @@ def convert(src):
                 h_counters[j] = 0
             prefix = '#' * level
             num = h_counters[level - 2]
-            out.append(f'{prefix} {num}. {convert_inline(text, footnotes)}')
+            label = f'{num}. {text}'
+            anchor = slugify(label)
+            out.append(f'{prefix} [{num}. {convert_inline(text, footnotes)}](#{anchor})')
             i += 1
             continue
 
@@ -401,7 +403,8 @@ def convert(src):
             for j in range(level - 1, 5):
                 h_counters[j] = 0
             prefix = '#' * level
-            out.append(f'{prefix} {convert_inline(text, footnotes)}')
+            anchor = slugify(text)
+            out.append(f'{prefix} [{convert_inline(text, footnotes)}](#{anchor})')
             i += 1
             continue
 

@@ -7,26 +7,26 @@ published: false
 slug: "blogable-feature-sampler"
 ---
 
-## Introduction
+## [Introduction](#introduction)
 
 This article exercises every major Blogable block so the converter can be tested end-to-end.
 
 ---
 
-## Headings
+## [Headings](#headings)
 
-### Level Three
+### [Level Three](#level-three)
 
-#### Level Four
+#### [Level Four](#level-four)
 
-## 1. Numbered One
-## 2. Numbered Two
-### 1. Nested Numbered One
-### 2. Nested Numbered Two
+## [1. Numbered One](#1-numbered-one)
+## [2. Numbered Two](#2-numbered-two)
+### [1. Nested Numbered One](#1-nested-numbered-one)
+### [2. Nested Numbered Two](#2-nested-numbered-two)
 
 ---
 
-## Inline Markup
+## [Inline Markup](#inline-markup)
 
 Inline styles: **bold**, *italic*, ~~strikethrough~~, <ins>inserted</ins>, `code`.
 
@@ -36,7 +36,7 @@ A [link label](https://example.com) and a footnote.[^1]
 
 ---
 
-## Code Block
+## [Code Block](#code-block)
 
 ```python:hello.py
 def hello(name):
@@ -45,7 +45,7 @@ def hello(name):
 
 ---
 
-## Quote Block
+## [Quote Block](#quote-block)
 
 > First line of the quote.
 > Second line of the quote.
@@ -54,7 +54,7 @@ def hello(name):
 
 ---
 
-## Lists
+## [Lists](#lists)
 
 1. First ordered item
 1. Second ordered item
@@ -64,20 +64,20 @@ def hello(name):
 
 ---
 
-## Definition Block
+## [Definition Block](#definition-block)
 
 **Term**
 The body paragraph that defines the term.
 
 ---
 
-## Anchor Block
+## [Anchor Block](#anchor-block)
 
 <a id="introduction-anchor"></a>
 
 ---
 
-## Math Block
+## [Math Block](#math-block)
 
 $$
 E = mc^2
@@ -85,7 +85,7 @@ $$
 
 ---
 
-## Horizontal Rule
+## [Horizontal Rule](#horizontal-rule)
 
 ---
 
