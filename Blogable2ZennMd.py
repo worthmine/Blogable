@@ -43,6 +43,37 @@ def slugify(text):
     return s.strip('-')
 
 
+def plain_text(blogable_inline):
+    """Reduce Blogable inline markup to its visible plain text.
+
+    Used to derive heading anchor slugs and link labels from raw heading
+    source, so that:
+    - the slug matches what Zenn generates from the rendered heading text, and
+    - the Markdown link label contains no nested ``[...]`` constructs
+      (which would produce invalid Markdown).
+    """
+    s = blogable_inline
+    # [https://... label] → label
+    s = re.sub(r'\[https?://[^ \]\n]+ ([^\]\n]+)\]', r'\1', s)
+    # [https://...] (bare URL) → URL
+    s = re.sub(r'\[https?://([^\]\n]+)\]', r'\1', s)
+    # [#label] → label
+    s = re.sub(r'\[#([^\]\n]+)\]', r'\1', s)
+    # [^...] footnote → (remove; no visible inline text)
+    s = re.sub(r'\[\^[^\]\n]*\]', '', s)
+    # **bold** → bold
+    s = re.sub(r'\*\*([^*\n]+)\*\*', r'\1', s)
+    # *em* → em
+    s = re.sub(r'\*([^*\n]+)\*', r'\1', s)
+    # ~~del~~ → del
+    s = re.sub(r'~~([^~\n]+)~~', r'\1', s)
+    # ++ins++ → ins
+    s = re.sub(r'\+\+([^+\n]+)\+\+', r'\1', s)
+    # `code` → code
+    s = re.sub(r'`([^`\n]*)`', r'\1', s)
+    return s.strip()
+
+
 def is_image_url(url):
     path = url.split('?')[0]
     return bool(IMAGE_EXTS.search(path))
@@ -388,7 +419,9 @@ def convert(src):
                 h_counters[j] = 0
             prefix = '#' * level
             num = h_counters[level - 2]
-            out.append(f'{prefix} {num}. {convert_inline(text, footnotes)}')
+            plain_label = f'{num}. {plain_text(text)}'
+            anchor = slugify(plain_label)
+            out.append(f'{prefix} [{plain_label}](#{anchor})')
             i += 1
             continue
 
@@ -401,7 +434,9 @@ def convert(src):
             for j in range(level - 1, 5):
                 h_counters[j] = 0
             prefix = '#' * level
-            out.append(f'{prefix} {convert_inline(text, footnotes)}')
+            plain_label = plain_text(text)
+            anchor = slugify(plain_label)
+            out.append(f'{prefix} [{plain_label}](#{anchor})')
             i += 1
             continue
 
