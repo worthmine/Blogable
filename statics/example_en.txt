@@ -101,8 +101,10 @@ A blank line starts a new paragraph within the block.
 :::# Math Block
 
 $$
-E = mc^2
-F = ma
+\begin{aligned}
+E &= mc^2 \\
+F &= ma
+\end{aligned}
 $$
 
 ---
