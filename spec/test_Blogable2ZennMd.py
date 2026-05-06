@@ -331,6 +331,38 @@ class TestConvert(unittest.TestCase):
         # Both occurrences should be '### [1. Section](#1-section)', not '### [2. Section]...'
         self.assertNotIn('### [2. Section]', out)
 
+    def test_heading_with_inline_link_no_nested_link(self):
+        """Heading containing a Blogable link must not produce nested Markdown links."""
+        src = ':: See [https://example.com the site]\n'
+        out = convert(src)
+        # The visible label should contain no nested [...](...) inside the outer [...]
+        self.assertIn('## [See the site](#see-the-site)', out)
+
+    def test_heading_with_anchor_ref_no_nested_link(self):
+        """Heading containing an anchor ref must not produce nested Markdown links."""
+        src = ':: Refer to [#other section]\n'
+        out = convert(src)
+        self.assertIn('## [Refer to other section](#refer-to-other-section)', out)
+
+    def test_heading_with_strong_plain_text(self):
+        """Heading containing **bold** emits plain text in the link label."""
+        src = ':: **Important** Notice\n'
+        out = convert(src)
+        self.assertIn('## [Important Notice](#important-notice)', out)
+
+    def test_heading_with_code_plain_text(self):
+        """Heading containing `code` emits plain text in the link label."""
+        src = ':: Use `nil` carefully\n'
+        out = convert(src)
+        self.assertIn('## [Use nil carefully](#use-nil-carefully)', out)
+
+    def test_heading_slug_from_plain_text(self):
+        """The anchor slug is derived from plain text, not raw Blogable source."""
+        src = ':: **Bold** Title\n'
+        out = convert(src)
+        # Slug must NOT contain asterisks
+        self.assertNotIn('**', out.split('](#')[1].split(')')[0])
+
     # ── code blocks ─────────────────────────────────────────────────────────
 
     def test_code_block_lang(self):
