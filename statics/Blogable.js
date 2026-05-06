@@ -868,6 +868,19 @@ function highlightCodeTables(container) {
     });
   });
 }
+function renderKaTeXBlocks(container) {
+  if (!window.katex) return;
+  container.querySelectorAll('div.math-block').forEach(div => {
+    const lines = div.textContent.split('\n').filter(line => line.trim());
+    div.innerHTML = lines.map(line => {
+      try {
+        return katex.renderToString(line, { displayMode: true, throwOnError: false });
+      } catch(e) {
+        return `<span class="katex-error">${esc(line)}</span>`;
+      }
+    }).join('');
+  });
+}
 function render(){
 cbCounter=0; window._cb={}; footnotes=[];
 const src=document.getElementById('source').value;
@@ -877,6 +890,7 @@ updateDiagnosticsPanel(diags);
 if (currentTab==='preview') {
 document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
 if (window.Prism) highlightCodeTables(document.getElementById('preview-out'));
+if (window.katex) renderKaTeXBlocks(document.getElementById('preview-out'));
 } else if (currentTab==='html') {
 document.getElementById('html-out').textContent=astToHtml(ast,false);
 }
