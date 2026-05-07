@@ -61,7 +61,8 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 .bp .front-matter dd { color:#b8c4a0; margin-left:1em; }
 
 /* 数式ブロック */
-.bp .math-block { background:#111; border:1px solid #222; border-radius:6px; padding:12px 16px; margin:1em 0; font-family:monospace; font-size:13px; color:#a0a8c0; white-space:pre; overflow-x:auto; }
+.bp pre.math-block { background:#111; border:1px solid #222; border-radius:6px; padding:12px 16px; margin:1em 0; font-family:monospace; font-size:13px; color:#a0a8c0; white-space:pre; overflow-x:auto; }
+.bp pre.math-block code { background:transparent; color:inherit; padding:0; border-radius:0; font-family:inherit; font-size:inherit; }
 
 /* 内部アンカー */
 .bp .anchor-block { display:inline-block; color:#555; font-size:.8em; font-family:monospace; }
