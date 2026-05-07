@@ -737,7 +737,7 @@ function astToHtml(nodes, forDisplay=false) {
       }
 
       case 'math': {
-        return `<div${mergeAttrs('math-block', node.mods)}>${node.lines.map(l=>esc(l)).join('\n')}</div>`;
+        return `<pre${mergeAttrs('math-block', node.mods)}><code>${node.lines.map(l=>esc(l)).join('\n')}</code></pre>`;
       }
 
       case 'def_block': {
@@ -870,9 +870,11 @@ function highlightCodeTables(container) {
 }
 function renderKaTeXBlocks(container) {
   if (!window.katex) return;
-  container.querySelectorAll('div.math-block').forEach(div => {
-    const lines = div.textContent.split('\n').filter(line => line.trim());
-    div.innerHTML = lines.map(line => {
+  container.querySelectorAll('pre.math-block').forEach(pre => {
+    const code = pre.querySelector('code');
+    if (!code) return;
+    const lines = code.textContent.split('\n').filter(line => line.trim());
+    code.innerHTML = lines.map(line => {
       try {
         return katex.renderToString(line, { displayMode: true, throwOnError: false });
       } catch(e) {

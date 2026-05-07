@@ -381,11 +381,12 @@ describe('§QuoteBlocks', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('§MathBlocks', () => {
-  it('$$ … $$ → <div class="math-block">', () => {
+  it('$$ … $$ → <pre class="math-block"><code>…</code></pre>', () => {
     const src = '$$\nE = mc^2\n$$';
     const html = parse(src);
-    expect(html).toMatch(/<div class="math-block">/);
+    expect(html).toMatch(/<pre class="math-block"><code>/);
     expect(html).toMatch(/E = mc\^2/);
+    expect(html).toMatch(/<\/code><\/pre>/);
   });
 
   it('math block content is HTML-escaped', () => {
@@ -888,7 +889,7 @@ describe('§Metadata', () => {
 
   it('@[class: equation] after a math block adds class to the math wrapper', () => {
     const html = parse('$$\nx = 1\n$$\n@[class: equation]');
-    expect(html).toMatch(/class="math-block equation"/);
+    expect(html).toMatch(/<pre class="math-block equation"><code>x = 1<\/code><\/pre>/);
   });
 
   it('@[class: glossary] after a definition block adds class to <dl>', () => {
@@ -1738,4 +1739,3 @@ describe('§Tokenizer', () => {
     expect(toks[0].type).toBe('def_term');
   });
 });
-
