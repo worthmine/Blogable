@@ -323,6 +323,7 @@ Inline = Code
        | Link
        | Footnote
        | AnchorRef
+       | WikiLink
        | Strong
        | Emphasis
        | Delete
@@ -335,6 +336,7 @@ CodeChar  = ? any character except "`" and NL ? ;
 Link      = "[" , TEXT , "]" , "(" , HTTPS_URL , ")" ;
 Footnote  = "[^" , TEXT , "]" ;
 AnchorRef = "[[" , "#" , ID , "]]" ;
+WikiLink  = "[[" , PATH , [ "|" , TEXT ] , "]]" ;
 
 Strong    = "**" , { StrongChar } , "**" ;
 StrongChar = ? any character except "*" and NL ? ;
@@ -355,7 +357,7 @@ Plain = { ANY - NL } ;
 
 Inline elements MUST NOT nest.
 Inline evaluation order is:
-Code, Link, Footnote, AnchorRef, Strong, Emphasis, Delete, Insert.
+Code, Link, Footnote, AnchorRef, WikiLink, Strong, Emphasis, Delete, Insert.
 Inline code has no escape syntax.
 
 ---

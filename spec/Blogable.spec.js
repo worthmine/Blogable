@@ -675,6 +675,44 @@ describe('§InlineSyntax', () => {
     }
   });
 
+  it('WikiLink: [[path]] → <a href="path" class="wikilink">path</a>', () => {
+    const html = parse('See [[other-page]] here.');
+    expect(html).toMatch(/<a href="other-page" class="wikilink">other-page<\/a>/);
+  });
+
+  it('WikiLink: [[path|display text]] → <a href="path">display text</a>', () => {
+    const html = parse('See [[other-page|display text]] here.');
+    expect(html).toMatch(/<a href="other-page" class="wikilink">display text<\/a>/);
+  });
+
+  it('WikiLink: leading/trailing whitespace in display text is trimmed', () => {
+    const html = parse('See [[path| display text ]] here.');
+    expect(html).toMatch(/<a href="path" class="wikilink">display text<\/a>/);
+  });
+
+  it('WikiLink: path with Japanese characters is supported', () => {
+    const html = parse('[[相対パス|表示テキスト]]');
+    expect(html).toMatch(/class="wikilink"/);
+    expect(html).toMatch(/相対パス/);
+    expect(html).toMatch(/表示テキスト/);
+  });
+
+  it('WikiLink: path and display text with HTML chars are escaped', () => {
+    const html = parse('[[<evil>|<b>click</b>]]');
+    expect(html).not.toMatch(/<evil>/);
+    expect(html).not.toMatch(/<b>/);
+    expect(html).toMatch(/&lt;evil&gt;/);
+    expect(html).toMatch(/&lt;b&gt;/);
+  });
+
+  it('WikiLink does NOT match [[#ID]] (AnchorRef takes precedence)', () => {
+    // [[#heading]] must still be handled by AnchorRef, not WikiLink.
+    const src = ':: Section\n\nSee [[#Section]] here.';
+    const html = parse(src);
+    expect(html).toMatch(/class="anchor-ref"/);
+    expect(html).not.toMatch(/class="wikilink"/);
+  });
+
   it('Strong: **text** → <strong>text</strong>', () => {
     expect(parse('**bold**')).toMatch(/<strong>bold<\/strong>/);
   });
