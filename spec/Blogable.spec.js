@@ -615,24 +615,23 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/`line1/);
   });
 
-  it('Link: [https://url label] → <a href="…">label</a>', () => {
-    const html = parse('[https://example.com Visit Example]');
+  it('Link: [label](https://url) → <a href="…">label</a>', () => {
+    const html = parse('[Visit Example](https://example.com)');
     expect(html).toMatch(/<a href="https:\/\/example\.com"/);
     expect(html).toMatch(/Visit Example/);
     expect(html).toMatch(/rel="noopener noreferrer"/);
     expect(html).toMatch(/target="_blank"/);
   });
 
-  it('Link: URL must end at the first space (no space in URL portion)', () => {
-    // The HTTPS_URL token class is [^ \]\n]+ — it stops at the first space.
-    // A raw URL with a space is not a valid Link; the rest becomes part of the label.
-    const html = parse('[https://example.com/path label text]');
+  it('Link: label text may contain spaces', () => {
+    // Label is everything between [ and ]; URL is inside the parens.
+    const html = parse('[label text](https://example.com/path)');
     expect(html).toMatch(/href="https:\/\/example\.com\/path"/);
     expect(html).toMatch(/>label text</);
   });
 
   it('Link: http:// is rejected (https only)', () => {
-    const html = parse('[http://example.com label]');
+    const html = parse('[label](http://example.com)');
     expect(html).not.toMatch(/<a href="http:\/\//);
   });
 
@@ -655,20 +654,20 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/fn-2/);
   });
 
-  it('AnchorRef: [#heading-id] resolves to an in-page link when heading exists', () => {
+  it('AnchorRef: [[#heading-id]] resolves to an in-page link when heading exists', () => {
     // AnchorRef is an inline construct; it must appear inside paragraph text,
     // not as a standalone line (which would be tokenised as anchor_block instead).
-    const src = ':: My Section\n\nSee [#My Section] for details.';
+    const src = ':: My Section\n\nSee [[#My Section]] for details.';
     const html = parse(src);
     expect(html).toMatch(/<a href="#my-section" class="anchor-ref"/);
   });
 
-  it('AnchorRef: [#unknown] emits [W001] and renders plain text', () => {
+  it('AnchorRef: [[#unknown]] emits [W001] and renders plain text', () => {
     // AnchorRef is inline-only; use it inside paragraph text so it is not
     // tokenised as a standalone anchor_block.
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      const html = parse('Read [#nonexistent] for more.');
+      const html = parse('Read [[#nonexistent]] for more.');
       expect(warnSpy.mock.calls.some(a => a.join(' ').includes('[W001]'))).toBe(true);
       expect(html).not.toMatch(/<a /);
     } finally {
@@ -964,12 +963,12 @@ describe('§Diagnostics', () => {
 
   it('[W001] is emitted for an unresolved anchor reference', () => {
     // AnchorRef is inline-only; use it inside paragraph text.
-    parse('See [#ghost-anchor] for details.');
+    parse('See [[#ghost-anchor]] for details.');
     expect(getDiagnostics().some(d => d.code === 'W001')).toBe(true);
   });
 
   it('[W001] diagnostic carries the anchor id in its message', () => {
-    parse('See [#ghost-anchor] for details.');
+    parse('See [[#ghost-anchor]] for details.');
     expect(getDiagnostics().find(d => d.code === 'W001')?.message).toMatch(/ghost-anchor/);
   });
 
@@ -1239,7 +1238,7 @@ describe('§Diagnostics', () => {
     const codes = [
       { src: '@@\nbadkey: v\n@@',          code: 'E001' },
       { src: '@[badmetakey: v]',            code: 'E002' },
-      { src: 'See [#ghost] for details.',   code: 'W001' },
+      { src: 'See [[#ghost]] for details.',   code: 'W001' },
       { src: '@@\nno colon here\n@@',       code: 'W002' },
       { src: ' - odd-indent item',          code: 'E003' },
       { src: ':::::::: Too Deep',            code: 'E004' },
@@ -1283,7 +1282,7 @@ describe('§Diagnostics', () => {
     const cases = [
       '@@\nbadkey: v\n@@',
       '@[badmetakey: v]',
-      'See [#ghost] for details.',
+      'See [[#ghost]] for details.',
       '@@\nno colon here\n@@',
       ' - odd-indent',
       ':::::::: Too Deep',
@@ -1309,7 +1308,7 @@ describe('§Diagnostics', () => {
   it('multiple diagnostics in one parse all appear in getDiagnostics()', () => {
     // A document with both an invalid front matter key AND an unresolved anchor ref
     // must accumulate both diagnostics in a single parse call.
-    parse('@@\nbadkey: v\n@@\n\nSee [#ghost] for details.');
+    parse('@@\nbadkey: v\n@@\n\nSee [[#ghost]] for details.');
     const codes = getDiagnostics().map(d => d.code);
     expect(codes).toContain('E001');
     expect(codes).toContain('W001');
@@ -1370,21 +1369,21 @@ describe('§SecureFallback', () => {
   // ── [W001] unresolved anchor reference ──────────────────────────────────
 
   it('[W001] surrounding paragraph content still renders after an unresolved anchor ref', () => {
-    const html = parse('Before [#ghost] after.');
+    const html = parse('Before [[#ghost]] after.');
     expect(html).toMatch(/Before/);
     expect(html).toMatch(/after\./);
   });
 
   it('[W001] unresolved anchor renders the inner text as plain escaped text (not a link)', () => {
-    const html = parse('Read [#nowhere] here.');
+    const html = parse('Read [[#nowhere]] here.');
     expect(html).not.toMatch(/<a /);
     // Inner text "nowhere" must still appear verbatim
     expect(html).toMatch(/nowhere/);
   });
 
   it('[W001] unresolved anchor with HTML chars in the id is escaped in fallback text', () => {
-    // The inner text of [#<evil>] must be escaped, never injected as markup.
-    const html = parse('Text [#<evil>] text.');
+    // The inner text of [[#<evil>]] must be escaped, never injected as markup.
+    const html = parse('Text [[#<evil>]] text.');
     expect(html).not.toMatch(/<evil>/);
     expect(html).toMatch(/&lt;evil&gt;/);
   });
@@ -1458,7 +1457,7 @@ describe('§SecureFallback', () => {
       '',
       ' - odd-indent item',
       '',
-      'See [#ghost] for details.',
+      'See [[#ghost]] for details.',
     ].join('\n');
     expect(() => parse(src)).not.toThrow();
     const html = parse(src);
@@ -1498,12 +1497,12 @@ describe('§Security', () => {
   });
 
   it('javascript: URL is not linked', () => {
-    const html = parse('[javascript:alert(1) click me]');
+    const html = parse('[click me](javascript:alert(1))');
     expect(html).not.toMatch(/href="javascript:/);
   });
 
   it('inline link with non-https scheme is not linked', () => {
-    const html = parse('[ftp://example.com label]');
+    const html = parse('[label](ftp://example.com)');
     expect(html).not.toMatch(/href="ftp:\/\//);
   });
 
@@ -1528,7 +1527,7 @@ describe('§Security', () => {
   });
 
   it('inline link label with HTML chars is escaped', () => {
-    const html = parse('[https://example.com <b>click</b>]');
+    const html = parse('[<b>click</b>](https://example.com)');
     expect(html).not.toMatch(/<b>/);
     expect(html).toMatch(/&lt;b&gt;/);
   });

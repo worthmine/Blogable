@@ -332,9 +332,9 @@ Inline = Code
 Code      = "`" , { CodeChar } , "`" ;
 CodeChar  = ? any character except "`" and NL ? ;
 
-Link      = "[" , HTTPS_URL , SP , TEXT , "]" ;
+Link      = "[" , TEXT , "]" , "(" , HTTPS_URL , ")" ;
 Footnote  = "[^" , TEXT , "]" ;
-AnchorRef = "[#" , ID , "]" ;
+AnchorRef = "[[" , "#" , ID , "]]" ;
 
 Strong    = "**" , { StrongChar } , "**" ;
 StrongChar = ? any character except "*" and NL ? ;
@@ -434,7 +434,7 @@ Warnings notify without stopping rendering.
 | E003 | Error | Invalid list indentation (odd number of leading spaces) |
 | E004 | Error | Heading level out of range (more than 6 colons; maximum is h6) |
 | E005 | Error | Definition block has no body text (DD is required by spec) |
-| W001 | Warning | Unresolved internal anchor reference `[#id]` |
+| W001 | Warning | Unresolved internal anchor reference `[[#id]]` |
 | W002 | Warning | Malformed front matter line (does not match `key: value` format) |
 | W003 | Warning | Unterminated front matter block (EOF reached without closing `@@`) |
 | W004 | Warning | Unterminated code block (EOF reached without closing `!#`) |

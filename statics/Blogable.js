@@ -26,9 +26,9 @@ Prism.languages.blogable = {
   'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
   'anchor-block':  { pattern:/^\[#[^\]]+\]$/m,       alias:'symbol' },
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
-  'inline-link':   { pattern:/\[https:\/\/[^ \]\n]+[ ][^\]\n]+\]/, alias:'url' },
+  'inline-link':   { pattern:/\[[^\[\]\n]+\]\(https:\/\/[^\)\n]+\)/, alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
-  'anchor-ref':    { pattern:/\[#[^\]]+\]/,          alias:'symbol' },
+  'anchor-ref':    { pattern:/\[\[#[^\]]+\]\]/,      alias:'symbol' },
   'bold':    { pattern:/\*\*[^*\n]+\*\*/ },
   'italic':  { pattern:/\*[^*\n]+\*/ },
   'ins':     { pattern:/\+\+[^+\n]+\+\+/, alias:'inserted' },
@@ -170,9 +170,9 @@ function parseInline(text) {
       i += m[0].length; continue;
     }
 
-    // ── Link  [HTTPS_URL SP TEXT]  (SP = single space) ─────────
-    if ((m = rest.match(/^\[(https:\/\/[^ \]\n]+) ([^\]\n]+)\]/))) {
-      const url = m[1], label = m[2];
+    // ── Link  [TEXT](HTTPS_URL)  ────────────────────────────────────
+    if ((m = rest.match(/^\[([^\[\]\n]+)\]\((https:\/\/[^\)\n]+)\)/))) {
+      const label = m[1], url = m[2];
       out += isSafeUrl(url) ? extLink(url, esc(label)) : esc(m[0]);
       i += m[0].length; continue;
     }
@@ -191,8 +191,8 @@ function parseInline(text) {
       i += m[0].length; continue;
     }
 
-    // ── AnchorRef  [#ID] ────────────────────────────────────────
-    if ((m = rest.match(/^\[#([^\]\n]+)\]/))) {
+    // ── AnchorRef  [[#ID]] ──────────────────────────────────────────
+    if ((m = rest.match(/^\[\[#([^\]\n]+)\]\]/))) {
       const id = m[1], slug = slugify(id);
       if (Object.hasOwn(headingIds, slug)) {
         out += `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
