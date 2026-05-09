@@ -28,8 +28,8 @@ Prism.languages.blogable = {
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
   'inline-link':   { pattern:/\[[^\[\]\n]+\]\(https:\/\/[^\)\n]+\)/, alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
-  'anchor-ref':    { pattern:/\[\[#[^\]]+\]\]/,      alias:'symbol' },
-  'wikilink':      { pattern:/\[\[[^#\]|\n][^\]|\n]*(?:\|[^\]\n]*)?\]\]/, alias:'url' },
+  'anchor-ref':    { pattern:/\[\[#[^\]\n]+\]\]/,     alias:'symbol' },
+  'wikilink':      { pattern:/\[\[[^#\]\|\n][^\]\|\n]*(?:\|[^\]\n]*)?\]\]/, alias:'url' },
   'bold':    { pattern:/\*\*[^*\n]+\*\*/ },
   'italic':  { pattern:/\*[^*\n]+\*/ },
   'ins':     { pattern:/\+\+[^+\n]+\+\+/, alias:'inserted' },
@@ -205,7 +205,7 @@ function parseInline(text) {
     }
 
     // ── WikiLink  [[PATH]] or [[PATH|DISPLAY]]  ─────────────────────
-    if ((m = rest.match(/^\[\[([^#\]|\n][^\]|\n]*)(?:\|([^\]\n]*))?\]\]/))) {
+    if ((m = rest.match(/^\[\[([^#\]\|\n][^\]\|\n]*)(?:\|([^\]\n]*))?\]\]/))) {
       const path = m[1].trim(), display = m[2] !== undefined ? m[2].trim() : m[1].trim();
       out += `<a href="${esc(path)}" class="wikilink">${esc(display)}</a>`;
       i += m[0].length; continue;
