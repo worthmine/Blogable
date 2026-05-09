@@ -28,6 +28,7 @@ Prism.languages.blogable = {
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
   'inline-link':   { pattern:/\[[^\[\]\n]+\]\(https:\/\/[^\)\n]+\)/, alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
+  'obsidian-embed':  { pattern:/^!\[\[[^\]\n]+\]\]$/m,   alias:'url' },
   'obsidian-anchor': { pattern:/\[\[#[^\]\n]+\]\]/,     alias:'symbol' },
   'obsidian-link':   { pattern:/\[\[[^#\]\|\n][^\]\|\n]*(?:#[^\]\|\n]+)?(?:\|[^\]\n]*)?\]\]/, alias:'url' },
   'bold':    { pattern:/\*\*[^*\n]+\*\*/ },
@@ -361,6 +362,10 @@ function tokenize(lines) {
     // URL単独行（buildAST で安全に扱える HTTPS のみを URL ブロック化する）
     if (/^https:\/\/\S+$/.test(t)) { tokens.push({type:'url', url:t}); continue; }
 
+    // ObsidianEmbed ![[path]] or ![[path|alt]] — ローカル画像埋め込み
+    const embedM=t.match(/^!\[\[([^\]|]+?)(?:\|([^\]]*))?\]\]$/);
+    if (embedM) { tokens.push({type:'obsidian_embed', path:embedM[1].trim(), alt:embedM[2]!==undefined?embedM[2].trim():null}); continue; }
+
     // 通常テキスト
     tokens.push({type:'text', text:t});
   }
@@ -661,6 +666,15 @@ function buildAST(tokens) {
         }
         flushImages();
       }
+      continue;
+    }
+
+    // ObsidianEmbed ![[path]] or ![[path|alt]] — ローカル画像埋め込み
+    if (tok.type==='obsidian_embed') {
+      i++;
+      const mods=cm();
+      const altMod=tok.alt!==null?[{key:'alt',value:tok.alt}]:[];
+      nodes.push({type:'figure', images:[{url:tok.path, mods:[...altMod,...mods]}]});
       continue;
     }
 

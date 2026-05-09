@@ -255,6 +255,21 @@ SVG MUST NOT be treated as an image.
 
 ---
 
+:::# ObsidianEmbed
+
+#!ebnf
+ObsidianEmbed = "![[" , PATH , [ "|" , TEXT ] , "]]" , NL , { Meta } ;
+!#
+
+:= ObsidianEmbed
+An ObsidianEmbed is a standalone block line beginning with "![[".
+It embeds a local image file referenced by PATH.
+An optional display alt text follows the path after "|".
+It renders as a <figure> with an <img> element.
+The @[alt: ...] modifier may also be used to set or override alt text.
+
+---
+
 :::# Lists
 
 #!ebnf

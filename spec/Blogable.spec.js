@@ -462,6 +462,64 @@ describe('§URLs', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// §ObsidianEmbed
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('§ObsidianEmbed', () => {
+  it('![[image.png]] → <figure> with <img src="image.png">', () => {
+    const html = parse('![[image.png]]');
+    expect(html).toMatch(/<figure/);
+    expect(html).toMatch(/<img /);
+    expect(html).toMatch(/src="image\.png"/);
+  });
+
+  it('![[image.png|alt text]] → <img alt="alt text">', () => {
+    const html = parse('![[image.png|alt text]]');
+    expect(html).toMatch(/alt="alt text"/);
+    expect(html).toMatch(/src="image\.png"/);
+  });
+
+  it('![[image.png]] with @[alt: description] modifier → <img alt="description">', () => {
+    const html = parse('![[image.png]]\n@[alt: description]');
+    expect(html).toMatch(/alt="description"/);
+    expect(html).toMatch(/src="image\.png"/);
+  });
+
+  it('![[path/to/photo.jpg]] — nested path is used as src', () => {
+    const html = parse('![[path/to/photo.jpg]]');
+    expect(html).toMatch(/src="path\/to\/photo\.jpg"/);
+  });
+
+  it('![[image.png]] has loading="lazy" and decoding="async"', () => {
+    const html = parse('![[image.png]]');
+    expect(html).toMatch(/loading="lazy"/);
+    expect(html).toMatch(/decoding="async"/);
+  });
+
+  it('![[<evil>.png]] — path is HTML-escaped', () => {
+    const html = parse('![[<evil>.png]]');
+    expect(html).not.toMatch(/<evil>/);
+    expect(html).toMatch(/&lt;evil&gt;/);
+  });
+
+  it('![[img.png|<b>bold</b>]] — alt text is HTML-escaped', () => {
+    const html = parse('![[img.png|<b>bold</b>]]');
+    expect(html).not.toMatch(/<b>/);
+    expect(html).toMatch(/&lt;b&gt;/);
+  });
+
+  it('![[image with spaces.png]] — spaces in filename supported', () => {
+    const html = parse('![[image with spaces.png]]');
+    expect(html).toMatch(/src="image with spaces\.png"/);
+  });
+
+  it('![[日本語画像.png]] — Japanese filename supported', () => {
+    const html = parse('![[日本語画像.png]]');
+    expect(html).toMatch(/src="日本語画像\.png"/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // §Lists
 // ─────────────────────────────────────────────────────────────────────────────
 
