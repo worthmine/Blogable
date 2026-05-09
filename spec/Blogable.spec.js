@@ -419,45 +419,47 @@ describe('§URLs', () => {
     expect(html).not.toMatch(/<a href="http:\/\//);
   });
 
-  it('image URL (.png) → <figure> with <img>', () => {
+  it('image URL (.png) → autolink (not a figure)', () => {
     const html = parse('https://example.com/photo.png');
-    expect(html).toMatch(/<figure/);
-    expect(html).toMatch(/<img /);
-    expect(html).toMatch(/src="https:\/\/example\.com\/photo\.png"/);
+    expect(html).not.toMatch(/<figure/);
+    expect(html).not.toMatch(/<img /);
+    expect(html).toMatch(/<a href="https:\/\/example\.com\/photo\.png"/);
   });
 
-  it('image URL (.jpg) → <img>', () => {
-    expect(parse('https://example.com/img.jpg')).toMatch(/<img /);
+  it('image URL (.jpg) → autolink (not <img>)', () => {
+    expect(parse('https://example.com/img.jpg')).not.toMatch(/<img /);
+    expect(parse('https://example.com/img.jpg')).toMatch(/<a /);
   });
 
-  it('image URL (.jpeg) → <img>', () => {
-    expect(parse('https://example.com/img.jpeg')).toMatch(/<img /);
+  it('image URL (.jpeg) → autolink (not <img>)', () => {
+    expect(parse('https://example.com/img.jpeg')).not.toMatch(/<img /);
   });
 
-  it('image URL (.gif) → <img>', () => {
-    expect(parse('https://example.com/img.gif')).toMatch(/<img /);
+  it('image URL (.gif) → autolink (not <img>)', () => {
+    expect(parse('https://example.com/img.gif')).not.toMatch(/<img /);
   });
 
-  it('image URL (.webp) → <img>', () => {
-    expect(parse('https://example.com/img.webp')).toMatch(/<img /);
+  it('image URL (.webp) → autolink (not <img>)', () => {
+    expect(parse('https://example.com/img.webp')).not.toMatch(/<img /);
   });
 
-  it('.svg URL is NOT treated as an image (spec: SVG MUST NOT be treated as an image)', () => {
+  it('.svg external URL is just an autolink (image embedding is ObsidianEmbed-only)', () => {
     const html = parse('https://example.com/graphic.svg');
+    expect(html).not.toMatch(/<img /);
+    expect(html).toMatch(/<a /);
+  });
+
+  it('external image URL with @[alt: …] modifier — modifier is consumed but produces no <img>', () => {
+    const html = parse('https://example.com/photo.png\n@[alt: A photo]');
     expect(html).not.toMatch(/<img /);
   });
 
-  it('image block with @[alt: …] sets alt attribute', () => {
-    const src = 'https://example.com/photo.png\n@[alt: A photo]';
-    const html = parse(src);
-    expect(html).toMatch(/alt="A photo"/);
-  });
-
-  it('multiple image URLs in a row → single <figure> with multiple <img>', () => {
+  it('multiple image URLs in a row → separate autolink paragraphs, no <figure>', () => {
     const src = 'https://example.com/a.png\nhttps://example.com/b.png';
     const html = parse(src);
-    expect((html.match(/<img /g) || []).length).toBe(2);
-    expect((html.match(/<figure/g) || []).length).toBe(1);
+    expect(html).not.toMatch(/<figure/);
+    expect(html).not.toMatch(/<img /);
+    expect((html.match(/<a /g) || []).length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -516,6 +518,13 @@ describe('§ObsidianEmbed', () => {
   it('![[日本語画像.png]] — Japanese filename supported', () => {
     const html = parse('![[日本語画像.png]]');
     expect(html).toMatch(/src="日本語画像\.png"/);
+  });
+
+  it('![[image.svg]] — SVG is supported in ObsidianEmbed', () => {
+    const html = parse('![[image.svg]]');
+    expect(html).toMatch(/<figure/);
+    expect(html).toMatch(/<img /);
+    expect(html).toMatch(/src="image\.svg"/);
   });
 });
 

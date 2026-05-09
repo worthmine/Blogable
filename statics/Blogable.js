@@ -45,7 +45,7 @@ Prism.languages.blogable = {
 // ============================================================
 
 // ---- 定数 ----
-const IMAGE_EXTS = /\.(jpe?g|png|gif|webp)(\?.*)?$/i; // SVG除外
+const IMAGE_EXTS = /\.(jpe?g|png|gif|webp|svg)(\?.*)?$/i; // ObsidianEmbed では SVG も許容
 
 const SHEBANG_LANG_MAP = {
   python:'python', python3:'python', python2:'python',
@@ -627,8 +627,8 @@ function buildAST(tokens) {
     if (tok.type==='url') {
       const group=[];
       while (i<tokens.length && tokens[i].type==='url') {
-        const url=tokens[i++].url; const mods=cm();
-        group.push({url, mods});
+        const url=tokens[i++].url; cm(); // モディファイアは消費するが URL ブロックでは無視
+        group.push(url);
       }
       const escapeHtmlText=s=>s
         .replace(/&/g,'&amp;')
@@ -636,35 +636,12 @@ function buildAST(tokens) {
         .replace(/>/g,'&gt;')
         .replace(/"/g,'&quot;')
         .replace(/'/g,'&#39;');
-      const allSafe=group.every(g=>isSafeUrl(g.url));
-      if (allSafe) {
-        if (group.length>0 && group.every(g=>isImageUrl(g.url))) {
-          nodes.push({type:'figure', images:group});
+      for (const url of group) {
+        if (isSafeUrl(url)) {
+          nodes.push({type:'autolink', url, label:ogpMap[url]||getHostname(url)});
         } else {
-          for (const g of group) nodes.push({type:'autolink', url:g.url, label:ogpMap[g.url]||getHostname(g.url)});
+          nodes.push({type:'paragraph', html:escapeHtmlText(url)});
         }
-      } else {
-        let images=[];
-        const flushImages=()=>{
-          if (images.length>0) {
-            nodes.push({type:'figure', images});
-            images=[];
-          }
-        };
-        for (const g of group) {
-          if (isSafeUrl(g.url)) {
-            if (isImageUrl(g.url)) {
-              images.push(g);
-            } else {
-              flushImages();
-              nodes.push({type:'autolink', url:g.url, label:ogpMap[g.url]||getHostname(g.url)});
-            }
-          } else {
-            flushImages();
-            nodes.push({type:'paragraph', html:escapeHtmlText(g.url)});
-          }
-        }
-        flushImages();
       }
       continue;
     }

@@ -271,18 +271,8 @@ Inline URLs MUST NOT auto-link.
 
 ## Images
 
-**ImageURL**
-
-An ImageURL is a UrlBlock whose path ends with one of the allowed image extensions.
-
-Allowed extensions:
-- png
-- jpg
-- jpeg
-- gif
-- webp
-
-SVG MUST NOT be treated as an image.
+Images MUST be embedded using ObsidianEmbed syntax only.
+Standalone external image URLs are NOT rendered as images; they are treated as regular autolinks.
 
 ---
 
@@ -299,6 +289,7 @@ It embeds a local image file referenced by PATH.
 An optional display alt text follows the path after `|`.
 It renders as a `<figure>` with an `<img>` element.
 The `@[alt: …]` modifier may also be used to set or override alt text.
+SVG files are supported.
 
 ---
 
