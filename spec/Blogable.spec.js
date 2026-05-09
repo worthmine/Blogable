@@ -654,16 +654,16 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/fn-2/);
   });
 
-  it('AnchorRef: [[#heading-id]] resolves to an in-page link when heading exists', () => {
-    // AnchorRef is an inline construct; it must appear inside paragraph text,
+  it('ObsidianAnchor: [[#heading-id]] resolves to an in-page link when heading exists', () => {
+    // ObsidianAnchor is an inline construct; it must appear inside paragraph text,
     // not as a standalone line (which would be tokenised as anchor_block instead).
     const src = ':: My Section\n\nSee [[#My Section]] for details.';
     const html = parse(src);
-    expect(html).toMatch(/<a href="#my-section" class="anchor-ref"/);
+    expect(html).toMatch(/<a href="#my-section" class="obsidian-anchor"/);
   });
 
-  it('AnchorRef: [[#unknown]] emits [W001] and renders plain text', () => {
-    // AnchorRef is inline-only; use it inside paragraph text so it is not
+  it('ObsidianAnchor: [[#unknown]] emits [W001] and renders plain text', () => {
+    // ObsidianAnchor is inline-only; use it inside paragraph text so it is not
     // tokenised as a standalone anchor_block.
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     try {
@@ -675,29 +675,29 @@ describe('§InlineSyntax', () => {
     }
   });
 
-  it('WikiLink: [[path]] → <a href="path" class="wikilink">path</a>', () => {
+  it('ObsidianLink: [[path]] → <a href="path" class="obsidian-link">path</a>', () => {
     const html = parse('See [[other-page]] here.');
-    expect(html).toMatch(/<a href="other-page" class="wikilink">other-page<\/a>/);
+    expect(html).toMatch(/<a href="other-page" class="obsidian-link">other-page<\/a>/);
   });
 
-  it('WikiLink: [[path|display text]] → <a href="path">display text</a>', () => {
+  it('ObsidianLink: [[path|display text]] → <a href="path">display text</a>', () => {
     const html = parse('See [[other-page|display text]] here.');
-    expect(html).toMatch(/<a href="other-page" class="wikilink">display text<\/a>/);
+    expect(html).toMatch(/<a href="other-page" class="obsidian-link">display text<\/a>/);
   });
 
-  it('WikiLink: leading/trailing whitespace in display text is trimmed', () => {
+  it('ObsidianLink: leading/trailing whitespace in display text is trimmed', () => {
     const html = parse('See [[path| display text ]] here.');
-    expect(html).toMatch(/<a href="path" class="wikilink">display text<\/a>/);
+    expect(html).toMatch(/<a href="path" class="obsidian-link">display text<\/a>/);
   });
 
-  it('WikiLink: path with Japanese characters is supported', () => {
+  it('ObsidianLink: path with Japanese characters is supported', () => {
     const html = parse('[[相対パス|表示テキスト]]');
-    expect(html).toMatch(/class="wikilink"/);
+    expect(html).toMatch(/class="obsidian-link"/);
     expect(html).toMatch(/相対パス/);
     expect(html).toMatch(/表示テキスト/);
   });
 
-  it('WikiLink: path and display text with HTML chars are escaped', () => {
+  it('ObsidianLink: path and display text with HTML chars are escaped', () => {
     const html = parse('[[<evil>|<b>click</b>]]');
     expect(html).not.toMatch(/<evil>/);
     expect(html).not.toMatch(/<b>/);
@@ -705,12 +705,22 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/&lt;b&gt;/);
   });
 
-  it('WikiLink does NOT match [[#ID]] (AnchorRef takes precedence)', () => {
-    // [[#heading]] must still be handled by AnchorRef, not WikiLink.
+  it('ObsidianLink does NOT match [[#ID]] (ObsidianAnchor takes precedence)', () => {
+    // [[#heading]] must still be handled by ObsidianAnchor, not ObsidianLink.
     const src = ':: Section\n\nSee [[#Section]] here.';
     const html = parse(src);
-    expect(html).toMatch(/class="anchor-ref"/);
-    expect(html).not.toMatch(/class="wikilink"/);
+    expect(html).toMatch(/class="obsidian-anchor"/);
+    expect(html).not.toMatch(/class="obsidian-link"/);
+  });
+
+  it('ObsidianLink: [[path#heading]] renders as href="path#heading"', () => {
+    const html = parse('See [[other-page#Introduction]] here.');
+    expect(html).toMatch(/<a href="other-page#Introduction" class="obsidian-link">other-page#Introduction<\/a>/);
+  });
+
+  it('ObsidianLink: [[path#heading|display]] renders display text with href="path#heading"', () => {
+    const html = parse('See [[other-page#Introduction|Introduction]] here.');
+    expect(html).toMatch(/<a href="other-page#Introduction" class="obsidian-link">Introduction<\/a>/);
   });
 
   it('Strong: **text** → <strong>text</strong>', () => {
@@ -749,7 +759,7 @@ describe('§InlineSyntax', () => {
     expect(html).not.toMatch(/<ins>/);
   });
 
-  // ── evaluation order (Code > Link > Footnote > AnchorRef > Strong > Emphasis > Delete > Insert) ──
+  // ── evaluation order (Code > Link > Footnote > ObsidianAnchor > ObsidianLink > Strong > Emphasis > Delete > Insert) ──
 
   it('Code wins over Strong: `**text**` → <code>**text**</code>', () => {
     const html = parse('`**text**`');
@@ -1000,7 +1010,7 @@ describe('§Diagnostics', () => {
   });
 
   it('[W001] is emitted for an unresolved anchor reference', () => {
-    // AnchorRef is inline-only; use it inside paragraph text.
+    // ObsidianAnchor is inline-only; use it inside paragraph text.
     parse('See [[#ghost-anchor]] for details.');
     expect(getDiagnostics().some(d => d.code === 'W001')).toBe(true);
   });

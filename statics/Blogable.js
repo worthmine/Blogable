@@ -28,8 +28,8 @@ Prism.languages.blogable = {
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
   'inline-link':   { pattern:/\[[^\[\]\n]+\]\(https:\/\/[^\)\n]+\)/, alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
-  'anchor-ref':    { pattern:/\[\[#[^\]\n]+\]\]/,     alias:'symbol' },
-  'wikilink':      { pattern:/\[\[[^#\]\|\n][^\]\|\n]*(?:\|[^\]\n]*)?\]\]/, alias:'url' },
+  'obsidian-anchor': { pattern:/\[\[#[^\]\n]+\]\]/,     alias:'symbol' },
+  'obsidian-link':   { pattern:/\[\[[^#\]\|\n][^\]\|\n]*(?:#[^\]\|\n]+)?(?:\|[^\]\n]*)?\]\]/, alias:'url' },
   'bold':    { pattern:/\*\*[^*\n]+\*\*/ },
   'italic':  { pattern:/\*[^*\n]+\*/ },
   'ins':     { pattern:/\+\+[^+\n]+\+\+/, alias:'inserted' },
@@ -154,7 +154,7 @@ let definitionTerms=new Set();
 
 function parseInline(text) {
   // Single-pass inline parser; implements spec evaluation order:
-  // Code > Link > Footnote > AnchorRef > WikiLink > Strong > Emphasis > Delete > Insert > Plain
+  // Code > Link > Footnote > ObsidianAnchor > ObsidianLink > Strong > Emphasis > Delete > Insert > Plain
   // Inline elements MUST NOT nest (spec §InlineSyntax).
   // The interior of every matched span is plain-escaped text only — never re-parsed.
   let out = '';
@@ -192,11 +192,11 @@ function parseInline(text) {
       i += m[0].length; continue;
     }
 
-    // ── AnchorRef  [[#ID]] ──────────────────────────────────────────
+    // ── ObsidianAnchor  [[#ID]] ──────────────────────────────────────────
     if ((m = rest.match(/^\[\[#([^\]\n]+)\]\]/))) {
       const id = m[1], slug = slugify(id);
       if (Object.hasOwn(headingIds, slug)) {
-        out += `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
+        out += `<a href="#${esc(slug)}" class="obsidian-anchor">${esc(id)}</a>`;
       } else {
         pushDiag('W001',`Unresolved internal anchor reference: [#${id}]`);
         out += esc(id);
@@ -204,10 +204,10 @@ function parseInline(text) {
       i += m[0].length; continue;
     }
 
-    // ── WikiLink  [[PATH]] or [[PATH|DISPLAY]]  ─────────────────────
+    // ── ObsidianLink  [[PATH]] or [[PATH|DISPLAY]] or [[PATH#HEADING]] or [[PATH#HEADING|DISPLAY]]  ─────────────────────
     if ((m = rest.match(/^\[\[([^#\]\|\n][^\]\|\n]*)(?:\|([^\]\n]*))?\]\]/))) {
       const path = m[1].trim(), display = m[2] !== undefined ? m[2].trim() : m[1].trim();
-      out += `<a href="${esc(path)}" class="wikilink">${esc(display)}</a>`;
+      out += `<a href="${esc(path)}" class="obsidian-link">${esc(display)}</a>`;
       i += m[0].length; continue;
     }
 

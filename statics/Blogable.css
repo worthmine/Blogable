@@ -66,7 +66,8 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 
 /* 内部アンカー */
 .bp .anchor-block { display:inline-block; color:#555; font-size:.8em; font-family:monospace; }
-.bp a.anchor-ref { color:#888; border-bottom:1px dotted #444; font-size:.9em; }
+.bp a.obsidian-anchor { color:#888; border-bottom:1px dotted #444; font-size:.9em; }
+.bp a.obsidian-link   { color:#6ca; border-bottom:1px dashed #6ca; }
 
 /* 定義ブロック := */
 .bp .def-block { margin:.8em 0; display:grid; grid-template-columns:auto 1fr; gap:.3em 1.2em; align-items:start; }

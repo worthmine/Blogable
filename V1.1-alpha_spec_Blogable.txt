@@ -290,8 +290,8 @@ InlineText = { Inline } ;
 Inline = Code
        | Link
        | Footnote
-       | AnchorRef
-       | WikiLink
+       | ObsidianAnchor
+       | ObsidianLink
        | Strong
        | Emphasis
        | Delete
@@ -303,8 +303,8 @@ CodeChar  = ? any character except "`" and NL ? ;
 
 Link      = "[" , TEXT , "]" , "(" , HTTPS_URL , ")" ;
 Footnote  = "[^" , TEXT , "]" ;
-AnchorRef = "[[" , "#" , ID , "]]" ;
-WikiLink  = "[[" , PATH , [ "|" , TEXT ] , "]]" ;
+ObsidianAnchor = "[[" , "#" , HEADING , "]]" ;
+ObsidianLink   = "[[" , PATH , [ "#" , HEADING ] , [ "|" , TEXT ] , "]]" ;
 
 Strong    = "**" , { StrongChar } , "**" ;
 StrongChar = ? any character except "*" and NL ? ;
@@ -324,7 +324,7 @@ Plain = { ANY - NL } ;
 := InlineSyntax
 Inline elements MUST NOT nest.
 Inline evaluation order is:
-Code, Link, Footnote, AnchorRef, WikiLink, Strong, Emphasis, Delete, Insert.
+Code, Link, Footnote, ObsidianAnchor, ObsidianLink, Strong, Emphasis, Delete, Insert.
 Inline code has no escape syntax.
 
 ---
@@ -398,7 +398,7 @@ Diagnostic codes:
   E003  Error    Invalid list indentation (odd number of leading spaces)
   E004  Error    Heading level out of range (more than 6 colons; maximum is h6)
   E005  Error    Definition block has no body text (DD is required by spec)
-  W001  Warning  Unresolved internal anchor reference [[#id]]
+  W001  Warning  Unresolved ObsidianAnchor reference [[#id]]
   W002  Warning  Malformed front matter line (does not match key: value format)
   W003  Warning  Unterminated front matter block (EOF reached without closing @@)
   W004  Warning  Unterminated code block (EOF reached without closing !#)
