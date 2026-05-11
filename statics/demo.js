@@ -6,15 +6,8 @@ function loadLang(lang) {
     .then(r => r.text())
     .then(text => {
       document.getElementById('source').value = text;
+      updateDemoUrlLabelsFromSource(text);
       render();
-      fetchNewOgps(text).then(u => {
-        if (u) render();
-        const el = document.getElementById('ogp-status');
-        if (el) {
-          const m = el.textContent.match(/(\d+)件/);
-          el.textContent = m ? `URL labels: ${m[1]} generated` : 'URL labels: status unavailable';
-        }
-      });
     });
   document.documentElement.lang = lang;
   currentLang = lang;

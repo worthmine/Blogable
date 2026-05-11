@@ -414,6 +414,12 @@ describe('§URLs', () => {
     expect(html).toMatch(/rel="noopener noreferrer"/);
   });
 
+  it('autolink label is derived from the URL itself', () => {
+    const html = parse('https://example.com/path/to/post');
+    expect(html).toMatch(/>example\.com<\/a>/);
+    expect(html).not.toMatch(/>example\.com \/ post<\/a>/);
+  });
+
   it('http:// URL (non-https) is NOT auto-linked (security requirement)', () => {
     const html = parse('http://example.com');
     expect(html).not.toMatch(/<a href="http:\/\//);
