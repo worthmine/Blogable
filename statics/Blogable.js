@@ -67,7 +67,14 @@ function slugify(text) {
     .replace(/-+/g,'-').replace(/^-|-$/g,'');
 }
 function isImageUrl(url) { try { return IMAGE_EXTS.test(new URL(url).pathname); } catch { return IMAGE_EXTS.test(url); } }
-function getHostname(url) { try { return new URL(url).hostname; } catch { return url; } }
+function getHostname(url) {
+  try {
+    if (typeof URL==='function') return new URL(url).hostname;
+  } catch {}
+  // Test and VM harnesses may not provide the URL constructor; keep a deterministic fallback.
+  const m=String(url).match(/^https:\/\/([^\/?#]+)/);
+  return m ? m[1] : url;
+}
 function isSafeUrl(url) { return /^https:\/\//.test(url); }
 function esc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function extLink(href,text) { return `<a href="${esc(href)}" rel="noopener noreferrer" target="_blank">${text}</a>`; }
@@ -107,6 +114,9 @@ function mergeAttrs(baseClass, mods) {
   return ` class="${cls}"`+buildAttrs((mods||[]).filter(m=>m.key!=='class'));
 }
 
+// ---- Demo URL label extension (non-normative) ----
+const demoUrlLabelMap={}, demoLabeledUrls=new Set();
+/*
 // ---- OGP ----
 const ogpMap={}, fetchedUrls=new Set();
 function buildOfflineTitle(url) {
@@ -132,8 +142,45 @@ async function fetchNewOgps(src) {
   const el=document.getElementById('ogp-status');
   const count=Object.keys(ogpMap).length;
   el.style.display=count>0?'inline':'none';
+  // "URLラベル: ${count}件生成済" = "URL labels: ${count} items generated"
   el.textContent=`URLラベル: ${count}件生成済`;
   return updated;
+}
+*/
+function buildDemoUrlLabel(url) {
+  try {
+    const parsed=new URL(url);
+    const host=parsed.hostname.replace(/^www\./,'');
+    const parts=parsed.pathname.split('/').filter(Boolean).map(p=>decodeURIComponent(p));
+    const tail=parts.length?` / ${parts[parts.length-1]}`:'';
+    return `${host}${tail}`;
+  } catch {
+    return null;
+  }
+}
+function updateDemoUrlLabelsFromSource(src) {
+  const urls=[...new Set(src.split('\n').map(l=>l.trim()).filter(l=>/^https:\/\/\S+$/.test(l)&&!isImageUrl(l)))].filter(u=>!demoLabeledUrls.has(u));
+  if (!urls.length) return false;
+  urls.forEach(u=>demoLabeledUrls.add(u));
+  let updated=false;
+  for (const u of urls) {
+    const t=buildDemoUrlLabel(u);
+    if (t) { demoUrlLabelMap[u]=t; updated=true; }
+  }
+  const el=document.getElementById('url-label-status');
+  if (el) {
+    const count=Object.keys(demoUrlLabelMap).length;
+    el.style.display=count>0?'inline':'none';
+    el.textContent=`URL labels: ${count} generated`;
+  }
+  return updated;
+}
+function applyDemoUrlLabelExtension(nodes) {
+  return nodes.map(node=>{
+    if (node.type!=='autolink') return node;
+    const label=demoUrlLabelMap[node.url];
+    return label ? {...node, label} : node;
+  });
 }
 
 // ---- diagnostics ----
@@ -628,7 +675,7 @@ function buildAST(tokens) {
         if (group.length>0 && group.every(g=>isImageUrl(g.url))) {
           nodes.push({type:'figure', images:group});
         } else {
-          for (const g of group) nodes.push({type:'autolink', url:g.url, label:ogpMap[g.url]||getHostname(g.url)});
+          for (const g of group) nodes.push({type:'autolink', url:g.url, label:getHostname(g.url)});
         }
       } else {
         let images=[];
@@ -644,7 +691,7 @@ function buildAST(tokens) {
               images.push(g);
             } else {
               flushImages();
-              nodes.push({type:'autolink', url:g.url, label:ogpMap[g.url]||getHostname(g.url)});
+              nodes.push({type:'autolink', url:g.url, label:getHostname(g.url)});
             }
           } else {
             flushImages();
@@ -801,8 +848,7 @@ function astToHtml(nodes, forDisplay=false) {
   }
 
   case 'autolink': {
-    const label=ogpMap[node.url]||node.label;
-    return `<p>${extLink(node.url, esc(label))}</p>`;
+    return `<p>${extLink(node.url, esc(node.label))}</p>`;
   }
 
   case 'paragraph': return `<p${node.mods?buildAttrs(node.mods):''}>${node.html}</p>`;
@@ -890,7 +936,7 @@ const ast=parseToAST(src);
 const diags=getBlogableDiagnostics();
 updateDiagnosticsPanel(diags);
 if (currentTab==='preview') {
-document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
+document.getElementById('preview-out').innerHTML=astToHtml(applyDemoUrlLabelExtension(ast),true);
 if (window.Prism) highlightCodeTables(document.getElementById('preview-out'));
 if (window.katex) renderKaTeXBlocks(document.getElementById('preview-out'));
 } else if (currentTab==='html') {
@@ -900,7 +946,7 @@ document.getElementById('html-out').textContent=astToHtml(ast,false);
 let renderTimer=null;
 document.getElementById('source').addEventListener('input',()=>{
 clearTimeout(renderTimer);
-renderTimer=setTimeout(async()=>{render();const updated=await fetchNewOgps(document.getElementById('source').value);if(updated)render();},150);
+renderTimer=setTimeout(()=>{updateDemoUrlLabelsFromSource(document.getElementById('source').value);render();},150);
 });
 
 // –– デモソース ––
@@ -1058,5 +1104,5 @@ Heading  = "::" , { ":" } , SP , InlineText , NL ;
 見出し参照: [#インライン記法]
 `;
 
+updateDemoUrlLabelsFromSource(document.getElementById('source').value);
 render();
-fetchNewOgps(document.getElementById('source').value).then(u=>{if(u)render();});

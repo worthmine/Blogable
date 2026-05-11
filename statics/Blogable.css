@@ -4,7 +4,7 @@ header { border-bottom:1px solid #222; padding:14px 24px; display:flex; align-it
 .logo    { font-family:monospace; font-size:20px; font-weight:bold; color:#c8b87a; letter-spacing:2px; }
 .logo img { max-height:32px; width:auto; }
 .version { font-size:11px; color:#555; font-family:monospace; }
-#ogp-status { font-size:10px; color:#5a8a5a; font-family:monospace; display:none; }
+#url-label-status { font-size:10px; color:#5a8a5a; font-family:monospace; display:none; }
 .lang-toggle { margin-left:auto; color:#555; font-size:11px; font-family:monospace; text-decoration:none; padding:2px 8px; border:1px solid #333; border-radius:3px; background:none; cursor:pointer; transition:color .15s, border-color .15s; }
 .lang-toggle:hover { color:#c8b87a; border-color:#c8b87a; }
 .github-link { display:flex; align-items:center; gap:6px; color:#555; font-size:11px; font-family:monospace; text-decoration:none; transition:color .15s; }

@@ -19,6 +19,37 @@ This document defines the bootstrap EBNF for Blogable v1.1-alpha.
 
 ---
 
+:::# Goals
+
+:= Goals
+For v1.0-frozen, the core priorities are fixed in this order:
+
+- Deterministic parsing
+- Single-pass processing
+- Secure rendering
+
+Convenience features MUST NOT take precedence over these core goals.
+
+---
+
+:::# Non-Goals
+
+:= Non-Goals
+The core specification excludes behavior that depends on external state or the network.
+
+In particular, the following are non-goals for v1.0-frozen core:
+
+- OGP fetching
+- link unfurling
+- outbound URL validation
+- HEAD/GET metadata retrieval
+- preview card generation
+- external content embedding
+
+Such behavior MAY exist only as an optional implementation extension.
+
+---
+
 :::# Lexical Elements
 
 #!ebnf
@@ -237,6 +268,10 @@ UrlBlock = HTTPS_URL , NL , { Meta } ;
 A UrlBlock is a standalone body line that begins with an HTTPS URL.
 Inline URLs MUST NOT auto-link.
 
+For non-image UrlBlock rendering, the visible link label MUST be derived only from the URL itself.
+The reference renderer uses the hostname as the deterministic core label.
+Fetched metadata or application-supplied replacement labels are outside the core specification.
+
 ---
 
 :::# Images
@@ -372,6 +407,16 @@ Metadata does not cross blank lines.
 
 ---
 
+:::# Extension Points
+
+:= Extension Points
+`x-*` keys are the standardized extension slot for front matter and block metadata.
+
+Extensions MUST preserve the core parse rules, diagnostics, and security guarantees for the same input.
+Extensions MAY add UI enhancements, label completion, or preview generation, but they are not part of core conformance.
+
+---
+
 :::# Parsing Model
 
 := Parsing
@@ -407,6 +452,20 @@ Diagnostic codes:
 
 ---
 
+:::# Conformance Levels
+
+:= Conformance Levels
+:: Core Conformant
+A Core Conformant implementation MUST produce the same AST, HTML, and diagnostics for the same input without external I/O.
+
+:: Optional Extension
+An Optional Extension MAY add implementation-defined behavior, but it MUST NOT override or weaken the core semantics, diagnostics, or security model.
+
+:: Demo / App Behavior
+Demo or application behavior is non-normative and is excluded from language conformance requirements.
+
+---
+
 :::# Security
 
 := Security
@@ -414,6 +473,15 @@ The core parser MUST not access the network.
 The core parser MUST not accept raw HTML.
 The core parser MUST not execute scripts.
 Only HTTPS URLs are accepted by the strict core parser.
+New core features SHOULD be accepted only when they avoid external state, preserve single-pass evaluation, and do not increase implementation divergence.
+
+---
+
+:::# Non-Normative Demo Behaviors
+
+:= Non-Normative Demo Behaviors
+The live demo MAY enhance URL labels for preview convenience.
+Such behavior is informative only and MUST NOT redefine the core AST/HTML contract.
 
 ---
 
@@ -430,4 +498,3 @@ Blogable is a deterministic, single-pass markup language with semantic output an
 :::# Conclusion
 
 Blogable v1.1-alpha is deterministic, self-describing, and semantically stable.
-
