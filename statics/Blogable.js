@@ -116,6 +116,36 @@ function mergeAttrs(baseClass, mods) {
 
 // ---- Demo URL label extension (non-normative) ----
 const demoUrlLabelMap={}, demoLabeledUrls=new Set();
+/*
+// ---- OGP ----
+const ogpMap={}, fetchedUrls=new Set();
+function buildOfflineTitle(url) {
+  try {
+    const parsed=new URL(url);
+    const host=parsed.hostname.replace(/^www\./,'');
+    const parts=parsed.pathname.split('/').filter(Boolean).map(p=>decodeURIComponent(p));
+    const tail=parts.length?` / ${parts[parts.length-1]}`:'';
+    return `${host}${tail}`;
+  } catch {
+    return null;
+  }
+}
+async function fetchNewOgps(src) {
+  const urls=[...new Set(src.split('\n').map(l=>l.trim()).filter(l=>/^https:\/\/\S+$/.test(l)&&!isImageUrl(l)))].filter(u=>!fetchedUrls.has(u));
+  if (!urls.length) return false;
+  urls.forEach(u=>fetchedUrls.add(u));
+  let updated=false;
+  for (const u of urls) {
+    const t=buildOfflineTitle(u);
+    if (t) { ogpMap[u]=t; updated=true; }
+  }
+  const el=document.getElementById('ogp-status');
+  const count=Object.keys(ogpMap).length;
+  el.style.display=count>0?'inline':'none';
+  el.textContent=`URLラベル: ${count}件生成済`;
+  return updated;
+}
+*/
 function buildDemoUrlLabel(url) {
   try {
     const parsed=new URL(url);
