@@ -142,7 +142,7 @@ async function fetchNewOgps(src) {
   const el=document.getElementById('ogp-status');
   const count=Object.keys(ogpMap).length;
   el.style.display=count>0?'inline':'none';
-  // "URLラベル: ${count}件生成済" = "URL labels: ${count} generated"
+  // "URLラベル: ${count}件生成済" = "URL labels: ${count} items generated"
   el.textContent=`URLラベル: ${count}件生成済`;
   return updated;
 }
