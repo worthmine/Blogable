@@ -67,7 +67,13 @@ function slugify(text) {
     .replace(/-+/g,'-').replace(/^-|-$/g,'');
 }
 function isImageUrl(url) { try { return IMAGE_EXTS.test(new URL(url).pathname); } catch { return IMAGE_EXTS.test(url); } }
-function getHostname(url) { try { return new URL(url).hostname; } catch { return url; } }
+function getHostname(url) {
+  try {
+    if (typeof URL==='function') return new URL(url).hostname;
+  } catch {}
+  const m=String(url).match(/^https:\/\/([^\/?#]+)/i);
+  return m ? m[1] : url;
+}
 function isSafeUrl(url) { return /^https:\/\//.test(url); }
 function esc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function extLink(href,text) { return `<a href="${esc(href)}" rel="noopener noreferrer" target="_blank">${text}</a>`; }
