@@ -71,7 +71,8 @@ function getHostname(url) {
   try {
     if (typeof URL==='function') return new URL(url).hostname;
   } catch {}
-  const m=String(url).match(/^https:\/\/([^\/?#]+)/i);
+  // Test and VM harnesses may not provide the URL constructor; keep a deterministic fallback.
+  const m=String(url).match(/^https:\/\/([^\/?#]+)/);
   return m ? m[1] : url;
 }
 function isSafeUrl(url) { return /^https:\/\//.test(url); }
