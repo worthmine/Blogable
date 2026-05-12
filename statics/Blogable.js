@@ -244,7 +244,7 @@ function parseInline(text) {
       if (Object.hasOwn(headingIds, slug)) {
         out += `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
       } else {
-        pushDiag('W001',`Unresolved internal anchor reference: [#${id}]`);
+        pushDiag('W601',`[#${id}] — no heading or anchor with that id found. Add "[#${id}]" on its own line to create the target.`);
         out += esc(id);
       }
       i += m[0].length; continue;
@@ -332,8 +332,8 @@ function tokenize(lines) {
     if (modM) {
       const mk=modM[1];
       if (!ALLOWED_META_KEYS.has(mk) && !/^x-[a-z0-9-]+$/.test(mk)) {
-        // [E002] Unknown MetaKey: fall back to literal text (spec: errors fall back safely)
-        pushDiag('E002',`Unknown MetaKey: ${mk}. Allowed keys: ${[...ALLOWED_META_KEYS].join(', ')}, or x-* custom keys`);
+        // [E202] Unknown MetaKey: fall back to literal text (spec: errors fall back safely)
+        pushDiag('E202',`"${mk}" is not a recognised modifier key. Use: ${[...ALLOWED_META_KEYS].join(', ')}; or x-<name> for custom data attributes (e.g. @[x-role: note]).`);
         tokens.push({type:'text', text:t}); continue;
       }
       tokens.push({type:'modifier', key:mk, value:modM[2]}); continue;
@@ -354,10 +354,10 @@ function tokenize(lines) {
     const plnH=t.match(/^(:{2,6})\s+(.*)/);
     if (plnH) { tokens.push({type:'heading', colons:plnH[1].length, numbered:false, text:plnH[2]}); continue; }
 
-    // 見出しレベル超過（7コロン以上） — [E004]: fall back to text
+    // 見出しレベル超過（7コロン以上） — [E402]: fall back to text
     const overH=t.match(/^(:{7,})(?:\s|#\s)/);
     if (overH) {
-      pushDiag('E004',`Heading level out of range: ${overH[1].length} colons. The maximum heading level is h6 (6 colons).`);
+      pushDiag('E402',`${overH[1].length} colons exceed h6 (the deepest heading in HTML). Use 2–6 colons: ":: h2" … ":::::: h6". Line kept as plain text.`);
       tokens.push({type:'text', text:t}); continue;
     }
 
@@ -380,10 +380,10 @@ function tokenize(lines) {
     const taskM=raw.match(/^(\s*)\[([ x])\]\s+(.*)/);
     if (taskM) { tokens.push({type:'task', indent:taskM[1].length, checked:taskM[2].toLowerCase()==='x', text:taskM[3]}); continue; }
 
-    // odd-indent list items — [E003] invalid list indentation, fall back to text
+    // odd-indent list items — [E401] invalid list indentation, fall back to text
     const oddIndentM=raw.match(/^( +)(#|-)\s+/);
     if (oddIndentM && oddIndentM[1].length % 2 !== 0) {
-      pushDiag('E003',`Invalid list indentation: ${oddIndentM[1].length} space(s). Indentation must be a multiple of two.`);
+      pushDiag('E401',`List item has ${oddIndentM[1].length} leading space(s); nesting uses two-space steps (0, 2, 4, …). Item kept as plain text.`);
       tokens.push({type:'text', text:t}); continue;
     }
 
@@ -404,10 +404,10 @@ function tokenize(lines) {
     tokens.push({type:'text', text:t});
   }
   // 未閉鎖ブロックの検知 — EOF 時点でブロックが閉じていない場合に警告を発する
-  if (mode==='front')   pushDiag('W003','Unterminated front matter block: missing closing @@');
-  if (mode==='shebang') pushDiag('W004','Unterminated code block: missing closing !#');
-  if (mode==='quote')   pushDiag('W005','Unterminated quote block: missing closing <|');
-  if (mode==='math')    pushDiag('W006','Unterminated math block: missing closing $$');
+  if (mode==='front')   pushDiag('W202','Unterminated front matter: @@ was opened but the closing @@ was not found before EOF.');
+  if (mode==='shebang') pushDiag('W001','Unterminated code block: #!lang was opened but the closing !# was not found before EOF.');
+  if (mode==='quote')   pushDiag('W002','Unterminated block quote: |> was opened but the closing <| was not found before EOF.');
+  if (mode==='math')    pushDiag('W003','Unterminated math block: $$ was opened but the closing $$ was not found before EOF.');
   return tokens;
 }
 
@@ -478,7 +478,6 @@ function buildAST(tokens) {
     'description',
     'tags',
     'slug',
-    'draft',
     'lang'
   ]);
 
@@ -491,15 +490,15 @@ function buildAST(tokens) {
     for (const line of lines) {
       const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/);
       if (!m) {
-        // [W002] Non-empty lines that do not match FrontMetaLine syntax are invalid
-        if (line !== '') pushDiag('W002',`Malformed front matter line: ${line}`);
+        // [W201] Non-empty lines that do not match FrontMetaLine syntax are invalid
+        if (line !== '') pushDiag('W201',`Malformed front matter line: "${line}". Expected format: "key: value".`);
         continue;
       }
 
       const key=m[1];
       if (!isAllowedFrontMatterKey(key)) {
-        // [E001] Invalid key: invalidate this construct and continue (spec: errors fall back safely)
-        pushDiag('E001',`Invalid front matter key: ${key}`);
+        // [E201] Invalid key: invalidate this construct and continue (spec: errors fall back safely)
+        pushDiag('E201',`"${key}" is not a recognised front matter key. Allowed: title, author, date, updated, description, tags, slug, lang; or x-* for custom metadata.`);
         continue;
       }
 
@@ -602,14 +601,14 @@ function buildAST(tokens) {
         }
         break;
       }
-      // [E005] 定義本文（DD）が空の場合 — spec: DefinitionBlock requires at least one paragraph (DD)
+      // [E403] 定義本文（DD）が空の場合 — spec: DefinitionBlock requires at least one paragraph (DD)
       if (ddLines.length===0) {
-        pushDiag('E005',`Definition block for "${term}" has no body text. A DefinitionBlock requires at least one paragraph (DD).`);
+        pushDiag('E403',`Definition term "${term}" has no body text. Add at least one paragraph after the := line.`);
       }
-      // [W007] 定義用語の重複 — spec: Definition-list terms are unique across the document
+      // [W401] 定義用語の重複 — spec: Definition-list terms are unique across the document
       const termKey=term.trim().toLowerCase();
       if (definitionTerms.has(termKey)) {
-        pushDiag('W007',`Duplicate definition term: "${term}" is already defined in this document.`);
+        pushDiag('W401',`Definition term "${term}" is defined more than once. Terms must be unique (case-insensitive).`);
       } else {
         definitionTerms.add(termKey);
       }
@@ -728,9 +727,9 @@ function buildAST(tokens) {
       continue;
     }
 
-    // [W008] 孤立したモディファイア — どのブロックにも消費されなかった修飾キー
+    // [W801] 孤立したモディファイア — どのブロックにも消費されなかった修飾キー
     if (tok.type==='modifier') {
-      pushDiag('W008',`Orphaned modifier @[${tok.key}: ${tok.value}]: not associated with any block. Modifiers must immediately follow a block that accepts them, with no intervening blank lines.`);
+      pushDiag('W801',`@[${tok.key}: ${tok.value}] was not applied to any block. Place it on the line immediately after a supported block with no blank line in between.`);
     }
     i++;
   }
