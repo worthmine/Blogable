@@ -273,7 +273,7 @@ function parseInline(text) {
       if (Object.hasOwn(anchorIds, slug)) {
         out += `<a href="#${esc(slug)}" class="obsidian-anchor">${esc(id)}</a>`;
       } else {
-        pushDiag('W601',`[#${id}] — no heading, anchor block, definition term, or @[id] target with that id found. Define a matching target id (prefer heading/definition IDs; use standalone "[#${id}]" only as an exceptional fallback).`);
+        pushDiag('W601',`[#${id}] — target id not found. Define a matching id via heading, definition term, or @[id] (standalone "[#${id}]" is fallback-only).`);
         out += esc(id);
       }
       i += m[0].length; continue;

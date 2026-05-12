@@ -501,7 +501,7 @@ Diagnostic codes:
   E402  Error    Heading depth exceeds h6. Use 2-6 colons: ":: h2" … ":::::: h6".
   E403  Error    Definition term has no body. Add at least one paragraph after the := term line.
   E405  Error    Duplicate generated id in one document. IDs are not auto-renamed; resolve the collision in source.
-  W601  Warning  [#id] — no heading, anchor-block, definition-term, or @[id] target with that id found. Define a matching target id (prefer heading/definition IDs; use standalone [#id] only as an exceptional fallback).
+  W601  Warning  [#id] — target id not found. Define a matching id via heading, definition-term, or @[id] (standalone [#id] is fallback-only).
   W201  Warning  Malformed front matter line. Expected format: key: value.
   W202  Warning  Unterminated front matter: @@ opened but closing @@ not found before EOF.
   W001  Warning  Unterminated code block: #!lang opened but closing !# not found before EOF.
