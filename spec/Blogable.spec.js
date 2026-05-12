@@ -845,16 +845,19 @@ describe('§InlineSyntax', () => {
   });
 
   it('ObsidianLink: unsafe scheme [[javascript:alert(1)|x]] is NOT rendered as a link', () => {
-    // XSS guard: javascript: scheme must never appear in href
+    // XSS guard: javascript: scheme must never appear in href; raw text must be escaped instead
     const html = parse('Click [[javascript:alert(1)|x]] here.');
     expect(html).not.toMatch(/href="javascript:/i);
     expect(html).not.toMatch(/<a /);
+    // The raw [[...]] text should appear escaped (not executed)
+    expect(html).toMatch(/\[\[javascript:/);
   });
 
   it('ObsidianLink: unsafe scheme [[data:text/html,...|x]] is NOT rendered as a link', () => {
-    const html = parse('Click [[data:text/html,<h1>x</h1>|x]] here.');
+    const html = parse('Click [[data:text/html,foo|x]] here.');
     expect(html).not.toMatch(/href="data:/i);
     expect(html).not.toMatch(/<a /);
+    expect(html).toMatch(/\[\[data:/);
   });
 
   it('Strong: **text** → <strong>text</strong>', () => {

@@ -256,7 +256,8 @@ function parseInline(text) {
     if ((m = rest.match(/^\[\[([^#\]\|\n][^\]\|\n]*)(?:\|([^\]\n]*))?\]\]/))) {
       const path = m[1].trim(), display = m[2] !== undefined ? m[2].trim() : m[1].trim();
       // ObsidianLink paths are local/relative only; reject any URL-scheme (e.g. javascript:, data:, https://)
-      const isSafe = !/^\s*[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(path);
+      // path is already trim()ed so no leading whitespace; we reject anything matching scheme syntax at position 0.
+      const isSafe = !/^[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(path);
       out += isSafe
         ? `<a href="${esc(path)}" class="obsidian-link">${esc(display)}</a>`
         : esc(m[0]);
