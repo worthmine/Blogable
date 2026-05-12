@@ -510,6 +510,32 @@ describe('§Lists', () => {
     expect(getDiagnostics().some(d => d.code === 'W401')).toBe(false);
   });
 
+  it('casual DL term without following = line does not render <dl> and emits [E403]', () => {
+    const html = parse('? TermOnly');
+    expect(html).not.toMatch(/<dl>/);
+    expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
+  });
+
+  it('casual DL description without preceding ? term falls back to paragraph and emits [E403]', () => {
+    const html = parse('= orphan description');
+    expect(html).toMatch(/<p>orphan description<\/p>/);
+    expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
+  });
+
+  it('casual DL cannot be nested under lists (indented ?/= stay plain text)', () => {
+    const html = parse('- Parent\n  ? Term\n  = Desc');
+    expect(html).not.toMatch(/<dl>/);
+    expect(html).toMatch(/\? Term/);
+    expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
+  });
+
+  it(':= definition cannot be nested under lists (indented := stays plain text)', () => {
+    const html = parse('- Parent\n  := NestedTerm\n  Body');
+    expect(html).not.toMatch(/<dl class="def-block">/);
+    expect(html).toMatch(/:= NestedTerm/);
+    expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
+  });
+
   it('nested ordered list (2-space indent) → nested <ol>', () => {
     const src = '# Parent\n  # Child';
     const html = parse(src);
@@ -1075,6 +1101,11 @@ describe('§Diagnostics', () => {
 
   it('[E403] is emitted for a definition block with no body', () => {
     parse(':= TermOnly');
+    expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
+  });
+
+  it('[E403] is emitted for casual DL term with no = description line', () => {
+    parse('? TermOnly');
     expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
   });
 
@@ -1775,5 +1806,25 @@ describe('§Tokenizer', () => {
     const toks = tokenize('? My Term\n= My Definition');
     expect(toks[0].type).toBe('dl_dt');
     expect(toks[1].type).toBe('dl_dd');
+  });
+
+  it('indented ? term is not a dl_dt token (top-level only)', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const toks = tokenize('  ? Nested Term');
+      expect(toks[0].type).toBe('text');
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  it('indented := term is not a def_term token (top-level only)', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const toks = tokenize('  := Nested Term');
+      expect(toks[0].type).toBe('text');
+    } finally {
+      jest.restoreAllMocks();
+    }
   });
 });

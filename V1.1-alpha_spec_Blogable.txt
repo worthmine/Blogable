@@ -321,6 +321,8 @@ A ListBlock contains one item type at a time.
 Indentation must use spaces only and must advance in multiples of two spaces.
 List blocks split when the item type changes, a blank line appears, or a non-list block appears.
 ? / = DLItem is casual definition-list markup for list usage and is distinct from := DefinitionBlock grammar.
+Each ? term MUST be immediately paired with one or more following = lines.
+Casual DL (? / =) is top-level only and MUST NOT be nested inside other lists.
 
 ---
 
@@ -391,6 +393,7 @@ DefinitionBlock = ":=" , SP , Term , NL , DD ;
 Definition blocks behave as list items in the DL system.
 The definition body is one or more paragraphs.
 Definition-list terms are unique across the document.
+DefinitionBlock (:=) is top-level only and MUST NOT be nested inside lists.
 
 ---
 

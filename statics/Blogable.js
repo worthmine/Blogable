@@ -364,9 +364,14 @@ function tokenize(lines) {
     // 1行引用
     if (t.startsWith('> ')) { tokens.push({type:'bq_inline', text:t.slice(2)}); continue; }
 
-    // := 定義ブロック（行頭）
-    const defM=t.match(/^:=\s+(.*)/);
+    // := 定義ブロック（行頭のみ。ネスト不可）
+    const defM=raw.match(/^:=\s+(.*)/);
     if (defM) { tokens.push({type:'def_term', text:defM[1]}); continue; }
+    const nestedDefM=raw.match(/^( +):=\s+(.*)/);
+    if (nestedDefM) {
+      pushDiag('E403',`Definition syntax ":= ${nestedDefM[2]}" is top-level only. Remove indentation and place it outside lists.`);
+      tokens.push({type:'text', text:t}); continue;
+    }
 
     // `: ` 段落ブロック（明示的な段落 — モディファイア使用可）
     const paraM=t.match(/^: (.+)/);
@@ -395,10 +400,22 @@ function tokenize(lines) {
 
     // dl: ? term / = description（インデントはスペースのみ・2個単位）
     const dlTermM=raw.match(/^((?:  )*)\?\s+(.*)/);
-    if (dlTermM) { tokens.push({type:'dl_dt', indent:dlTermM[1].length, text:dlTermM[2]}); continue; }
+    if (dlTermM) {
+      if (dlTermM[1].length>0) {
+        pushDiag('E403',`Casual DL term "? ${dlTermM[2]}" is top-level only. Remove indentation and place it outside lists.`);
+        tokens.push({type:'text', text:t}); continue;
+      }
+      tokens.push({type:'dl_dt', indent:dlTermM[1].length, text:dlTermM[2]}); continue;
+    }
 
     const dlDescM=raw.match(/^((?:  )*)=\s+(.*)/);
-    if (dlDescM) { tokens.push({type:'dl_dd', indent:dlDescM[1].length, text:dlDescM[2]}); continue; }
+    if (dlDescM) {
+      if (dlDescM[1].length>0) {
+        pushDiag('E403',`Casual DL description "= ${dlDescM[2]}" is top-level only. Remove indentation and place it outside lists.`);
+        tokens.push({type:'text', text:t}); continue;
+      }
+      tokens.push({type:'dl_dd', indent:dlDescM[1].length, text:dlDescM[2]}); continue;
+    }
 
     // ol: # item（インデントはスペースのみ・2個単位）
     const olM=raw.match(/^((?:  )*)#\s+(.*)/);
@@ -429,8 +446,8 @@ function buildAST(tokens) {
   function parseListItems(baseIndent, listType) {
     // listType: enforced at this level (same-level items must share a type).
     //           Omit (undefined) to allow mixed types — used when recursing for children.
-    const isListToken=t=>t==='ul'||t==='ol'||t==='dl_dt';
-    const normType=t=>t==='dl_dt'?'dl':t;
+    const isListToken=t=>t==='ul'||t==='ol';
+    const normType=t=>t;
     const levelType=normType(listType);
     const items=[];
     while (i<tokens.length) {
@@ -440,14 +457,6 @@ function buildAST(tokens) {
       if (isListToken(tok.type) && tok.indent===baseIndent && typeOk) {
         i++;
         const item={listType:tokType, text:tok.text, children:null};
-        if (tok.type==='dl_dt') {
-          const ddLines=[];
-          while (i<tokens.length && tokens[i].type==='dl_dd' && tokens[i].indent===baseIndent) {
-            ddLines.push(tokens[i].text);
-            i++;
-          }
-          item.ddLines=ddLines;
-        }
         if (i<tokens.length) {
           const next=tokens[i];
           // Nested children may be a different type — recurse without listType constraint
@@ -471,23 +480,19 @@ function buildAST(tokens) {
     let html='';
       for (const group of groups) {
         const isTask=group.type==='task';
-        const isDl=group.type==='dl';
         const tag=group.type==='ol'?'ol':'ul';
         if (html) html+='\n';
-        html+=isDl?'<dl>\n':`<${tag}>\n`;
+        html+=`<${tag}>\n`;
         for (const item of group.items) {
           if (isTask) {
             html+=`  <li class="task-item"><input type="checkbox" disabled${item.checked?' checked':''}> ${parseInline(item.text)}</li>\n`;
-          } else if (isDl) {
-            const dd=(item.ddLines||[]).map(l=>parseInline(l)).join('<br>\n');
-            html+=`  <dt>${parseInline(item.text)}</dt><dd>${dd}</dd>\n`;
           } else {
             html+=`  <li>${parseInline(item.text)}`;
             if (item.children) html+='\n'+renderListItems(item.children).split('\n').map(l=>'  '+l).join('\n')+'\n  ';
             html+=`</li>\n`;
           }
         }
-        html+=isDl?'</dl>':`</${tag}>`;
+        html+=`</${tag}>`;
       }
       return html;
   }
@@ -672,8 +677,30 @@ function buildAST(tokens) {
       continue;
     }
 
+    // casual DL block (? term + one-or-more = desc) — top-level only
+    if (tok.type==='dl_dt' && tok.indent===0) {
+      const entries=[];
+      while (i<tokens.length && tokens[i].type==='dl_dt' && tokens[i].indent===0) {
+        const term=tokens[i++].text;
+        const ddLines=[];
+        while (i<tokens.length && tokens[i].type==='dl_dd' && tokens[i].indent===0) ddLines.push(tokens[i++].text);
+        if (ddLines.length===0) {
+          pushDiag('E403',`Definition term "${term}" has no body text. Add at least one "= " line after the "? " line.`);
+          nodes.push({type:'paragraph', html:parseInline(`? ${term}`)});
+        } else {
+          entries.push({term, ddLines});
+        }
+      }
+      if (entries.length>0) {
+        const html='<dl>\n'+entries.map(e=>`  <dt>${parseInline(e.term)}</dt><dd>${e.ddLines.map(l=>parseInline(l)).join('<br>\n')}</dd>`).join('\n')+'\n</dl>';
+        const mods=cm();
+        nodes.push({type:'list', html, mods});
+      }
+      continue;
+    }
+
     // ul / ol
-    if (tok.type==='ul'||tok.type==='ol'||tok.type==='dl_dt') {
+    if (tok.type==='ul'||tok.type==='ol') {
       const items=parseListItems(tok.indent, tok.type);
       const mods=cm();
       nodes.push({type:'list', html:renderListItems(items), mods});
@@ -681,8 +708,9 @@ function buildAST(tokens) {
     }
 
     if (tok.type==='dl_dd') {
+      pushDiag('E403',`Casual DL description "= ${tok.text}" has no matching "? term" above it. Add a "? term" line immediately before it.`);
       i++;
-      nodes.push({type:'paragraph', html:parseInline(`= ${tok.text}`)});
+      nodes.push({type:'paragraph', html:parseInline(tok.text)});
       continue;
     }
 
