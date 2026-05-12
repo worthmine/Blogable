@@ -799,9 +799,10 @@ describe('§InlineSyntax', () => {
   });
 
   it('ExternalEmbed: [label](URL) old syntax no longer produces a link', () => {
-    // Old Markdown-style ExternalLink syntax is no longer recognised
+    // Old Markdown-style ExternalLink syntax is no longer recognised — rendered as plain text
     const html = parse('[Visit Example](https://example.com)');
     expect(html).not.toMatch(/href="https:\/\/example\.com"/);
+    expect(html).toMatch(/\[Visit Example\]/);
   });
 
   it('Footnote: [^text] → superscript footnote reference', () => {
