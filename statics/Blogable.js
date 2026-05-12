@@ -972,13 +972,14 @@ function highlightCodeTables(container) {
   });
 }
 function renderKaTeXBlocks(container) {
-  if (!window.katex) return;
+  const katexApi = window.katex || globalThis.katex;
+  if (!katexApi) return;
   container.querySelectorAll('pre.math-block').forEach(pre => {
     const code = pre.querySelector('code');
     if (!code) return;
     const tex = code.textContent.trim();
     try {
-      code.innerHTML = katex.renderToString(tex, { displayMode: true, throwOnError: false });
+      code.innerHTML = katexApi.renderToString(tex, { displayMode: true, throwOnError: false });
     } catch(e) {
       code.innerHTML = `<span class="katex-error">${esc(tex)}</span>`;
     }
