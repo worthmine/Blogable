@@ -478,7 +478,6 @@ function buildAST(tokens) {
     'description',
     'tags',
     'slug',
-    'draft',
     'lang'
   ]);
 
@@ -499,7 +498,7 @@ function buildAST(tokens) {
       const key=m[1];
       if (!isAllowedFrontMatterKey(key)) {
         // [E201] Invalid key: invalidate this construct and continue (spec: errors fall back safely)
-        pushDiag('E201',`"${key}" is not a recognised front matter key. Allowed: title, author, date, updated, description, tags, slug, draft, lang; or x-* for custom metadata.`);
+        pushDiag('E201',`"${key}" is not a recognised front matter key. Allowed: title, author, date, updated, description, tags, slug, lang; or x-* for custom metadata.`);
         continue;
       }
 

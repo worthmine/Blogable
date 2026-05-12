@@ -114,7 +114,6 @@ FrontKey =
   | "description"
   | "tags"
   | "slug"
-  | "draft"
   | "lang"
   | "x-" , { LOWER | DIGIT | "-" } ;
 ```
@@ -477,7 +476,7 @@ Warnings notify without stopping rendering.
 
 | Code | Kind | Trigger |
 |------|------|---------|
-| E201 | Error | Unknown front matter key. Allowed: `title`, `author`, `date`, `updated`, `description`, `tags`, `slug`, `draft`, `lang`; or `x-*` for custom metadata. |
+| E201 | Error | Unknown front matter key. Allowed: `title`, `author`, `date`, `updated`, `description`, `tags`, `slug`, `lang`; or `x-*` for custom metadata. |
 | E202 | Error | Unknown modifier key. Built-in keys: `class`, `id`, `title`, `cite`, `author`, `alt`; or `x-<name>` for custom data attributes. |
 | E401 | Error | List indentation is not a multiple of two. Use 0, 2, 4, … spaces for each nesting level. |
 | E402 | Error | Heading depth exceeds h6. Use 2–6 colons: `:: h2` … `:::::: h6`. |

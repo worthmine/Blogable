@@ -29,7 +29,7 @@ describe('§FrontMatter', () => {
   });
 
   it('accepts all spec-defined front matter keys', () => {
-    const keys = ['title','author','date','updated','description','tags','slug','draft','lang'];
+    const keys = ['title','author','date','updated','description','tags','slug','lang'];
     for (const k of keys) {
       const html = parse(`@@\n${k}: value\n@@`);
       expect(html).toMatch(new RegExp(`<dt>${k}</dt>`));
