@@ -310,8 +310,8 @@ ULItem   = "- " , InlineText , NL ;
 OLItem   = "# " , InlineText , NL ;
 TaskItem = "[" , ( " " | "x" ) , "]" , SP , InlineText , NL ;
 
-DLItem   = "? " , Term , NL , DDItem , { DDItem } ;
-DDItem   = "= " , InlineText , NL ;
+DLItem   = "?" , SP , Term , NL , DDItem , { DDItem } ;
+DDItem   = "=" , SP , InlineText , NL ;
 
 Term = InlineText ;
 !#
