@@ -126,7 +126,7 @@ $$
 
 External inline link: See !!https://example.com|Visit Example!! for more.
 
-Local page link: [[another-page|display text]]
+Local page link: [[your-page|display text]]
 
 In-page anchor: [[#Headings]]
 
