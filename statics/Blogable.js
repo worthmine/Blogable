@@ -207,7 +207,7 @@ function getBlogableDiagnostics(){ return diagnostics.slice(); }
 let footnotes=[];
 // 内部アンカー解決用のIDマップ（見出し・定義用語・アンカーブロック）
 let anchorIds={};
-// ドキュメント内IDの使用回数（ベースIDごとにカウントして重複時は -1, -2... を付与）
+// ドキュメント内IDの使用回数（重複ID検出用）
 let idCounts=new Map();
 // 定義用語の重複チェック
 let definitionTerms=new Set();
@@ -215,13 +215,12 @@ let definitionTerms=new Set();
 function reserveAnchorId(rawId, sourceLabel='block') {
   const baseId=slugify(rawId)||'section';
   const seenCount=idCounts.get(baseId)||0;
-  const resolvedId=seenCount===0 ? baseId : `${baseId}-${seenCount}`;
   idCounts.set(baseId, seenCount+1);
-  anchorIds[resolvedId]=true;
+  anchorIds[baseId]=true;
   if (seenCount>0) {
-    pushDiag('E405',`${sourceLabel} ID "${baseId}" is already in use. Assigned "${resolvedId}" to keep IDs unique within the document.`);
+    pushDiag('E405',`${sourceLabel} ID "${baseId}" is already in use. Duplicate IDs are not allowed in this document.`);
   }
-  return resolvedId;
+  return baseId;
 }
 
 function parseInline(text) {
@@ -613,7 +612,7 @@ function buildAST(tokens) {
       const mods=cm();
       const customId=mods.find(m=>m.key==='id')?.value;
       const otherMods=mods.filter(m=>m.key!=='id');
-      const id=reserveAnchorId(customId||tok.text, customId?'heading modifier':'heading');
+      const id=reserveAnchorId(customId||tok.text, customId?'heading @[id]':'heading');
       nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(otherMods)});
       continue;
     }

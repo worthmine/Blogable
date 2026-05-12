@@ -472,7 +472,7 @@ DefinitionBlock = ":=" , SP , Term , NL , DD , { Meta } ;
 Definition blocks behave as list items in the DL system.
 The definition body is one or more paragraphs.
 Definition-list terms are unique across the document.
-Each `:= term` generates a slug-based id on the rendered term heading (`<dt id="..."><a href="#...">…</a></dt>`), and duplicate IDs are suffixed (`-1`, `-2`, …) to keep document IDs unique.
+Each `:= term` generates a slug-based id on the rendered term heading (`<dt id="..."><a href="#...">…</a></dt>`).
 DefinitionBlock (`:=`) is top-level only and MUST NOT be nested inside lists.
 
 ---
@@ -496,7 +496,7 @@ MetaKey =
 
 Block-local metadata applies only to the immediately preceding block.
 Metadata does not cross blank lines.
-`@[id: ...]` on supported blocks sets that block's ID target, and IDs are normalized and uniquified at the document level.
+`@[id: ...]` on supported blocks sets that block's ID target. IDs are normalized at the document level; duplicates emit an error.
 
 ---
 
@@ -537,7 +537,7 @@ Warnings notify without stopping rendering.
 | E401 | Error | List indentation is not a multiple of two. Use 0, 2, 4, … spaces for each nesting level. |
 | E402 | Error | Heading depth exceeds h6. Use 2–6 colons: `:: h2` … `:::::: h6`. |
 | E403 | Error | Definition term has no body. Add at least one paragraph after the `:= term` line. |
-| E405 | Error | Duplicate generated id in one document. A numeric suffix (`-1`, `-2`, …) is assigned to keep IDs unique. |
+| E405 | Error | Duplicate generated id in one document. IDs are not auto-renamed; resolve the collision in source. |
 | W601 | Warning | `[#id]` — no heading, anchor-block, definition-term, or `@[id]` target with that id found. Add `[#id]` on its own line (or define a matching target id) to create the target. |
 | W201 | Warning | Malformed front matter line. Expected format: `key: value`. |
 | W202 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
