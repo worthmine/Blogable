@@ -694,7 +694,7 @@ def main():
     try:
         result = convert(src, mode=args.mode)
     except ValueError as e:
-        print(f'Error: {e}', file=sys.stderr)
+        print(str(e), file=sys.stderr)
         raise SystemExit(2)
 
     if out_path:
