@@ -779,11 +779,9 @@ function buildAST(tokens) {
       i++;
       const mods=cm();
       const altMod=tok.alt!==null?[{key:'alt',value:tok.alt}]:[];
-      // [W802] @[alt: ...] modifier on an ObsidianEmbed is deprecated — use ![[path|alt text]]
-      if (mods.some(m=>m.key==='alt')) {
-        pushDiag('W802','@[alt: ...] is deprecated for ObsidianEmbed. Use the inline pipe syntax ![[path|alt text]] to set the alt attribute instead.');
-      }
-      nodes.push({type:'figure', images:[{url:tok.path, mods:[...altMod,...mods]}]});
+      // @[alt: ...] modifier has no effect on ObsidianEmbed; alt text must be set inline: ![[path|alt text]]
+      const safeMods=mods.filter(m=>m.key!=='alt');
+      nodes.push({type:'figure', images:[{url:tok.path, mods:[...altMod,...safeMods]}]});
       continue;
     }
 

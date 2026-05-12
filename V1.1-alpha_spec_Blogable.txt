@@ -299,7 +299,6 @@ An ObsidianEmbed is a standalone block line beginning with "![[".
 It embeds a local image file referenced by PATH.
 An optional display alt text follows the path after "|".
 It renders as a <figure> with an <img> element.
-The @[alt: ...] modifier may also be used to set or override alt text.
 SVG files are supported.
 
 ---
@@ -499,7 +498,6 @@ Diagnostic codes:
   W003  Warning  Unterminated math block: $$ opened but closing $$ not found before EOF.
   W401  Warning  Duplicate definition term. Terms must be unique (case-insensitive).
   W801  Warning  Orphaned modifier: not placed on the line immediately after a supported block.
-  W802  Warning  @[alt: ...] on an ObsidianEmbed block is deprecated. Use ![[path|alt text]] instead.
 
 ---
 
