@@ -436,19 +436,58 @@ Warnings notify without stopping rendering.
 
 Diagnostic codes:
 
-  E201  Error    Invalid front matter key (not in allowed list, not x-*)
-  E202  Error    Unknown MetaKey in a modifier @[key: value]
-  E401  Error    Invalid list indentation (odd number of leading spaces)
-  E402  Error    Heading level out of range (more than 6 colons; maximum is h6)
-  E403  Error    Definition block has no body text (DD is required by spec)
-  W601  Warning  Unresolved internal anchor reference [#id]
-  W201  Warning  Malformed front matter line (does not match key: value format)
-  W202  Warning  Unterminated front matter block (EOF reached without closing @@)
-  W001  Warning  Unterminated code block (EOF reached without closing !#)
-  W002  Warning  Unterminated quote block (EOF reached without closing <|)
-  W003  Warning  Unterminated math block (EOF reached without closing $$)
-  W401  Warning  Duplicate definition term (same term defined more than once)
-  W801  Warning  Orphaned modifier (not consumed by any block)
+  E201  Error    Front matter key is not in the allowed list and is not an x-* custom key.
+                 Allowed keys: title, author, date, updated, description, tags, slug, draft, lang.
+                 For custom metadata use the x-* prefix, e.g. x-series: Getting Started.
+
+  E202  Error    Modifier key is not one of the built-in keys (class, id, title, cite, author, alt)
+                 and does not match x-*. For custom data attributes write x-<name>
+                 (e.g. @[x-role: note]), which renders as data-<name>="...".
+                 Modifier syntax: @[key: value] on the line immediately after the block,
+                 with no blank line between them.
+
+  E401  Error    List item leading spaces are not a multiple of two.
+                 Use 0 spaces for top-level, 2 for one level of nesting, 4 for two levels, etc.
+                 Example: "- top", "  - nested", "    - deeper".
+
+  E402  Error    More than 6 colons used for a heading (HTML supports h1-h6 only).
+                 Use 2-6 colons: ":: h2", "::: h3", ":::: h4", "::::: h5", ":::::: h6".
+
+  E403  Error    := term has no following body paragraph.
+                 A DefinitionBlock needs at least one paragraph (DD) immediately after := Term.
+                 Example:  := Term
+                           The explanation goes here.
+
+  W601  Warning  [#id] references an anchor that does not exist earlier in the document.
+                 Add a standalone [#id] anchor block on its own line to create the target,
+                 or ensure the heading text slugifies to the expected id.
+
+  W201  Warning  A line inside @@ ... @@ does not match key: value format.
+                 Keys must start with a lowercase letter and contain only lowercase letters,
+                 digits, and hyphens. Example: "title: My Blog Post".
+
+  W202  Warning  @@ front matter block was opened but the document ended before the closing @@.
+                 The correct form is @@  /  one or more key: value lines  /  @@.
+
+  W001  Warning  Code block opened with #!lang but no closing !# line was found before EOF.
+                 Every code block must end with !# on its own line.
+                 Replace "lang" with the language name (e.g. bash, python, javascript).
+
+  W002  Warning  Block quote opened with |> but no closing <| line was found before EOF.
+                 Every block quote must end with <| on its own line.
+                 Optionally follow <| with @[author: Name] or @[cite: https://...].
+
+  W003  Warning  Math block opened with $$ but no second $$ line was found before EOF.
+                 Every math block must end with $$ on its own line.
+
+  W401  Warning  The same := term appears more than once (comparison is case-insensitive).
+                 Merge the two definitions or rename one term to make them distinct.
+
+  W801  Warning  @[key: value] modifier was not directly attached to a block.
+                 Modifiers must appear on the line immediately after a heading, ": " paragraph,
+                 list, blockquote, code block, math block, definition block, or image,
+                 with no blank line between them.
+                 Plain text paragraphs need the ": " prefix to accept a modifier.
 
 ---
 
