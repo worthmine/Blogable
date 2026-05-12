@@ -13,7 +13,7 @@ x-version: 1.1-alpha # Blogable のバージョン
 :::# フロントマター
 
 上の `@@` ブロックがフロントマターです。
-使用可能なキー: title, author, date, updated, description, tags, slug, draft, lang, および x-* 拡張。フロントマターの値には `# コメント` を付けることができます（行末インラインコメント）。
+使用可能なキー: title, author, date, updated, description, tags, slug, lang, および x-* 拡張。フロントマターの値には `# コメント` を付けることができます（行末インラインコメント）。
 
 ---
 
@@ -84,6 +84,17 @@ x-version: 1.1-alpha # Blogable のバージョン
 
 ---
 
+:::# カジュアル定義リスト
+
+リストの文脈では `? 用語` と `= 説明` で簡易的な定義リストを作成できます:
+
+? 決定論的
+= 同じ入力が常に同じ出力を生成し、曖昧さがない。
+? 単一パス
+= 先読みやバックトラックなしに、一行ずつ一方向に処理を進める。
+
+---
+
 :::# ブロック引用
 
 > 単一行のブロック引用。
@@ -114,19 +125,48 @@ $$
 
 **強調** *イタリック* `インラインコード` ++挿入++ ~~削除~~
 
-リンク: [https://example.com リンクテキスト]
+外部インラインリンク: !!https://example.com|Visit Example!! をご覧ください。
+
+ローカルページリンク: [[another-page|表示テキスト]]
+
+ページ内アンカー: [[#見出し]]
 
 脚注（URL付き）: [^https://example.com 参考] [^ URLなしの注釈]
 
 ---
 
-:::# URL と 画像
+:::# URL 自動リンク
+
+スタンドアロンの HTTPS URL は自動リンクになります。表示ラベルはホスト名から生成されます。
 
 https://www.wikipedia.org/
 
+画像拡張子（`.jpg`、`.png` など）も同様に自動リンクです — 外部画像を埋め込むには ExternalEmbed を使用してください。
+
 https://picsum.photos/seed/blogable1/600/200.jpg
-@[alt: サンプル画像]
-@[title: 画像キャプション]
+
+---
+
+:::# ExternalEmbed（外部画像・動画・リンク）
+
+`!!URL|alt!!` でブロックとして外部画像・動画・リンクを埋め込めます。
+スペースをセパレーターとして使用することもできます: `!!URL alt!!`
+
+画像:
+!!https://picsum.photos/seed/blogable1/600/200.jpg|サンプル写真!!
+@[title: ExternalEmbed による外部画像]
+
+インライン使用では、メディアタイプに関わらず常に外部リンクとして描画されます:
+
+詳しくは !!https://example.com|こちらのサイト!! をご覧ください。
+
+---
+
+:::# ObsidianEmbed（ローカル画像）
+
+`![[パス]]` または `![[パス|alt]]` でローカル画像ファイルをフィギュアとして埋め込めます:
+
+![[statics/IMG_0698.png|Blogable ロゴ]]
 
 ---
 
@@ -141,7 +181,7 @@ https://picsum.photos/seed/blogable1/600/200.jpg
 [x] 完了タスク
 [ ] 未完了タスク
   **太字** *イタリック* `コード` ++挿入++ ~~削除~~
-  [https://example.com リンク]
+  !!https://example.com|リンク!!
   @[class: lead]
 !#
 @[title: Blogable 構文ハイライト]
@@ -199,7 +239,7 @@ print('フィボナッチ:', ', '.join(map(str, results)))
 
 [#blogable-v11-alpha-デモ]
 
-見出し参照: [#番号付き-h2]
+見出し参照: [[#番号付き h2]]
 
 ---
 

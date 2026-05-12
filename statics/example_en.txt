@@ -12,7 +12,7 @@ x-version: 1.1-alpha # Blogable version
 :::# Front Matter
 
 The `@@` block above is the front matter.
-Allowed keys: title, author, date, updated, description, tags, slug, draft, lang, and x-* extensions. Front matter values can include `# comments` (inline comment after the value).
+Allowed keys: title, author, date, updated, description, tags, slug, lang, and x-* extensions. Front matter values can include `# comments` (inline comment after the value).
 
 ---
 
@@ -83,6 +83,17 @@ Processing proceeds line by line in one forward pass — no lookahead or backtra
 
 ---
 
+:::# Casual Definition List
+
+In list context, use `? Term` and `= Description` for lightweight definition pairs:
+
+? Deterministic
+= Same input always produces the same output with no ambiguity.
+? Single-pass
+= Processing proceeds line by line with no lookahead or backtracking.
+
+---
+
 :::# Block Quote
 
 > A single-line block quote.
@@ -113,19 +124,48 @@ $$
 
 **strong** *emphasis* `inline code` ++inserted++ ~~deleted~~
 
-Link: [https://example.com link text]
+External inline link: See !!https://example.com|Visit Example!! for more.
+
+Local page link: [[another-page|display text]]
+
+In-page anchor: [[#Headings]]
 
 Footnote with URL: [^https://example.com reference] [^ note without URL]
 
 ---
 
-:::# URL & Image
+:::# URL Autolinks
+
+A standalone HTTPS URL becomes an autolink; the visible label is derived from the hostname.
 
 https://www.wikipedia.org/
 
+Image extensions (`.jpg`, `.png`, etc.) are also just autolinks — to embed external images, use ExternalEmbed.
+
 https://picsum.photos/seed/blogable1/600/200.jpg
-@[alt: Sample image]
-@[title: Image caption]
+
+---
+
+:::# ExternalEmbed
+
+Use `!!URL|alt!!` to embed an external image, video, or link as a block.
+A space is also accepted as a separator: `!!URL alt!!`
+
+Image:
+!!https://picsum.photos/seed/blogable1/600/200.jpg|Sample photo!!
+@[title: External image via ExternalEmbed]
+
+Inline usage always renders as an external link, regardless of media type:
+
+See !!https://example.com|this site!! for more info.
+
+---
+
+:::# ObsidianEmbed (Local Image)
+
+Use `![[path]]` or `![[path|alt]]` to embed a local image file as a figure:
+
+![[statics/IMG_0698.png|Blogable logo]]
 
 ---
 
@@ -140,7 +180,7 @@ Definition body paragraph.
 [x] Done task
 [ ] Open task
   **bold** *italic* `code` ++ins++ ~~del~~
-  [https://example.com link]
+  !!https://example.com|link!!
   @[class: lead]
   @[cite: https://example.com]
 !#
@@ -199,7 +239,7 @@ print('Fibonacci:', ', '.join(map(str, results)))
 
 [#blogable-v11-alpha-demo]
 
-Heading reference: [#Inline Markup]
+Heading reference: [[#Inline Markup]]
 
 ---
 
