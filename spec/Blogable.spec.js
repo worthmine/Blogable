@@ -446,45 +446,113 @@ describe('§URLs', () => {
     expect(html).not.toMatch(/<a href="http:\/\//);
   });
 
-  it('image URL (.png) → <figure> with <img>', () => {
+  it('image URL (.png) → autolink (not a figure)', () => {
     const html = parse('https://example.com/photo.png');
-    expect(html).toMatch(/<figure/);
-    expect(html).toMatch(/<img /);
-    expect(html).toMatch(/src="https:\/\/example\.com\/photo\.png"/);
+    expect(html).not.toMatch(/<figure/);
+    expect(html).not.toMatch(/<img /);
+    expect(html).toMatch(/<a href="https:\/\/example\.com\/photo\.png"/);
   });
 
-  it('image URL (.jpg) → <img>', () => {
-    expect(parse('https://example.com/img.jpg')).toMatch(/<img /);
+  it('image URL (.jpg) → autolink (not <img>)', () => {
+    expect(parse('https://example.com/img.jpg')).not.toMatch(/<img /);
+    expect(parse('https://example.com/img.jpg')).toMatch(/<a /);
   });
 
-  it('image URL (.jpeg) → <img>', () => {
-    expect(parse('https://example.com/img.jpeg')).toMatch(/<img /);
+  it('image URL (.jpeg) → autolink (not <img>)', () => {
+    expect(parse('https://example.com/img.jpeg')).not.toMatch(/<img /);
   });
 
-  it('image URL (.gif) → <img>', () => {
-    expect(parse('https://example.com/img.gif')).toMatch(/<img /);
+  it('image URL (.gif) → autolink (not <img>)', () => {
+    expect(parse('https://example.com/img.gif')).not.toMatch(/<img /);
   });
 
-  it('image URL (.webp) → <img>', () => {
-    expect(parse('https://example.com/img.webp')).toMatch(/<img /);
+  it('image URL (.webp) → autolink (not <img>)', () => {
+    expect(parse('https://example.com/img.webp')).not.toMatch(/<img /);
   });
 
-  it('.svg URL is NOT treated as an image (spec: SVG MUST NOT be treated as an image)', () => {
+  it('.svg external URL is just an autolink (image embedding is ObsidianEmbed-only)', () => {
     const html = parse('https://example.com/graphic.svg');
+    expect(html).not.toMatch(/<img /);
+    expect(html).toMatch(/<a /);
+  });
+
+  it('external image URL with @[alt: …] modifier — modifier is consumed but produces no <img>', () => {
+    const html = parse('https://example.com/photo.png\n@[alt: A photo]');
     expect(html).not.toMatch(/<img /);
   });
 
-  it('image block with @[alt: …] sets alt attribute', () => {
-    const src = 'https://example.com/photo.png\n@[alt: A photo]';
-    const html = parse(src);
-    expect(html).toMatch(/alt="A photo"/);
-  });
-
-  it('multiple image URLs in a row → single <figure> with multiple <img>', () => {
+  it('multiple image URLs in a row → separate autolink paragraphs, no <figure>', () => {
     const src = 'https://example.com/a.png\nhttps://example.com/b.png';
     const html = parse(src);
-    expect((html.match(/<img /g) || []).length).toBe(2);
-    expect((html.match(/<figure/g) || []).length).toBe(1);
+    expect(html).not.toMatch(/<figure/);
+    expect(html).not.toMatch(/<img /);
+    expect((html.match(/<a /g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §ObsidianEmbed
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('§ObsidianEmbed', () => {
+  it('![[image.png]] → <figure> with <img src="image.png">', () => {
+    const html = parse('![[image.png]]');
+    expect(html).toMatch(/<figure/);
+    expect(html).toMatch(/<img /);
+    expect(html).toMatch(/src="image\.png"/);
+  });
+
+  it('![[image.png|alt text]] → <img alt="alt text">', () => {
+    const html = parse('![[image.png|alt text]]');
+    expect(html).toMatch(/alt="alt text"/);
+    expect(html).toMatch(/src="image\.png"/);
+  });
+
+  it('![[image.png]] with @[alt: description] modifier — alt modifier has no effect (use ![[path|alt]] instead)', () => {
+    const html = parse('![[image.png]]\n@[alt: description]');
+    expect(html).not.toMatch(/alt="description"/);
+    expect(html).toMatch(/src="image\.png"/);
+    expect(getDiagnostics().some(d => d.code === 'W802')).toBe(false);
+  });
+
+  it('![[path/to/photo.jpg]] — nested path is used as src', () => {
+    const html = parse('![[path/to/photo.jpg]]');
+    expect(html).toMatch(/src="path\/to\/photo\.jpg"/);
+  });
+
+  it('![[image.png]] has loading="lazy" and decoding="async"', () => {
+    const html = parse('![[image.png]]');
+    expect(html).toMatch(/loading="lazy"/);
+    expect(html).toMatch(/decoding="async"/);
+  });
+
+  it('![[<evil>.png]] — path is HTML-escaped', () => {
+    const html = parse('![[<evil>.png]]');
+    expect(html).not.toMatch(/<evil>/);
+    expect(html).toMatch(/&lt;evil&gt;/);
+  });
+
+  it('![[img.png|<b>bold</b>]] — alt text is HTML-escaped', () => {
+    const html = parse('![[img.png|<b>bold</b>]]');
+    expect(html).not.toMatch(/<b>/);
+    expect(html).toMatch(/&lt;b&gt;/);
+  });
+
+  it('![[image with spaces.png]] — spaces in filename supported', () => {
+    const html = parse('![[image with spaces.png]]');
+    expect(html).toMatch(/src="image with spaces\.png"/);
+  });
+
+  it('![[日本語画像.png]] — Japanese filename supported', () => {
+    const html = parse('![[日本語画像.png]]');
+    expect(html).toMatch(/src="日本語画像\.png"/);
+  });
+
+  it('![[image.svg]] — SVG is supported in ObsidianEmbed', () => {
+    const html = parse('![[image.svg]]');
+    expect(html).toMatch(/<figure/);
+    expect(html).toMatch(/<img /);
+    expect(html).toMatch(/src="image\.svg"/);
   });
 });
 
@@ -679,25 +747,91 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/`line1/);
   });
 
-  it('Link: [https://url label] → <a href="…">label</a>', () => {
-    const html = parse('[https://example.com Visit Example]');
+  it('ExternalEmbed: !!https://url!! → external link paragraph', () => {
+    const html = parse('!!https://example.com!!');
     expect(html).toMatch(/<a href="https:\/\/example\.com"/);
-    expect(html).toMatch(/Visit Example/);
     expect(html).toMatch(/rel="noopener noreferrer"/);
     expect(html).toMatch(/target="_blank"/);
   });
 
-  it('Link: URL must end at the first space (no space in URL portion)', () => {
-    // The HTTPS_URL token class is [^ \]\n]+ — it stops at the first space.
-    // A raw URL with a space is not a valid Link; the rest becomes part of the label.
-    const html = parse('[https://example.com/path label text]');
+  it('ExternalEmbed: !!url|label!! → external link with label', () => {
+    const html = parse('!!https://example.com|Visit Example!!');
+    expect(html).toMatch(/<a href="https:\/\/example\.com"/);
+    expect(html).toMatch(/Visit Example/);
+    expect(html).toMatch(/rel="noopener noreferrer"/);
+  });
+
+  it('ExternalEmbed: label may contain spaces', () => {
+    const html = parse('!!https://example.com/path|label text!!');
     expect(html).toMatch(/href="https:\/\/example\.com\/path"/);
     expect(html).toMatch(/>label text</);
   });
 
-  it('Link: http:// is rejected (https only)', () => {
-    const html = parse('[http://example.com label]');
+  it('ExternalEmbed: SP separator — !!URL alt!! is equivalent to !!URL|alt!!', () => {
+    const html = parse('!!https://example.com/photo.jpg A nice photo!!');
+    expect(html).toMatch(/alt="A nice photo"/);
+    expect(html).toMatch(/<img /);
+  });
+
+  it('ExternalEmbed: SP separator — inline !!url label!! renders as external link', () => {
+    const html = parse('See !!https://example.com this site!! for more.');
+    expect(html).toMatch(/<a href="https:\/\/example\.com"/);
+    expect(html).toMatch(/this site/);
+  });
+
+  it('ExternalEmbed: SP separator — !!video.mp4 caption!! renders video with caption', () => {
+    const html = parse('!!https://example.com/clip.webm Promo clip!!');
+    expect(html).toMatch(/<video /);
+    expect(html).toMatch(/Promo clip/);
+  });
+
+  it('ExternalEmbed: http:// is rejected (https only)', () => {
+    const html = parse('!!http://example.com!!');
     expect(html).not.toMatch(/<a href="http:\/\//);
+  });
+
+  it('ExternalEmbed: image URL → <figure><img> (block)', () => {
+    const html = parse('!!https://example.com/photo.png!!');
+    expect(html).toMatch(/<figure class="blogable-figure">/);
+    expect(html).toMatch(/<img src="https:\/\/example\.com\/photo\.png"/);
+  });
+
+  it('ExternalEmbed: image URL with alt → <img alt="...">', () => {
+    const html = parse('!!https://example.com/photo.jpg|A nice photo!!');
+    expect(html).toMatch(/alt="A nice photo"/);
+    expect(html).toMatch(/<img /);
+  });
+
+  it('ExternalEmbed: video URL → <figure><video>', () => {
+    const html = parse('!!https://example.com/video.mp4!!');
+    expect(html).toMatch(/<figure class="blogable-figure">/);
+    expect(html).toMatch(/<video src="https:\/\/example\.com\/video\.mp4"/);
+  });
+
+  it('ExternalEmbed: video URL with caption', () => {
+    const html = parse('!!https://example.com/clip.webm|Promo clip!!');
+    expect(html).toMatch(/<video /);
+    expect(html).toMatch(/Promo clip/);
+  });
+
+  it('ExternalEmbed: inline !!url|label!! within paragraph → link', () => {
+    const html = parse('See !!https://example.com|this site!! for more.');
+    expect(html).toMatch(/<a href="https:\/\/example\.com"/);
+    expect(html).toMatch(/this site/);
+  });
+
+  it('ExternalEmbed: inline image URL → still renders as link (not figure)', () => {
+    // When inline (not standalone line), always renders as <a>
+    const html = parse('Download !!https://cdn.example.com/img.png|photo!! here.');
+    expect(html).toMatch(/<a /);
+    expect(html).not.toMatch(/<figure/);
+  });
+
+  it('ExternalEmbed: [label](URL) old syntax no longer produces a link', () => {
+    // Old Markdown-style ExternalLink syntax is no longer recognised — rendered as plain text
+    const html = parse('[Visit Example](https://example.com)');
+    expect(html).not.toMatch(/href="https:\/\/example\.com"/);
+    expect(html).toMatch(/\[Visit Example\]/);
   });
 
   it('Footnote: [^text] → superscript footnote reference', () => {
@@ -719,25 +853,89 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/fn-2/);
   });
 
-  it('AnchorRef: [#heading-id] resolves to an in-page link when heading exists', () => {
-    // AnchorRef is an inline construct; it must appear inside paragraph text,
+  it('ObsidianAnchor: [[#heading-id]] resolves to an in-page link when heading exists', () => {
+    // ObsidianAnchor is an inline construct; it must appear inside paragraph text,
     // not as a standalone line (which would be tokenised as anchor_block instead).
-    const src = ':: My Section\n\nSee [#My Section] for details.';
+    const src = ':: My Section\n\nSee [[#My Section]] for details.';
     const html = parse(src);
-    expect(html).toMatch(/<a href="#my-section" class="anchor-ref"/);
+    expect(html).toMatch(/<a href="#my-section" class="obsidian-anchor"/);
   });
 
-  it('AnchorRef: [#unknown] emits [W601] and renders plain text', () => {
-    // AnchorRef is inline-only; use it inside paragraph text so it is not
+  it('ObsidianAnchor: [[#unknown]] emits [W601] and renders plain text', () => {
+    // ObsidianAnchor is inline-only; use it inside paragraph text so it is not
     // tokenised as a standalone anchor_block.
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      const html = parse('Read [#nonexistent] for more.');
+      const html = parse('Read [[#nonexistent]] for more.');
       expect(warnSpy.mock.calls.some(a => a.join(' ').includes('[W601]'))).toBe(true);
       expect(html).not.toMatch(/<a /);
     } finally {
       warnSpy.mockRestore();
     }
+  });
+
+  it('ObsidianLink: [[path]] → <a href="path" class="obsidian-link">path</a>', () => {
+    const html = parse('See [[other-page]] here.');
+    expect(html).toMatch(/<a href="other-page" class="obsidian-link">other-page<\/a>/);
+  });
+
+  it('ObsidianLink: [[path|display text]] → <a href="path">display text</a>', () => {
+    const html = parse('See [[other-page|display text]] here.');
+    expect(html).toMatch(/<a href="other-page" class="obsidian-link">display text<\/a>/);
+  });
+
+  it('ObsidianLink: leading/trailing whitespace in display text is trimmed', () => {
+    const html = parse('See [[path| display text ]] here.');
+    expect(html).toMatch(/<a href="path" class="obsidian-link">display text<\/a>/);
+  });
+
+  it('ObsidianLink: path with Japanese characters is supported', () => {
+    const html = parse('[[相対パス|表示テキスト]]');
+    expect(html).toMatch(/class="obsidian-link"/);
+    expect(html).toMatch(/相対パス/);
+    expect(html).toMatch(/表示テキスト/);
+  });
+
+  it('ObsidianLink: path and display text with HTML chars are escaped', () => {
+    const html = parse('[[<evil>|<b>click</b>]]');
+    expect(html).not.toMatch(/<evil>/);
+    expect(html).not.toMatch(/<b>/);
+    expect(html).toMatch(/&lt;evil&gt;/);
+    expect(html).toMatch(/&lt;b&gt;/);
+  });
+
+  it('ObsidianLink does NOT match [[#ID]] (ObsidianAnchor takes precedence)', () => {
+    // [[#heading]] must still be handled by ObsidianAnchor, not ObsidianLink.
+    const src = ':: Section\n\nSee [[#Section]] here.';
+    const html = parse(src);
+    expect(html).toMatch(/class="obsidian-anchor"/);
+    expect(html).not.toMatch(/class="obsidian-link"/);
+  });
+
+  it('ObsidianLink: [[path#heading]] renders as href="path#heading"', () => {
+    const html = parse('See [[other-page#Introduction]] here.');
+    expect(html).toMatch(/<a href="other-page#Introduction" class="obsidian-link">other-page#Introduction<\/a>/);
+  });
+
+  it('ObsidianLink: [[path#heading|display]] renders display text with href="path#heading"', () => {
+    const html = parse('See [[other-page#Introduction|Introduction]] here.');
+    expect(html).toMatch(/<a href="other-page#Introduction" class="obsidian-link">Introduction<\/a>/);
+  });
+
+  it('ObsidianLink: unsafe scheme [[javascript:alert(1)|x]] is NOT rendered as a link', () => {
+    // XSS guard: javascript: scheme must never appear in href; raw text must be escaped instead
+    const html = parse('Click [[javascript:alert(1)|x]] here.');
+    expect(html).not.toMatch(/href="javascript:/i);
+    expect(html).not.toMatch(/<a /);
+    // The raw [[...]] text should appear escaped (not executed)
+    expect(html).toMatch(/\[\[javascript:/);
+  });
+
+  it('ObsidianLink: unsafe scheme [[data:text/html,...|x]] is NOT rendered as a link', () => {
+    const html = parse('Click [[data:text/html,foo|x]] here.');
+    expect(html).not.toMatch(/href="data:/i);
+    expect(html).not.toMatch(/<a /);
+    expect(html).toMatch(/\[\[data:/);
   });
 
   it('Strong: **text** → <strong>text</strong>', () => {
@@ -776,7 +974,7 @@ describe('§InlineSyntax', () => {
     expect(html).not.toMatch(/<ins>/);
   });
 
-  // ── evaluation order (Code > Link > Footnote > AnchorRef > Strong > Emphasis > Delete > Insert) ──
+  // ── evaluation order (Code > Link > Footnote > ObsidianAnchor > ObsidianLink > Strong > Emphasis > Delete > Insert) ──
 
   it('Code wins over Strong: `**text**` → <code>**text**</code>', () => {
     const html = parse('`**text**`');
@@ -1027,13 +1225,13 @@ describe('§Diagnostics', () => {
   });
 
   it('[W601] is emitted for an unresolved anchor reference', () => {
-    // AnchorRef is inline-only; use it inside paragraph text.
-    parse('See [#ghost-anchor] for details.');
+    // ObsidianAnchor is inline-only; use it inside paragraph text.
+    parse('See [[#ghost-anchor]] for details.');
     expect(getDiagnostics().some(d => d.code === 'W601')).toBe(true);
   });
 
   it('[W601] diagnostic carries the anchor id in its message', () => {
-    parse('See [#ghost-anchor] for details.');
+    parse('See [[#ghost-anchor]] for details.');
     expect(getDiagnostics().find(d => d.code === 'W601')?.message).toMatch(/ghost-anchor/);
   });
 
@@ -1308,7 +1506,7 @@ describe('§Diagnostics', () => {
     const codes = [
       { src: '@@\nbadkey: v\n@@',          code: 'E201' },
       { src: '@[badmetakey: v]',            code: 'E202' },
-      { src: 'See [#ghost] for details.',   code: 'W601' },
+      { src: 'See [[#ghost]] for details.',  code: 'W601' },
       { src: '@@\nno colon here\n@@',       code: 'W201' },
       { src: ' - odd-indent item',          code: 'E401' },
       { src: ':::::::: Too Deep',            code: 'E402' },
@@ -1352,7 +1550,7 @@ describe('§Diagnostics', () => {
     const cases = [
       '@@\nbadkey: v\n@@',
       '@[badmetakey: v]',
-      'See [#ghost] for details.',
+      'See [[#ghost]] for details.',
       '@@\nno colon here\n@@',
       ' - odd-indent',
       ':::::::: Too Deep',
@@ -1378,7 +1576,7 @@ describe('§Diagnostics', () => {
   it('multiple diagnostics in one parse all appear in getDiagnostics()', () => {
     // A document with both an invalid front matter key AND an unresolved anchor ref
     // must accumulate both diagnostics in a single parse call.
-    parse('@@\nbadkey: v\n@@\n\nSee [#ghost] for details.');
+    parse('@@\nbadkey: v\n@@\n\nSee [[#ghost]] for details.');
     const codes = getDiagnostics().map(d => d.code);
     expect(codes).toContain('E201');
     expect(codes).toContain('W601');
@@ -1439,21 +1637,21 @@ describe('§SecureFallback', () => {
   // ── [W601] unresolved anchor reference ──────────────────────────────────
 
   it('[W601] surrounding paragraph content still renders after an unresolved anchor ref', () => {
-    const html = parse('Before [#ghost] after.');
+    const html = parse('Before [[#ghost]] after.');
     expect(html).toMatch(/Before/);
     expect(html).toMatch(/after\./);
   });
 
   it('[W601] unresolved anchor renders the inner text as plain escaped text (not a link)', () => {
-    const html = parse('Read [#nowhere] here.');
+    const html = parse('Read [[#nowhere]] here.');
     expect(html).not.toMatch(/<a /);
     // Inner text "nowhere" must still appear verbatim
     expect(html).toMatch(/nowhere/);
   });
 
   it('[W601] unresolved anchor with HTML chars in the id is escaped in fallback text', () => {
-    // The inner text of [#<evil>] must be escaped, never injected as markup.
-    const html = parse('Text [#<evil>] text.');
+    // The inner text of [[#<evil>]] must be escaped, never injected as markup.
+    const html = parse('Text [[#<evil>]] text.');
     expect(html).not.toMatch(/<evil>/);
     expect(html).toMatch(/&lt;evil&gt;/);
   });
@@ -1527,7 +1725,7 @@ describe('§SecureFallback', () => {
       '',
       ' - odd-indent item',
       '',
-      'See [#ghost] for details.',
+      'See [[#ghost]] for details.',
     ].join('\n');
     expect(() => parse(src)).not.toThrow();
     const html = parse(src);
@@ -1567,12 +1765,12 @@ describe('§Security', () => {
   });
 
   it('javascript: URL is not linked', () => {
-    const html = parse('[javascript:alert(1) click me]');
+    const html = parse('[click me](javascript:alert(1))');
     expect(html).not.toMatch(/href="javascript:/);
   });
 
   it('inline link with non-https scheme is not linked', () => {
-    const html = parse('[ftp://example.com label]');
+    const html = parse('[label](ftp://example.com)');
     expect(html).not.toMatch(/href="ftp:\/\//);
   });
 
@@ -1597,7 +1795,7 @@ describe('§Security', () => {
   });
 
   it('inline link label with HTML chars is escaped', () => {
-    const html = parse('[https://example.com <b>click</b>]');
+    const html = parse('[<b>click</b>](https://example.com)');
     expect(html).not.toMatch(/<b>/);
     expect(html).toMatch(/&lt;b&gt;/);
   });

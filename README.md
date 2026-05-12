@@ -315,18 +315,57 @@ Fetched metadata or application-supplied replacement labels are outside the core
 
 ## Images
 
-**ImageURL**
+Images MUST be embedded using ObsidianEmbed syntax only.
+Standalone external image URLs are NOT rendered as images; they are treated as regular autolinks.
 
-An ImageURL is a UrlBlock whose path ends with one of the allowed image extensions.
+---
 
-Allowed extensions:
-- png
-- jpg
-- jpeg
-- gif
-- webp
+## ObsidianEmbed
 
-SVG MUST NOT be treated as an image.
+```ebnf
+ObsidianEmbed = "![[" , PATH , [ "|" , TEXT ] , "]]" , NL , { Meta } ;
+```
+
+**ObsidianEmbed**
+
+An ObsidianEmbed is a standalone block line beginning with `![[`.
+It embeds a local image file referenced by PATH.
+An optional display alt text follows the path after `|`.
+It renders as a `<figure>` with an `<img>` element.
+SVG files are supported.
+
+---
+
+## ExternalEmbed
+
+```ebnf
+ExternalEmbedBlock = ExternalEmbed , NL , { Meta } ;
+ExternalEmbed      = "!!" , HTTPS_URL , [ ( "|" | SP ) , TEXT ] , "!!" ;
+```
+
+**ExternalEmbed**
+
+ExternalEmbed embeds or links an external resource identified by an HTTPS URL.
+It may appear inline within a paragraph, or as a standalone block line.
+The resource type is inferred from the URL:
+
+- **Image** (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.svg`) — renders as `<figure><img>`.
+- **Video** (`.mp4`, `.webm`, `.ogg`, `.ogv`, `.mov`) — renders as `<figure><video>`.
+- **Other** — renders as an external link `<a rel="noopener noreferrer" target="_blank">`.
+
+The optional TEXT after `|` or a space (SP) is used as alt text (for images/video) or link label.
+Both `!!URL|alt text!!` and `!!URL alt text!!` are equivalent.
+Since valid URLs cannot contain spaces, a space is unambiguous as a separator.
+When inline, ExternalEmbed always renders as an external link regardless of media type.
+Only `https://` URLs are accepted; other schemes are output as escaped plain text.
+
+The three resource types are strictly partitioned:
+
+| Construct | Syntax | Scope |
+|-----------|--------|-------|
+| ObsidianLink | `[[path\|display]]` | Local links |
+| ObsidianEmbed | `![[path\|alt]]` | Local image/video embeds |
+| ExternalEmbed | `!!URL\|alt!!` or `!!URL alt!!` | External links, images, and videos |
 
 ---
 
@@ -366,21 +405,23 @@ Casual DL (`?` / `=`) is top-level only and MUST NOT be nested inside other list
 InlineText = { Inline } ;
 
 Inline = Code
-       | Link
+       | ExternalEmbed
        | Footnote
-       | AnchorRef
+       | ObsidianAnchor
+       | ObsidianLink
        | Strong
        | Emphasis
        | Delete
        | Insert
        | Plain ;
 
-Code      = "`" , { CodeChar } , "`" ;
-CodeChar  = ? any character except "`" and NL ? ;
+Code         = "`" , { CodeChar } , "`" ;
+CodeChar     = ? any character except "`" and NL ? ;
 
-Link      = "[" , HTTPS_URL , SP , TEXT , "]" ;
+ExternalEmbed = "!!" , HTTPS_URL , [ "|" , TEXT ] , "!!" ;
 Footnote  = "[^" , TEXT , "]" ;
-AnchorRef = "[#" , ID , "]" ;
+ObsidianAnchor = "[[" , "#" , HEADING , "]]" ;
+ObsidianLink   = "[[" , PATH , [ "#" , HEADING ] , [ "|" , TEXT ] , "]]" ;
 
 Strong    = "**" , { StrongChar } , "**" ;
 StrongChar = ? any character except "*" and NL ? ;
@@ -401,7 +442,7 @@ Plain = { ANY - NL } ;
 
 Inline elements MUST NOT nest.
 Inline evaluation order is:
-Code, Link, Footnote, AnchorRef, Strong, Emphasis, Delete, Insert.
+Code, ExternalEmbed, Footnote, ObsidianAnchor, ObsidianLink, Strong, Emphasis, Delete, Insert.
 Inline code has no escape syntax.
 
 ---

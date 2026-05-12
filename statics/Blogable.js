@@ -26,9 +26,11 @@ Prism.languages.blogable = {
   'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
   'anchor-block':  { pattern:/^\[#[^\]]+\]$/m,       alias:'symbol' },
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
-  'inline-link':   { pattern:/\[https:\/\/[^ \]\n]+[ ][^\]\n]+\]/, alias:'url' },
+  'external-embed': { pattern:/!!https:\/\/[^!\n]+!!/,               alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
-  'anchor-ref':    { pattern:/\[#[^\]]+\]/,          alias:'symbol' },
+  'obsidian-embed':  { pattern:/^!\[\[[^\]\n]+\]\]$/m,   alias:'url' },
+  'obsidian-anchor': { pattern:/\[\[#[^\]\n]+\]\]/,     alias:'symbol' },
+  'obsidian-link':   { pattern:/\[\[[^#\]\|\n][^\]\|\n]*(?:#[^\]\|\n]+)?(?:\|[^\]\n]*)?\]\]/, alias:'url' },
   'bold':    { pattern:/\*\*[^*\n]+\*\*/ },
   'italic':  { pattern:/\*[^*\n]+\*/ },
   'ins':     { pattern:/\+\+[^+\n]+\+\+/, alias:'inserted' },
@@ -51,7 +53,8 @@ Prism.languages.ebnf = {
 // ============================================================
 
 // ---- 定数 ----
-const IMAGE_EXTS = /\.(jpe?g|png|gif|webp)(\?.*)?$/i; // SVG除外
+const IMAGE_EXTS = /\.(jpe?g|png|gif|webp|svg)(\?.*)?$/i; // ObsidianEmbed では SVG も許容
+const VIDEO_EXTS = /\.(mp4|webm|ogg|ogv|mov)(\?.*)?$/i;
 
 const SHEBANG_LANG_MAP = {
   python:'python', python3:'python', python2:'python',
@@ -75,6 +78,7 @@ function slugify(text) {
     .replace(/-+/g,'-').replace(/^-|-$/g,'');
 }
 function isImageUrl(url) { try { return IMAGE_EXTS.test(new URL(url).pathname); } catch { return IMAGE_EXTS.test(url); } }
+function isVideoUrl(url) { try { return VIDEO_EXTS.test(new URL(url).pathname); } catch { return VIDEO_EXTS.test(url); } }
 function getHostname(url) {
   try {
     if (typeof URL==='function') return new URL(url).hostname;
@@ -208,7 +212,7 @@ let definitionTerms=new Set();
 
 function parseInline(text) {
   // Single-pass inline parser; implements spec evaluation order:
-  // Code > Link > Footnote > AnchorRef > Strong > Emphasis > Delete > Insert > Plain
+  // Code > ExternalEmbed > Footnote > ObsidianAnchor > ObsidianLink > Strong > Emphasis > Delete > Insert > Plain
   // Inline elements MUST NOT nest (spec §InlineSyntax).
   // The interior of every matched span is plain-escaped text only — never re-parsed.
   let out = '';
@@ -225,10 +229,14 @@ function parseInline(text) {
       i += m[0].length; continue;
     }
 
-    // ── Link  [HTTPS_URL SP TEXT]  (SP = single space) ─────────
-    if ((m = rest.match(/^\[(https:\/\/[^ \]\n]+) ([^\]\n]+)\]/))) {
-      const url = m[1], label = m[2];
-      out += isSafeUrl(url) ? extLink(url, esc(label)) : esc(m[0]);
+    // ── ExternalEmbed  !!HTTPS_URL!! or !!HTTPS_URL|TEXT!! or !!HTTPS_URL TEXT!! ──────────────
+    // Inline form: always renders as an external link (block form auto-detects image/video).
+    // Separator between URL and alt/label may be "|" or a single space (SP).
+    // URLs cannot contain spaces, so SP is unambiguous as a separator.
+    if ((m = rest.match(/^!!(https:\/\/[^ |!\n]+)(?:[| ]([^!\n]*))?!!/))) {
+      const url = m[1].trim(), label = m[2] ? m[2].trim() : null;
+      const display = label || getHostname(url);
+      out += isSafeUrl(url) ? extLink(url, esc(display)) : esc(m[0]);
       i += m[0].length; continue;
     }
 
@@ -246,15 +254,27 @@ function parseInline(text) {
       i += m[0].length; continue;
     }
 
-    // ── AnchorRef  [#ID] ────────────────────────────────────────
-    if ((m = rest.match(/^\[#([^\]\n]+)\]/))) {
+    // ── ObsidianAnchor  [[#ID]] ──────────────────────────────────────────
+    if ((m = rest.match(/^\[\[#([^\]\n]+)\]\]/))) {
       const id = m[1], slug = slugify(id);
       if (Object.hasOwn(headingIds, slug)) {
-        out += `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
+        out += `<a href="#${esc(slug)}" class="obsidian-anchor">${esc(id)}</a>`;
       } else {
         pushDiag('W601',`[#${id}] — no heading or anchor with that id found. Add "[#${id}]" on its own line to create the target.`);
         out += esc(id);
       }
+      i += m[0].length; continue;
+    }
+
+    // ── ObsidianLink  [[PATH]] or [[PATH|DISPLAY]] or [[PATH#HEADING]] or [[PATH#HEADING|DISPLAY]]  ─────────────────────
+    if ((m = rest.match(/^\[\[([^#\]\|\n][^\]\|\n]*)(?:\|([^\]\n]*))?\]\]/))) {
+      const path = m[1].trim(), display = m[2] !== undefined ? m[2].trim() : m[1].trim();
+      // ObsidianLink paths are local/relative only; reject any URL-scheme (e.g. javascript:, data:, https://)
+      // path is already trim()ed so no leading whitespace; we reject anything matching scheme syntax at position 0.
+      const isSafe = !/^[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(path);
+      out += isSafe
+        ? `<a href="${esc(path)}" class="obsidian-link">${esc(display)}</a>`
+        : esc(m[0]);
       i += m[0].length; continue;
     }
 
@@ -429,8 +449,20 @@ function tokenize(lines) {
     const olM=raw.match(/^((?:  )*)#\s+(.*)/);
     if (olM) { tokens.push({type:'ol', indent:olM[1].length, text:olM[2]}); continue; }
 
+    // ExternalEmbed !!URL!! or !!URL|alt!! or !!URL alt!! (block) — 外部リソース（リンク・画像・動画）
+    // "|" or SP may be used as the separator before alt text; URLs cannot contain spaces.
+    const extEmbedM=t.match(/^!!(https:\/\/[^ |!\n]+)(?:[| ]([^!\n]*))?!!$/);
+    if (extEmbedM) {
+      tokens.push({type:'external_embed', url:extEmbedM[1].trim(), alt:extEmbedM[2]?extEmbedM[2].trim():null});
+      continue;
+    }
+
     // URL単独行（buildAST で安全に扱える HTTPS のみを URL ブロック化する）
     if (/^https:\/\/\S+$/.test(t)) { tokens.push({type:'url', url:t}); continue; }
+
+    // ObsidianEmbed ![[path]] or ![[path|alt]] — ローカル画像埋め込み
+    const embedM=t.match(/^!\[\[([^\]|]+?)(?:\|([^\]]*))?\]\]$/);
+    if (embedM) { tokens.push({type:'obsidian_embed', path:embedM[1].trim(), alt:embedM[2]!==undefined?embedM[2].trim():null}); continue; }
 
     // 通常テキスト
     tokens.push({type:'text', text:t});
@@ -726,8 +758,8 @@ function buildAST(tokens) {
     if (tok.type==='url') {
       const group=[];
       while (i<tokens.length && tokens[i].type==='url') {
-        const url=tokens[i++].url; const mods=cm();
-        group.push({url, mods});
+        const url=tokens[i++].url; cm(); // モディファイアは消費するが URL ブロックでは無視
+        group.push(url);
       }
       const escapeHtmlText=s=>s
         .replace(/&/g,'&amp;')
@@ -735,36 +767,32 @@ function buildAST(tokens) {
         .replace(/>/g,'&gt;')
         .replace(/"/g,'&quot;')
         .replace(/'/g,'&#39;');
-      const allSafe=group.every(g=>isSafeUrl(g.url));
-      if (allSafe) {
-        if (group.length>0 && group.every(g=>isImageUrl(g.url))) {
-          nodes.push({type:'figure', images:group});
+      for (const url of group) {
+        if (isSafeUrl(url)) {
+          nodes.push({type:'autolink', url, label:getHostname(url)});
         } else {
-          for (const g of group) nodes.push({type:'autolink', url:g.url, label:getHostname(g.url)});
+          nodes.push({type:'paragraph', html:escapeHtmlText(url)});
         }
-      } else {
-        let images=[];
-        const flushImages=()=>{
-          if (images.length>0) {
-            nodes.push({type:'figure', images});
-            images=[];
-          }
-        };
-        for (const g of group) {
-          if (isSafeUrl(g.url)) {
-            if (isImageUrl(g.url)) {
-              images.push(g);
-            } else {
-              flushImages();
-              nodes.push({type:'autolink', url:g.url, label:getHostname(g.url)});
-            }
-          } else {
-            flushImages();
-            nodes.push({type:'paragraph', html:escapeHtmlText(g.url)});
-          }
-        }
-        flushImages();
       }
+      continue;
+    }
+
+    // ObsidianEmbed ![[path]] or ![[path|alt]] — ローカル画像埋め込み
+    if (tok.type==='obsidian_embed') {
+      i++;
+      const mods=cm();
+      const altMod=tok.alt!==null?[{key:'alt',value:tok.alt}]:[];
+      // @[alt: ...] modifier is ignored on ObsidianEmbed; alt text must be set inline: ![[path|alt text]]
+      const safeMods=mods.filter(m=>m.key!=='alt');
+      nodes.push({type:'figure', images:[{url:tok.path, mods:[...altMod,...safeMods]}]});
+      continue;
+    }
+
+    // ExternalEmbed !!URL!! or !!URL|alt!! — 外部リソース（リンク・画像・動画）
+    if (tok.type==='external_embed') {
+      i++;
+      const mods=cm();
+      nodes.push({type:'external_embed', url:tok.url, alt:tok.alt, mods});
       continue;
     }
 
@@ -914,6 +942,21 @@ function astToHtml(nodes, forDisplay=false) {
 
   case 'autolink': {
     return `<p>${extLink(node.url, esc(node.label))}</p>`;
+  }
+
+  case 'external_embed': {
+    const url = node.url;
+    if (!isSafeUrl(url)) return `<p>${esc(url)}</p>`;
+    const alt = node.alt || node.mods.find(m=>m.key==='alt')?.value || '';
+    const title = node.mods.find(m=>m.key==='title')?.value || '';
+    if (isImageUrl(url)) {
+      return `<figure class="blogable-figure">\n  <img src="${esc(url)}" alt="${esc(alt)}"${title?` title="${esc(title)}"`:''} loading="lazy" decoding="async">\n</figure>`;
+    }
+    if (isVideoUrl(url)) {
+      return `<figure class="blogable-figure">\n  <video src="${esc(url)}" controls loading="lazy">${alt?esc(alt):''}</video>\n${title?`  <figcaption>${esc(title)}</figcaption>\n`:''}</figure>`;
+    }
+    const label = alt || getHostname(url);
+    return `<p>${extLink(url, esc(label))}</p>`;
   }
 
   case 'paragraph': return `<p${node.mods?buildAttrs(node.mods):''}>${node.html}</p>`;
