@@ -1049,11 +1049,11 @@ describe('§InternalAnchors', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('§Definitions', () => {
-  it(':= Term followed by text → <dl class="def-block"><dt>Term</dt><dd>…</dd>', () => {
+  it(':= Term followed by text → <dl class="def-block"><dt id="..."><a href="#...">Term</a></dt><dd>…</dd>', () => {
     const src = ':= MyTerm\nThe definition body.';
     const html = parse(src);
     expect(html).toMatch(/<dl class="def-block">/);
-    expect(html).toMatch(/<dt>MyTerm<\/dt>/);
+    expect(html).toMatch(/<dt id="myterm"><a href="#myterm">MyTerm<\/a><\/dt>/);
     expect(html).toMatch(/The definition body\./);
   });
 
@@ -1067,6 +1067,13 @@ describe('§Definitions', () => {
     const src = ':= Term\n*italic body*';
     const html = parse(src);
     expect(html).toMatch(/<em>italic body<\/em>/);
+  });
+
+  it('duplicate := terms generate unique ids (term, term-2, ...)', () => {
+    const src = ':= Glossary\nBody A.\n\n:= Glossary\nBody B.';
+    const html = parse(src);
+    expect(html).toMatch(/<dt id="glossary"><a href="#glossary">Glossary<\/a><\/dt>/);
+    expect(html).toMatch(/<dt id="glossary-2"><a href="#glossary-2">Glossary<\/a><\/dt>/);
   });
 });
 

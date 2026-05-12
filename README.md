@@ -471,6 +471,7 @@ DefinitionBlock = ":=" , SP , Term , NL , DD , { Meta } ;
 Definition blocks behave as list items in the DL system.
 The definition body is one or more paragraphs.
 Definition-list terms are unique across the document.
+Each `:= term` generates a unique slug id and keeps it on the rendered term heading (`<dt id="..."><a href="#...">…</a></dt>`).
 DefinitionBlock (`:=`) is top-level only and MUST NOT be nested inside lists.
 
 ---

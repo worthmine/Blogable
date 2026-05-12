@@ -209,6 +209,8 @@ let footnotes=[];
 let headingIds={};
 // 定義用語の重複チェック
 let definitionTerms=new Set();
+// 定義用語IDのユニーク化
+let definitionTermIdCounts=new Map();
 
 function parseInline(text) {
   // Single-pass inline parser; implements spec evaluation order:
@@ -683,8 +685,13 @@ function buildAST(tokens) {
       }
       const mods=cm();
       const termHtml=parseInline(term);
+      const baseTermId=slugify(term)||'definition';
+      const seenCount=definitionTermIdCounts.get(baseTermId)||0;
+      const termId=seenCount===0 ? baseTermId : `${baseTermId}-${seenCount+1}`;
+      definitionTermIdCounts.set(baseTermId, seenCount+1);
+      headingIds[termId]=true;
       const ddHtml=ddLines.map(l=>`<p>${parseInline(l)}</p>`).join('\n');
-      nodes.push({type:'def_block', term, termHtml, ddLines, ddHtml, mods});
+      nodes.push({type:'def_block', term, termId, termHtml, ddLines, ddHtml, mods});
       continue;
     }
 
@@ -881,7 +888,7 @@ function astToHtml(nodes, forDisplay=false) {
       }
 
       case 'def_block': {
-        return `<dl${mergeAttrs('def-block', node.mods)}><dt>${node.termHtml}</dt><dd>${node.ddHtml}</dd></dl>`;
+        return `<dl${mergeAttrs('def-block', node.mods)}><dt id="${esc(node.termId)}"><a href="#${esc(node.termId)}">${node.termHtml}</a></dt><dd>${node.ddHtml}</dd></dl>`;
       }
 
       case 'anchor_block': {
@@ -983,6 +990,7 @@ headingIds={};
 footnotes=[];
 diagnostics=[];
 definitionTerms=new Set();
+definitionTermIdCounts=new Map();
 return buildAST(tokenize(src.split('\n')));
 }
 
