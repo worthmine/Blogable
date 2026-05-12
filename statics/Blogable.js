@@ -476,7 +476,7 @@ function tokenize(lines) {
     tokens.push({type:'text', text:t});
   }
   // 未閉鎖ブロックの検知 — EOF 時点でブロックが閉じていない場合に警告を発する
-  if (mode==='front')   pushDiag('W202','Unterminated front matter: @@ was opened but the closing @@ was not found before EOF.');
+  if (mode==='front')   pushDiag('W212','Unterminated front matter: @@ was opened but the closing @@ was not found before EOF.');
   if (mode==='shebang') pushDiag('W001','Unterminated code block: #!lang was opened but the closing !# was not found before EOF.');
   if (mode==='quote')   pushDiag('W002','Unterminated block quote: |> was opened but the closing <| was not found before EOF.');
   if (mode==='math')    pushDiag('W003','Unterminated math block: $$ was opened but the closing $$ was not found before EOF.');
@@ -567,8 +567,8 @@ function buildAST(tokens) {
       if (/^\s*#/.test(line)) continue;
       const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/);
       if (!m) {
-        // [W201] Non-empty lines that do not match FrontMetaLine syntax are invalid
-        if (line !== '') pushDiag('W201',`Malformed front matter line: "${line}". Expected format: "key: value".`);
+        // [W211] Non-empty lines that do not match FrontMetaLine syntax are invalid
+        if (line !== '') pushDiag('W211',`Malformed front matter line: "${line}". Expected format: "key: value".`);
         continue;
       }
 
