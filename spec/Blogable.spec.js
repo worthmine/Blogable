@@ -13,7 +13,7 @@
 
 'use strict';
 
-const { parse, tokenize, buildAST, getDiagnostics } = require('./setup.js');
+const { parse, renderDisplay, tokenize, buildAST, getDiagnostics, getPrismLanguages } = require('./setup.js');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // §FrontMatter
@@ -224,6 +224,17 @@ describe('§CodeBlocks', () => {
     const src = '#!ebnf\nRule = "x" ;\n!#';
     const html = parse(src);
     expect(html).toMatch(/language-ebnf/);
+  });
+
+  it('display-mode code blocks keep the language class for preview highlighting', () => {
+    const html = renderDisplay('#!javascript\nconsole.log("hi");\n!#');
+    expect(html).toMatch(/class="blogable-code language-javascript"/);
+  });
+
+  it('registers Prism grammars used by the demo preview', () => {
+    const langs = getPrismLanguages();
+    expect(langs.blogable).toBeTruthy();
+    expect(langs.ebnf).toBeTruthy();
   });
 
   it('#!perl block is rendered as a code block with lang="perl"', () => {
