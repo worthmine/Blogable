@@ -436,19 +436,19 @@ Warnings notify without stopping rendering.
 
 Diagnostic codes:
 
-  E001  Error    Invalid front matter key (not in allowed list, not x-*)
-  E002  Error    Unknown MetaKey in a modifier @[key: value]
-  E003  Error    Invalid list indentation (odd number of leading spaces)
-  E004  Error    Heading level out of range (more than 6 colons; maximum is h6)
-  E005  Error    Definition block has no body text (DD is required by spec)
-  W001  Warning  Unresolved internal anchor reference [#id]
-  W002  Warning  Malformed front matter line (does not match key: value format)
-  W003  Warning  Unterminated front matter block (EOF reached without closing @@)
-  W004  Warning  Unterminated code block (EOF reached without closing !#)
-  W005  Warning  Unterminated quote block (EOF reached without closing <|)
-  W006  Warning  Unterminated math block (EOF reached without closing $$)
-  W007  Warning  Duplicate definition term (same term defined more than once)
-  W008  Warning  Orphaned modifier (not consumed by any block)
+  E201  Error    Invalid front matter key (not in allowed list, not x-*)
+  E202  Error    Unknown MetaKey in a modifier @[key: value]
+  E401  Error    Invalid list indentation (odd number of leading spaces)
+  E402  Error    Heading level out of range (more than 6 colons; maximum is h6)
+  E403  Error    Definition block has no body text (DD is required by spec)
+  W601  Warning  Unresolved internal anchor reference [#id]
+  W201  Warning  Malformed front matter line (does not match key: value format)
+  W202  Warning  Unterminated front matter block (EOF reached without closing @@)
+  W001  Warning  Unterminated code block (EOF reached without closing !#)
+  W002  Warning  Unterminated quote block (EOF reached without closing <|)
+  W003  Warning  Unterminated math block (EOF reached without closing $$)
+  W401  Warning  Duplicate definition term (same term defined more than once)
+  W801  Warning  Orphaned modifier (not consumed by any block)
 
 ---
 
