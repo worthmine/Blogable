@@ -481,10 +481,11 @@ describe('§ObsidianEmbed', () => {
     expect(html).toMatch(/src="image\.png"/);
   });
 
-  it('![[image.png]] with @[alt: description] modifier → <img alt="description">', () => {
+  it('![[image.png]] with @[alt: description] modifier → <img alt="description"> (and emits W009)', () => {
     const html = parse('![[image.png]]\n@[alt: description]');
     expect(html).toMatch(/alt="description"/);
     expect(html).toMatch(/src="image\.png"/);
+    expect(getDiagnostics().some(d => d.code === 'W009')).toBe(true);
   });
 
   it('![[path/to/photo.jpg]] — nested path is used as src', () => {
@@ -1364,6 +1365,7 @@ describe('§Diagnostics', () => {
       { src: '$$\nno close',                 code: 'W006' },
       { src: ':= T\nB.\n\n:= T\nB2.',       code: 'W007' },
       { src: 'Plain.\n@[class: orphan]',     code: 'W008' },
+      { src: '![[img.png]]\n@[alt: desc]',   code: 'W009' },
     ];
     for (const { src, code } of codes) {
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -1392,6 +1394,12 @@ describe('§Diagnostics', () => {
     expect(msg).toMatch(/two|multiple/i);
   });
 
+  it('[W009] diagnostic message mentions pipe syntax ![[path|alt]]', () => {
+    parse('![[img.png]]\n@[alt: desc]');
+    const msg = getDiagnostics().find(d => d.code === 'W009')?.message || '';
+    expect(msg).toMatch(/\!\[\[.*\|/);
+  });
+
   it('every diagnostic object has both a string code and a string message', () => {
     // Consumers of getDiagnostics() rely on both fields being non-empty strings.
     const cases = [
@@ -1408,6 +1416,7 @@ describe('§Diagnostics', () => {
       '$$\nno close',
       ':= T\nB.\n\n:= T\nB2.',
       'Plain.\n@[class: orphan]',
+      '![[img.png]]\n@[alt: desc]',
     ];
     for (const src of cases) {
       parse(src);
