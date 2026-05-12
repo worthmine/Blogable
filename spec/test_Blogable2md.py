@@ -1,11 +1,11 @@
 """
-spec/test_Blogable2ZennMd.py
+spec/test_Blogable2md.py
 Unit tests for Blogable2md.py
 
 Run with:
   python -m unittest discover -s spec -p 'test_*.py' -v
   # or (if pytest is installed)
-  pytest spec/test_Blogable2ZennMd.py -v
+  pytest spec/test_Blogable2md.py -v
 """
 
 import sys
