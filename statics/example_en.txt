@@ -237,9 +237,10 @@ print('Fibonacci:', ', '.join(map(str, results)))
 
 :::# Internal Anchor
 
-[#blogable-v11-alpha-demo]
+:: Blogable v1.1-alpha demo anchor target
+@[id: blogable-v11-alpha-demo]
 
-Heading reference: [[#Inline Markup]]
+Heading reference: [[#blogable-v11-alpha-demo]]
 
 ---
 

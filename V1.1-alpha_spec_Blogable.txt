@@ -83,7 +83,6 @@ Block = Heading
       | MathBlock
       | UrlBlock
       | HorizontalRule
-      | InternalAnchorBlock
       | DefinitionBlock ;
 !#
 
@@ -413,13 +412,10 @@ Inline code has no escape syntax.
 
 :::# Internal Anchors
 
-#!ebnf
-InternalAnchorBlock = "[#" , TEXT , "]" , NL ;
-!#
-
 := InternalAnchor
-Internal anchors reference headings by label.
-Unresolved references produce a warning.
+Internal anchors are in-text references using [[#id]].
+Resolvable targets are heading IDs (including @[id: ...] overrides) and definition-term IDs.
+[#id] standalone anchor-block syntax is removed.
 
 ---
 
@@ -433,6 +429,7 @@ DefinitionBlock = ":=" , SP , Term , NL , DD ;
 Definition blocks behave as list items in the DL system.
 The definition body is one or more paragraphs.
 Definition-list terms are unique across the document.
+Each := term generates a slug-based id on <dt>.
 DefinitionBlock (:=) is top-level only and MUST NOT be nested inside lists.
 
 ---
@@ -455,6 +452,7 @@ MetaKey =
 := Meta
 Block-local metadata applies only to the immediately preceding block.
 Metadata does not cross blank lines.
+@[id: ...] on supported blocks sets that block's ID target. IDs are normalized at the document level; duplicates emit an error.
 
 ---
 
@@ -492,7 +490,8 @@ Diagnostic codes:
   E401  Error    List indentation not a multiple of two. Use 0, 2, 4, … spaces for each nesting level.
   E402  Error    Heading depth exceeds h6. Use 2-6 colons: ":: h2" … ":::::: h6".
   E403  Error    Definition term has no body. Add at least one paragraph after the := term line.
-  W601  Warning  [#id] — no heading, anchor, or definition-term id with that id found. Add [#id] on its own line (or define a matching heading/term id) to create the target.
+  E405  Error    Duplicate generated id in one document. IDs are not auto-renamed; resolve the collision in source.
+  W601  Warning  [[#id]] — target id not found. Define a matching id via heading, definition-term, or @[id].
   W201  Warning  Malformed front matter line. Expected format: key: value.
   W202  Warning  Unterminated front matter: @@ opened but closing @@ not found before EOF.
   W001  Warning  Unterminated code block: #!lang opened but closing !# not found before EOF.

@@ -24,7 +24,6 @@ Prism.languages.blogable = {
   'bq-inline':     { pattern:/^> .+$/m,             alias:'string' },
   'task-done':     { pattern:/^\[x\] .+$/mi,          alias:'inserted' },
   'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
-  'anchor-block':  { pattern:/^\[#[^\]]+\]$/m,       alias:'symbol' },
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
   'external-embed': { pattern:/!!https:\/\/[^!\n]+!!/,               alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
@@ -207,10 +206,21 @@ function getBlogableDiagnostics(){ return diagnostics.slice(); }
 let footnotes=[];
 // 内部アンカー解決用のIDマップ（見出し・定義用語）
 let anchorIds={};
+// ドキュメント内IDの使用回数（重複ID検出用）
+let idCounts=new Map();
 // 定義用語の重複チェック
 let definitionTerms=new Set();
-// 定義用語IDのユニーク化
-let definitionTermIdCounts=new Map();
+
+function reserveAnchorId(rawId, sourceLabel='block') {
+  const baseId=slugify(rawId)||'section';
+  const seenCount=idCounts.get(baseId)||0;
+  idCounts.set(baseId, seenCount+1);
+  anchorIds[baseId]=true;
+  if (seenCount>0) {
+    pushDiag('E405',`${sourceLabel} ID "${baseId}" is already in use. Duplicate IDs are not allowed in this document.`);
+  }
+  return baseId;
+}
 
 function parseInline(text) {
   // Single-pass inline parser; implements spec evaluation order:
@@ -262,7 +272,7 @@ function parseInline(text) {
       if (Object.hasOwn(anchorIds, slug)) {
         out += `<a href="#${esc(slug)}" class="obsidian-anchor">${esc(id)}</a>`;
       } else {
-        pushDiag('W601',`[#${id}] — no heading, definition term, or anchor with that id found. Add "[#${id}]" on its own line to create the target.`);
+        pushDiag('W601',`[[#${id}]] — target id not found. Define a matching id via heading, definition term, or @[id].`);
         out += esc(id);
       }
       i += m[0].length; continue;
@@ -406,10 +416,6 @@ function tokenize(lines) {
     // `: ` 段落ブロック（明示的な段落 — モディファイア使用可）
     const paraM=t.match(/^: (.+)/);
     if (paraM) { tokens.push({type:'para_block', text:paraM[1]}); continue; }
-
-    // 内部アンカーブロック [#text]
-    const anchorM=t.match(/^\[#([^\]]+)\]$/);
-    if (anchorM) { tokens.push({type:'anchor_block', id:slugify(anchorM[1]), label:anchorM[1]}); continue; }
 
     // タスクリスト
     const taskM=raw.match(/^(\s*)\[([ x])\]\s+(.*)/);
@@ -599,9 +605,10 @@ function buildAST(tokens) {
     if (tok.type==='heading') {
       i++;
       const mods=cm();
-      const id=slugify(tok.text);
-      anchorIds[id]=true;
-      nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(mods)});
+      const customId=mods.find(m=>m.key==='id')?.value;
+      const otherMods=mods.filter(m=>m.key!=='id');
+      const id=reserveAnchorId(customId||tok.text, customId?'heading @[id]':'heading');
+      nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(otherMods)});
       continue;
     }
 
@@ -685,18 +692,11 @@ function buildAST(tokens) {
       }
       const mods=cm();
       const termHtml=parseInline(term);
-      const baseTermId=slugify(term)||'definition';
-      const seenCount=definitionTermIdCounts.get(baseTermId)||0;
-      const termId=seenCount===0 ? baseTermId : `${baseTermId}-${seenCount}`;
-      definitionTermIdCounts.set(baseTermId, seenCount+1);
-      anchorIds[termId]=true;
+      const termId=reserveAnchorId(term,'definition term');
       const ddHtml=ddLines.map(l=>`<p>${parseInline(l)}</p>`).join('\n');
       nodes.push({type:'def_block', term, termId, termHtml, ddLines, ddHtml, mods});
       continue;
     }
-
-    // 内部アンカーブロック
-    if (tok.type==='anchor_block') { i++; nodes.push({type:'anchor_block', id:tok.id, label:tok.label}); continue; }
 
     // コードブロック
     if (tok.type==='shebang_open') {
@@ -891,10 +891,6 @@ function astToHtml(nodes, forDisplay=false) {
         return `<dl${mergeAttrs('def-block', node.mods)}><dt id="${esc(node.termId)}"><a href="#${esc(node.termId)}">${node.termHtml}</a></dt><dd>${node.ddHtml}</dd></dl>`;
       }
 
-      case 'anchor_block': {
-        return `<span class="anchor-block" id="${esc(node.id)}">[#${esc(node.label)}]</span>`;
-      }
-
       case 'list': {
         const attrs=buildAttrs(node.mods);
         if (!attrs) return node.html;
@@ -990,7 +986,7 @@ anchorIds={};
 footnotes=[];
 diagnostics=[];
 definitionTerms=new Set();
-definitionTermIdCounts=new Map();
+idCounts=new Map();
 return buildAST(tokenize(src.split('\n')));
 }
 
@@ -1214,9 +1210,10 @@ Heading  = "::" , { ":" } , SP , InlineText , NL ;
 
 :: 内部アンカー
 
-[#blogable-v11-alpha-demo]
+:: Blogable v1.1-alpha デモ用アンカーターゲット
+@[id: blogable-v11-alpha-demo]
 
-見出し参照: [#インライン記法]
+見出し参照: [[#インライン記法]]
 `;
 
 updateDemoUrlLabelsFromSource(document.getElementById('source').value);

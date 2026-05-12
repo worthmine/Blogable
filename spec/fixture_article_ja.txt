@@ -74,8 +74,6 @@ def hello(name):
 
 :: アンカーブロック
 
-[#introduction-anchor]
-
 ---
 
 :: 数式ブロック

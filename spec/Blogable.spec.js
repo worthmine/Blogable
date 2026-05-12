@@ -151,6 +151,14 @@ describe('§Headings', () => {
     expect(html).toMatch(/<h2 id="my-section"[^>]*><a href="#my-section">My Section<\/a><\/h2>/);
   });
 
+  it('heading @[id: custom-id] overrides auto id without duplicating id attributes', () => {
+    const html = parse(':: My Section\n@[id: custom-id]');
+    const headingTag = (html.match(/<h2[^>]*>/) || [''])[0];
+    expect(headingTag).toMatch(/id="custom-id"/);
+    expect(headingTag.match(/\bid="/g) || []).toHaveLength(1);
+    expect(html).toMatch(/<a href="#custom-id">My Section<\/a>/);
+  });
+
   it('numbered heading contains a self-referential anchor link', () => {
     const html = parse('::# Section One');
     expect(html).toMatch(/<h2 [^>]*><a href="#section-one">Section One<\/a><\/h2>/);
@@ -854,16 +862,21 @@ describe('§InlineSyntax', () => {
   });
 
   it('ObsidianAnchor: [[#heading-id]] resolves to an in-page link when heading exists', () => {
-    // ObsidianAnchor is an inline construct; it must appear inside paragraph text,
-    // not as a standalone line (which would be tokenised as anchor_block instead).
+    // ObsidianAnchor is an inline construct; it must appear inside paragraph text.
     const src = ':: My Section\n\nSee [[#My Section]] for details.';
     const html = parse(src);
     expect(html).toMatch(/<a href="#my-section" class="obsidian-anchor"/);
   });
 
+  it('ObsidianAnchor: [[#anchor-id]] does not resolve from deprecated [#id] syntax', () => {
+    const src = '[#My Anchor]\n\nSee [[#my-anchor]] here.';
+    const html = parse(src);
+    expect(html).not.toMatch(/<a href="#my-anchor" class="obsidian-anchor">my-anchor<\/a>/);
+    expect(getDiagnostics().some(d => d.code === 'W601')).toBe(true);
+  });
+
   it('ObsidianAnchor: [[#unknown]] emits [W601] and renders plain text', () => {
-    // ObsidianAnchor is inline-only; use it inside paragraph text so it is not
-    // tokenised as a standalone anchor_block.
+    // ObsidianAnchor is inline-only; use it inside paragraph text.
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const html = parse('Read [[#nonexistent]] for more.');
@@ -1028,19 +1041,18 @@ describe('§InlineSyntax', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// §InternalAnchors
+// Deprecated [#id]
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('§InternalAnchors', () => {
-  it('[#text] standalone block → <span class="anchor-block" id="…">', () => {
+describe('Deprecated [#id]', () => {
+  it('[#text] standalone line is treated as plain text', () => {
     const html = parse('[#my-anchor]');
-    expect(html).toMatch(/<span class="anchor-block"/);
-    expect(html).toMatch(/id="my-anchor"/);
+    expect(html).toMatch(/<p>\[#my-anchor\]<\/p>/);
   });
 
-  it('anchor block id is derived via slugify', () => {
+  it('deprecated [#id] does not create an anchor target for [[#id]]', () => {
     const html = parse('[#My Anchor]');
-    expect(html).toMatch(/id="my-anchor"/);
+    expect(html).toMatch(/<p>\[#My Anchor\]<\/p>/);
   });
 });
 
@@ -1069,18 +1081,22 @@ describe('§Definitions', () => {
     expect(html).toMatch(/<em>italic body<\/em>/);
   });
 
-  it('duplicate := terms generate unique ids (term, term-1, ...)', () => {
+  it('duplicate := terms keep the same id and emit duplicate-id diagnostics', () => {
     const src = ':= Glossary\nBody A.\n\n:= Glossary\nBody B.';
     const html = parse(src);
-    expect(html).toMatch(/<dt id="glossary"><a href="#glossary">Glossary<\/a><\/dt>/);
-    expect(html).toMatch(/<dt id="glossary-1"><a href="#glossary-1">Glossary<\/a><\/dt>/);
+    // Intentional: under error-only policy duplicates are not auto-renamed,
+    // so invalid duplicate ids remain and E405 signals the issue.
+    const matches = html.match(/<dt id="glossary"><a href="#glossary">Glossary<\/a><\/dt>/g) || [];
+    expect(matches).toHaveLength(2);
+    expect(getDiagnostics().some(d => d.code === 'E405')).toBe(true);
   });
 
-  it('generated definition ids are resolvable via [[#...]] anchors', () => {
+  it('only existing duplicate id target resolves; non-generated suffixed id does not', () => {
     const src = ':= Glossary\nBody A.\n\n:= Glossary\nBody B.\n\nSee [[#glossary]] and [[#glossary-1]].';
     const html = parse(src);
     expect(html).toMatch(/<a href="#glossary" class="obsidian-anchor">glossary<\/a>/);
-    expect(html).toMatch(/<a href="#glossary-1" class="obsidian-anchor">glossary-1<\/a>/);
+    expect(html).not.toMatch(/<a href="#glossary-1" class="obsidian-anchor">glossary-1<\/a>/);
+    expect(getDiagnostics().some(d => d.code === 'W601')).toBe(true);
   });
 });
 
@@ -1098,7 +1114,10 @@ describe('§Metadata', () => {
   it('@[id: value] after a block sets id attribute', () => {
     const src = ':: Section\n@[id: custom-id]';
     const html = parse(src);
-    expect(html).toMatch(/id="custom-id"/);
+    const headingTag = (html.match(/<h2[^>]*>/) || [''])[0];
+    expect(headingTag).toMatch(/id="custom-id"/);
+    expect(headingTag.match(/\bid="/g) || []).toHaveLength(1);
+    expect(html).toMatch(/<a href="#custom-id">Section<\/a>/);
   });
 
   it('@[x-foo: bar] after a block adds data-foo="bar"', () => {
@@ -1272,7 +1291,7 @@ describe('§Diagnostics', () => {
   });
 
   it('[W601] warning does not stop rendering', () => {
-    const html = parse(':: Section\n\n[#ghost]');
+    const html = parse(':: Section\n\nSee [[#ghost]]');
     // The heading must still be rendered
     expect(html).toMatch(/<h2/);
   });
@@ -1474,6 +1493,30 @@ describe('§Diagnostics', () => {
     expect(getDiagnostics().some(d => d.code === 'E404')).toBe(false);
   });
 
+  it('[E405] is emitted when duplicate ids are generated in one document', () => {
+    parse(':: Section\n\n:: Section');
+    expect(getDiagnostics().some(d => d.code === 'E405')).toBe(true);
+  });
+
+  it('[E405] does not auto-rename duplicates; both blocks keep the same id', () => {
+    const html = parse(':: Section\n\n:: Section');
+    // Intentional: duplicate ids are preserved and reported via E405.
+    expect(html).toMatch(/<h2 id="section"[^>]*><a href="#section">Section<\/a><\/h2>/);
+    const matches = html.match(/<h2 id="section"[^>]*><a href="#section">Section<\/a><\/h2>/g) || [];
+    expect(matches).toHaveLength(2);
+  });
+
+  it('[E405] is emitted when heading @[id] collides with an existing id', () => {
+    parse(':: Intro\n\n:: Another\n@[id: intro]');
+    expect(getDiagnostics().some(d => d.code === 'E405')).toBe(true);
+  });
+
+  it('[E405] is reset between parse() calls (second parse is independent)', () => {
+    parse(':: Intro\n\n:: Intro');
+    parse(':: Intro');
+    expect(getDiagnostics().some(d => d.code === 'E405')).toBe(false);
+  });
+
   // ── W801: orphaned modifier ───────────────────────────────────────────────
 
   it('[W801] is emitted for a modifier following a plain text paragraph', () => {
@@ -1530,6 +1573,7 @@ describe('§Diagnostics', () => {
       { src: '|>\nno close',                 code: 'W002' },
       { src: '$$\nno close',                 code: 'W003' },
       { src: ':= T\nB.\n\n:= T\nB2.',       code: 'E404' },
+      { src: ':: Intro\n\n:: Intro',         code: 'E405' },
       { src: 'Plain.\n@[class: orphan]',     code: 'W801' },
     ];
     for (const { src, code } of codes) {
@@ -1574,6 +1618,7 @@ describe('§Diagnostics', () => {
       '|>\nno close',
       '$$\nno close',
       ':= T\nB.\n\n:= T\nB2.',
+      ':: Intro\n\n:: Intro',
       'Plain.\n@[class: orphan]',
     ];
     for (const src of cases) {
@@ -1862,9 +1907,9 @@ describe('§Security', () => {
     expect(html).toMatch(/&lt;script&gt;/);
   });
 
-  it('anchor block label with HTML chars is escaped', () => {
+  it('deprecated [#id] literal with HTML chars is escaped', () => {
     const html = parse('[#<evil> section]');
-    // The label text must be escaped in the span output
+    // The literal text must be escaped in paragraph output
     expect(html).not.toMatch(/<evil>/);
     expect(html).toMatch(/&lt;evil&gt;/);
   });
@@ -2015,9 +2060,9 @@ describe('§Tokenizer', () => {
     expect(toks[0].type).toBe('url');
   });
 
-  it('[#anchor] standalone → anchor_block token', () => {
+  it('[#anchor] standalone → text token (deprecated syntax)', () => {
     const toks = tokenize('[#my-anchor]');
-    expect(toks[0].type).toBe('anchor_block');
+    expect(toks[0].type).toBe('text');
   });
 
   it(':= term → def_term token', () => {
