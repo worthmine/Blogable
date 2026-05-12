@@ -1069,11 +1069,18 @@ describe('§Definitions', () => {
     expect(html).toMatch(/<em>italic body<\/em>/);
   });
 
-  it('duplicate := terms generate unique ids (term, term-2, ...)', () => {
+  it('duplicate := terms generate unique ids (term, term-1, ...)', () => {
     const src = ':= Glossary\nBody A.\n\n:= Glossary\nBody B.';
     const html = parse(src);
     expect(html).toMatch(/<dt id="glossary"><a href="#glossary">Glossary<\/a><\/dt>/);
-    expect(html).toMatch(/<dt id="glossary-2"><a href="#glossary-2">Glossary<\/a><\/dt>/);
+    expect(html).toMatch(/<dt id="glossary-1"><a href="#glossary-1">Glossary<\/a><\/dt>/);
+  });
+
+  it('generated definition ids are resolvable via [[#...]] anchors', () => {
+    const src = ':= Glossary\nBody A.\n\n:= Glossary\nBody B.\n\nSee [[#glossary]] and [[#glossary-1]].';
+    const html = parse(src);
+    expect(html).toMatch(/<a href="#glossary" class="obsidian-anchor">glossary<\/a>/);
+    expect(html).toMatch(/<a href="#glossary-1" class="obsidian-anchor">glossary-1<\/a>/);
   });
 });
 

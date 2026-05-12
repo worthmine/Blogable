@@ -205,8 +205,8 @@ function getBlogableDiagnostics(){ return diagnostics.slice(); }
 
 // ---- インライン ----
 let footnotes=[];
-// ヘッドのIDマップ（内部アンカー解決用）
-let headingIds={};
+// 内部アンカー解決用のIDマップ（見出し・定義用語）
+let anchorIds={};
 // 定義用語の重複チェック
 let definitionTerms=new Set();
 // 定義用語IDのユニーク化
@@ -259,10 +259,10 @@ function parseInline(text) {
     // ── ObsidianAnchor  [[#ID]] ──────────────────────────────────────────
     if ((m = rest.match(/^\[\[#([^\]\n]+)\]\]/))) {
       const id = m[1], slug = slugify(id);
-      if (Object.hasOwn(headingIds, slug)) {
+      if (Object.hasOwn(anchorIds, slug)) {
         out += `<a href="#${esc(slug)}" class="obsidian-anchor">${esc(id)}</a>`;
       } else {
-        pushDiag('W601',`[#${id}] — no heading or anchor with that id found. Add "[#${id}]" on its own line to create the target.`);
+        pushDiag('W601',`[#${id}] — no heading, definition term, or anchor with that id found. Add "[#${id}]" on its own line to create the target.`);
         out += esc(id);
       }
       i += m[0].length; continue;
@@ -600,7 +600,7 @@ function buildAST(tokens) {
       i++;
       const mods=cm();
       const id=slugify(tok.text);
-      headingIds[id]=true;
+      anchorIds[id]=true;
       nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(mods)});
       continue;
     }
@@ -687,9 +687,9 @@ function buildAST(tokens) {
       const termHtml=parseInline(term);
       const baseTermId=slugify(term)||'definition';
       const seenCount=definitionTermIdCounts.get(baseTermId)||0;
-      const termId=seenCount===0 ? baseTermId : `${baseTermId}-${seenCount+1}`;
+      const termId=seenCount===0 ? baseTermId : `${baseTermId}-${seenCount}`;
       definitionTermIdCounts.set(baseTermId, seenCount+1);
-      headingIds[termId]=true;
+      anchorIds[termId]=true;
       const ddHtml=ddLines.map(l=>`<p>${parseInline(l)}</p>`).join('\n');
       nodes.push({type:'def_block', term, termId, termHtml, ddLines, ddHtml, mods});
       continue;
@@ -986,7 +986,7 @@ return html;
 }
 
 function parseToAST(src) {
-headingIds={};
+anchorIds={};
 footnotes=[];
 diagnostics=[];
 definitionTerms=new Set();
