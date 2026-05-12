@@ -288,6 +288,10 @@ class TestConvertFrontMatter(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Invalid x-type'):
             self._fm(['x-type: invalid'])
 
+    def test_empty_x_type_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid x-type'):
+            self._fm(['x-type: '])
+
     def test_invalid_x_emoji_raises(self):
         with self.assertRaisesRegex(ValueError, 'Invalid x-emoji'):
             self._fm(['x-emoji: bad value'])
