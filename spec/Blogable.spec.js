@@ -736,7 +736,7 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/`line1/);
   });
 
-  it('Link: [label](https://url) → <a href="…">label</a>', () => {
+  it('ExternalLink: [label](https://url) → <a href="…">label</a>', () => {
     const html = parse('[Visit Example](https://example.com)');
     expect(html).toMatch(/<a href="https:\/\/example\.com"/);
     expect(html).toMatch(/Visit Example/);
@@ -744,14 +744,14 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/target="_blank"/);
   });
 
-  it('Link: label text may contain spaces', () => {
+  it('ExternalLink: label text may contain spaces', () => {
     // Label is everything between [ and ]; URL is inside the parens.
     const html = parse('[label text](https://example.com/path)');
     expect(html).toMatch(/href="https:\/\/example\.com\/path"/);
     expect(html).toMatch(/>label text</);
   });
 
-  it('Link: http:// is rejected (https only)', () => {
+  it('ExternalLink: http:// is rejected (https only)', () => {
     const html = parse('[label](http://example.com)');
     expect(html).not.toMatch(/<a href="http:\/\//);
   });

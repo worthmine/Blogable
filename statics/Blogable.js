@@ -219,7 +219,7 @@ function parseInline(text) {
       i += m[0].length; continue;
     }
 
-    // ── Link  [TEXT](HTTPS_URL)  ────────────────────────────────────
+    // ── ExternalLink  [TEXT](HTTPS_URL)  ────────────────────────────
     if ((m = rest.match(/^\[([^\[\]\n]+)\]\((https:\/\/[^\)\n]+)\)/))) {
       const label = m[1], url = m[2];
       out += isSafeUrl(url) ? extLink(url, esc(label)) : esc(m[0]);

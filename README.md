@@ -373,7 +373,7 @@ Casual DL (`?` / `=`) is top-level only and MUST NOT be nested inside other list
 InlineText = { Inline } ;
 
 Inline = Code
-       | Link
+       | ExternalLink
        | Footnote
        | ObsidianAnchor
        | ObsidianLink
@@ -383,10 +383,10 @@ Inline = Code
        | Insert
        | Plain ;
 
-Code      = "`" , { CodeChar } , "`" ;
-CodeChar  = ? any character except "`" and NL ? ;
+Code         = "`" , { CodeChar } , "`" ;
+CodeChar     = ? any character except "`" and NL ? ;
 
-Link      = "[" , TEXT , "]" , "(" , HTTPS_URL , ")" ;
+ExternalLink = "[" , TEXT , "]" , "(" , HTTPS_URL , ")" ;
 Footnote  = "[^" , TEXT , "]" ;
 ObsidianAnchor = "[[" , "#" , HEADING , "]]" ;
 ObsidianLink   = "[[" , PATH , [ "#" , HEADING ] , [ "|" , TEXT ] , "]]" ;
@@ -410,7 +410,7 @@ Plain = { ANY - NL } ;
 
 Inline elements MUST NOT nest.
 Inline evaluation order is:
-Code, Link, Footnote, ObsidianAnchor, ObsidianLink, Strong, Emphasis, Delete, Insert.
+Code, ExternalLink, Footnote, ObsidianAnchor, ObsidianLink, Strong, Emphasis, Delete, Insert.
 Inline code has no escape syntax.
 
 ---
