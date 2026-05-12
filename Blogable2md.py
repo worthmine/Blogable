@@ -272,8 +272,10 @@ def convert_front_matter(fm_lines, mode='zenn'):
     else:
         if 'x-emoji' in meta:
             emoji = meta['x-emoji']
-            if not emoji or re.search(r'\s', emoji):
-                raise FrontMatterValidationError('Invalid x-emoji: use a non-empty value without whitespace')
+            if not emoji:
+                raise FrontMatterValidationError('Invalid x-emoji: use a non-empty value')
+            if re.search(r'\s', emoji):
+                raise FrontMatterValidationError('Invalid x-emoji: do not include whitespace')
         else:
             emoji = '🚀'
         out.append(f'emoji: "{emoji}"')

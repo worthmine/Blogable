@@ -296,6 +296,10 @@ class TestConvertFrontMatter(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Invalid x-emoji'):
             self._fm(['x-emoji: bad value'])
 
+    def test_empty_x_emoji_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid x-emoji'):
+            self._fm(['x-emoji: '])
+
     # Qiita mode
     def test_qiita_tags(self):
         out = convert_front_matter(['tags: python, javascript'], mode='qiita')
