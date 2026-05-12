@@ -204,7 +204,7 @@ function getBlogableDiagnostics(){ return diagnostics.slice(); }
 
 // ---- インライン ----
 let footnotes=[];
-// 内部アンカー解決用のIDマップ（見出し・定義用語・アンカーブロック）
+// 内部アンカー解決用のIDマップ（見出し・定義用語）
 let anchorIds={};
 // ドキュメント内IDの使用回数（重複ID検出用）
 let idCounts=new Map();
