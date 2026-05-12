@@ -584,9 +584,9 @@ describe('§Lists', () => {
     expect(html).toMatch(/<dt>Term<\/dt><dd>Definition line<\/dd>/);
   });
 
-  it('casual DL allows duplicate terms without [W401] (separate from := definition blocks)', () => {
+  it('casual DL allows duplicate terms without [E404] (separate from := definition blocks)', () => {
     parse('? Term\n= First\n? Term\n= Second');
-    expect(getDiagnostics().some(d => d.code === 'W401')).toBe(false);
+    expect(getDiagnostics().some(d => d.code === 'E404')).toBe(false);
   });
 
   it('casual DL term without following = line does not render <dl> and emits [E403]', () => {
@@ -1439,39 +1439,39 @@ describe('§Diagnostics', () => {
     expect(getDiagnostics().some(d => d.code === 'W003')).toBe(false);
   });
 
-  // ── W401: duplicate definition term ──────────────────────────────────────
+  // ── E404: duplicate definition term ──────────────────────────────────────
 
-  it('[W401] is emitted when a definition term is defined more than once', () => {
+  it('[E404] is emitted when a definition term is defined more than once', () => {
     parse(':= MyTerm\nFirst body.\n\n:= MyTerm\nSecond body.');
-    expect(getDiagnostics().some(d => d.code === 'W401')).toBe(true);
+    expect(getDiagnostics().some(d => d.code === 'E404')).toBe(true);
   });
 
-  it('[W401] diagnostic carries the duplicate term in its message', () => {
+  it('[E404] diagnostic carries the duplicate term in its message', () => {
     parse(':= MyTerm\nFirst body.\n\n:= MyTerm\nSecond body.');
-    expect(getDiagnostics().find(d => d.code === 'W401')?.message).toMatch(/MyTerm/);
+    expect(getDiagnostics().find(d => d.code === 'E404')?.message).toMatch(/MyTerm/);
   });
 
-  it('[W401] is case-insensitive (same term in different cases is a duplicate)', () => {
+  it('[E404] is case-insensitive (same term in different cases is a duplicate)', () => {
     parse(':= myterm\nFirst.\n\n:= MYTERM\nSecond.');
-    expect(getDiagnostics().some(d => d.code === 'W401')).toBe(true);
+    expect(getDiagnostics().some(d => d.code === 'E404')).toBe(true);
   });
 
-  it('[W401] does not crash the parser (both definitions still render)', () => {
+  it('[E404] does not crash the parser (both definitions still render)', () => {
     expect(() => parse(':= Alpha\nBody one.\n\n:= Alpha\nBody two.')).not.toThrow();
     const html = parse(':= Alpha\nBody one.\n\n:= Alpha\nBody two.');
     expect(html).toMatch(/Alpha/);
   });
 
-  it('two distinct definition terms do NOT emit [W401]', () => {
+  it('two distinct definition terms do NOT emit [E404]', () => {
     parse(':= TermA\nBody A.\n\n:= TermB\nBody B.');
-    expect(getDiagnostics().some(d => d.code === 'W401')).toBe(false);
+    expect(getDiagnostics().some(d => d.code === 'E404')).toBe(false);
   });
 
-  it('[W401] is reset between parse() calls (second parse is independent)', () => {
+  it('[E404] is reset between parse() calls (second parse is independent)', () => {
     parse(':= Alpha\nBody.\n\n:= Alpha\nBody again.');
     parse(':= Alpha\nFresh body.');
     // Second parse is a clean document — only one definition, no duplicate
-    expect(getDiagnostics().some(d => d.code === 'W401')).toBe(false);
+    expect(getDiagnostics().some(d => d.code === 'E404')).toBe(false);
   });
 
   // ── W801: orphaned modifier ───────────────────────────────────────────────
@@ -1529,7 +1529,7 @@ describe('§Diagnostics', () => {
       { src: '#!bash\nno close',             code: 'W001' },
       { src: '|>\nno close',                 code: 'W002' },
       { src: '$$\nno close',                 code: 'W003' },
-      { src: ':= T\nB.\n\n:= T\nB2.',       code: 'W401' },
+      { src: ':= T\nB.\n\n:= T\nB2.',       code: 'E404' },
       { src: 'Plain.\n@[class: orphan]',     code: 'W801' },
     ];
     for (const { src, code } of codes) {

@@ -541,7 +541,7 @@ Warnings notify without stopping rendering.
 | W001 | Warning | Unterminated code block: `#!lang` opened but closing `!#` not found before EOF. |
 | W002 | Warning | Unterminated block quote: `\|>` opened but closing `<\|` not found before EOF. |
 | W003 | Warning | Unterminated math block: `$$` opened but closing `$$` not found before EOF. |
-| W401 | Warning | Duplicate definition term. Terms must be unique (case-insensitive). |
+| E404 | Error | Duplicate definition term. Terms must be unique (case-insensitive). |
 | W801 | Warning | Orphaned modifier: not placed on the line immediately after a supported block. |
 
 ---

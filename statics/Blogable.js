@@ -676,10 +676,10 @@ function buildAST(tokens) {
       if (ddLines.length===0) {
         pushDiag('E403',`Definition term "${term}" has no body text. Add at least one paragraph after the := line.`);
       }
-      // [W401] 定義用語の重複 — spec: Definition-list terms are unique across the document
+      // [E404] 定義用語の重複 — spec: Definition-list terms are unique across the document
       const termKey=term.trim().toLowerCase();
       if (definitionTerms.has(termKey)) {
-        pushDiag('W401',`Definition term "${term}" is defined more than once. Terms must be unique (case-insensitive).`);
+        pushDiag('E404',`Definition term "${term}" is defined more than once. Terms must be unique (case-insensitive).`);
       } else {
         definitionTerms.add(termKey);
       }
