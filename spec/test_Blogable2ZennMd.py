@@ -310,6 +310,20 @@ class TestConvertFrontMatter(unittest.TestCase):
         self.assertFalse(any(line.startswith('private:') for line in out))
         self.assertFalse(any(line.startswith('slug:') for line in out))
 
+    # Obsidian mode
+    def test_obsidian_tags(self):
+        out = convert_front_matter(['tags: notes, blogable'], mode='obsidian')
+        self.assertIn('tags: ["notes", "blogable"]', out)
+
+    def test_obsidian_omits_platform_specific_fields(self):
+        out = convert_front_matter(['slug: keep-out', 'tags: x'], mode='obsidian')
+        self.assertFalse(any(line.startswith('emoji:') for line in out))
+        self.assertFalse(any(line.startswith('type:') for line in out))
+        self.assertFalse(any(line.startswith('topics:') for line in out))
+        self.assertFalse(any(line.startswith('published:') for line in out))
+        self.assertFalse(any(line.startswith('private:') for line in out))
+        self.assertFalse(any(line.startswith('slug:') for line in out))
+
 
 # ---------------------------------------------------------------------------
 # convert  (full document)
@@ -918,6 +932,38 @@ class TestCliModes(unittest.TestCase):
                 out = fh.read()
             self.assertIn('title: "My GitHub Article"', out)
             self.assertIn('tags: ["python", "docs"]', out)
+            self.assertNotIn('emoji: "🚀"', out)
+            self.assertNotIn('type: "tech"', out)
+            self.assertNotIn('topics:', out)
+            self.assertNotIn('published:', out)
+            self.assertNotIn('private:', out)
+            self.assertNotIn('slug:', out)
+
+    def test_cli_obsidian_mode(self):
+        src = dedent("""\
+            @@
+            title: My Obsidian Note
+            tags: notes, wiki
+            slug: no-slug-for-obsidian
+            @@
+        """)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            in_path = os.path.join(tmpdir, 'in.txt')
+            out_path = os.path.join(tmpdir, 'out.md')
+            with open(in_path, 'w', encoding='utf-8') as fh:
+                fh.write(src)
+
+            subprocess.run(
+                [sys.executable, self.SCRIPT, '--obsidian', in_path, out_path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            with open(out_path, encoding='utf-8') as fh:
+                out = fh.read()
+            self.assertIn('title: "My Obsidian Note"', out)
+            self.assertIn('tags: ["notes", "wiki"]', out)
             self.assertNotIn('emoji: "🚀"', out)
             self.assertNotIn('type: "tech"', out)
             self.assertNotIn('topics:', out)
