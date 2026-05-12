@@ -158,7 +158,7 @@ Plain paragraphs do not accept metadata modifiers.
 ## Explicit Paragraphs
 
 ```ebnf
-ParaBlock = ": " , InlineText , NL , { Meta } ;
+ParaBlock = ":" , SP , InlineText , NL , { Meta } ;
 ```
 
 **ParaBlock**
