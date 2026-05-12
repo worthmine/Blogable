@@ -38,6 +38,14 @@ Prism.languages.blogable = {
   'ul': { pattern:/^\s*- .+$/m,        inside:{ 'ul-marker':{ pattern:/^\s*- /, alias:'punctuation' } } },
 };
 
+Prism.languages.ebnf = {
+  'comment': /\(\*[\s\S]*?\*\)/,
+  'string': { pattern:/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/, greedy:true },
+  'definition': { pattern:/^\s*[A-Za-z_][A-Za-z0-9_-]*(?=\s*=)/m },
+  'rule': /\b[A-Za-z_][A-Za-z0-9_-]*\b/,
+  'operator': /[=|;,()[\]{}]/,
+};
+
 // ============================================================
 // Blogable Parser v1.1-alpha
 // ============================================================
@@ -859,7 +867,7 @@ function astToHtml(nodes, forDisplay=false) {
       }
 
       case 'codeblock': {
-        const figAttrs=mergeAttrs('blogable-code', node.mods);
+        const figAttrs=mergeAttrs(node.lang?`blogable-code language-${node.lang}`:'blogable-code', node.mods);
         if (!forDisplay) {
           const allLines=[node.shebangLine,...node.lines];
           let h=`<figure${figAttrs}>\n`;
