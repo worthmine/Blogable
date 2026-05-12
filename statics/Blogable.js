@@ -40,6 +40,14 @@ Prism.languages.blogable = {
   'ul': { pattern:/^\s*- .+$/m,        inside:{ 'ul-marker':{ pattern:/^\s*- /, alias:'punctuation' } } },
 };
 
+Prism.languages.ebnf = {
+  'comment': /\(\*[\s\S]*?\*\)/,
+  'string': { pattern:/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/, greedy:true },
+  'definition': { pattern:/^\s*[A-Za-z_][A-Za-z0-9_-]*(?=\s*=)/m },
+  'rule': /\b[A-Za-z_][A-Za-z0-9_-]*\b/,
+  'operator': /[=|;,()[\]{}]/,
+};
+
 // ============================================================
 // Blogable Parser v1.1-alpha
 // ============================================================
@@ -886,7 +894,7 @@ function astToHtml(nodes, forDisplay=false) {
       }
 
       case 'codeblock': {
-        const figAttrs=mergeAttrs('blogable-code', node.mods);
+        const figAttrs=mergeAttrs(node.lang?`blogable-code language-${node.lang}`:'blogable-code', node.mods);
         if (!forDisplay) {
           const allLines=[node.shebangLine,...node.lines];
           let h=`<figure${figAttrs}>\n`;
@@ -1014,18 +1022,17 @@ function highlightCodeTables(container) {
   });
 }
 function renderKaTeXBlocks(container) {
-  if (!window.katex) return;
+  const katexApi = window.katex || globalThis.katex;
+  if (!katexApi) return;
   container.querySelectorAll('pre.math-block').forEach(pre => {
     const code = pre.querySelector('code');
     if (!code) return;
-    const lines = code.textContent.split('\n').filter(line => line.trim());
-    code.innerHTML = lines.map(line => {
-      try {
-        return katex.renderToString(line, { displayMode: true, throwOnError: false });
-      } catch(e) {
-        return `<span class="katex-error">${esc(line)}</span>`;
-      }
-    }).join('');
+    const tex = code.textContent.trim();
+    try {
+      code.innerHTML = katexApi.renderToString(tex, { displayMode: true, throwOnError: false });
+    } catch(e) {
+      code.innerHTML = `<span class="katex-error">${esc(tex)}</span>`;
+    }
   });
 }
 function render(){

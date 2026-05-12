@@ -71,6 +71,14 @@ function parse(src) {
   return ctx.astToHtml(ast, false);
 }
 
+/** Equivalent to astToHtml(parseToAST(src), true) for preview-mode rendering. */
+function renderDisplay(src) {
+  ctx.window._cb = {};
+
+  const ast = ctx.parseToAST(src);
+  return ctx.astToHtml(ast, true);
+}
+
 /** Low-level access for tests that inspect the token stream directly. */
 function tokenize(src) {
   return ctx.tokenize(src.split('\n'));
@@ -86,4 +94,8 @@ function getDiagnostics() {
   return ctx.getBlogableDiagnostics();
 }
 
-module.exports = { parse, tokenize, buildAST, getDiagnostics };
+function getPrismLanguages() {
+  return ctx.Prism.languages;
+}
+
+module.exports = { parse, renderDisplay, tokenize, buildAST, getDiagnostics, getPrismLanguages };
