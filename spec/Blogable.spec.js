@@ -91,6 +91,12 @@ describe('§FrontMatter', () => {
     expect(html).toMatch(/<dt>x-version<\/dt><dd>1.1-alpha<\/dd>/);
     expect(html).not.toMatch(/Blogable version/);
   });
+
+  it('accepts YAML comment-only lines in front matter', () => {
+    const html = parse('@@\n# this is a YAML comment\ntitle: My Doc\n@@');
+    expect(html).toMatch(/<dt>title<\/dt><dd>My Doc<\/dd>/);
+    expect(getDiagnostics().some(d => d.code === 'W201')).toBe(false);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -160,8 +166,12 @@ describe('§HorizontalRule', () => {
     expect(parse('---').replace(/\s+/g, ' ').trim()).toBe('<hr>');
   });
 
-  it('---- (4 dashes) is NOT a horizontal rule', () => {
-    expect(parse('----')).not.toMatch(/<hr>/);
+  it('---- (4 dashes) is a horizontal rule', () => {
+    expect(parse('----').replace(/\s+/g, ' ').trim()).toBe('<hr>');
+  });
+
+  it('-- (2 dashes) is NOT a horizontal rule', () => {
+    expect(parse('--')).not.toMatch(/<hr>/);
   });
 });
 
@@ -487,6 +497,43 @@ describe('§Lists', () => {
     expect(html).toMatch(/<li>First<\/li>/);
     expect(html).toMatch(/<li>Second<\/li>/);
     expect(html).toMatch(/<li>Third<\/li>/);
+  });
+
+  it('casual DL item (? dt + = dd) → <dl><dt>…</dt><dd>…</dd></dl>', () => {
+    const html = parse('? Term\n= Definition line');
+    expect(html).toMatch(/<dl>/);
+    expect(html).toMatch(/<dt>Term<\/dt><dd>Definition line<\/dd>/);
+  });
+
+  it('casual DL allows duplicate terms without [W401] (separate from := definition blocks)', () => {
+    parse('? Term\n= First\n? Term\n= Second');
+    expect(getDiagnostics().some(d => d.code === 'W401')).toBe(false);
+  });
+
+  it('casual DL term without following = line does not render <dl> and emits [E403]', () => {
+    const html = parse('? TermOnly');
+    expect(html).not.toMatch(/<dl>/);
+    expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
+  });
+
+  it('casual DL description without preceding ? term falls back to paragraph and emits [E403]', () => {
+    const html = parse('= orphan description');
+    expect(html).toMatch(/<p>orphan description<\/p>/);
+    expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
+  });
+
+  it('casual DL cannot be nested under lists (indented ?/= stay plain text)', () => {
+    const html = parse('- Parent\n  ? Term\n  = Desc');
+    expect(html).not.toMatch(/<dl>/);
+    expect(html).toMatch(/\? Term/);
+    expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
+  });
+
+  it(':= definition cannot be nested under lists (indented := stays plain text)', () => {
+    const html = parse('- Parent\n  := NestedTerm\n  Body');
+    expect(html).not.toMatch(/<dl class="def-block">/);
+    expect(html).toMatch(/:= NestedTerm/);
+    expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
   });
 
   it('nested ordered list (2-space indent) → nested <ol>', () => {
@@ -1054,6 +1101,11 @@ describe('§Diagnostics', () => {
 
   it('[E403] is emitted for a definition block with no body', () => {
     parse(':= TermOnly');
+    expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
+  });
+
+  it('[E403] is emitted for casual DL term with no = description line', () => {
+    parse('? TermOnly');
     expect(getDiagnostics().some(d => d.code === 'E403')).toBe(true);
   });
 
@@ -1639,6 +1691,11 @@ describe('§Tokenizer', () => {
     expect(toks[0].type).toBe('hr');
   });
 
+  it('---- → hr token', () => {
+    const toks = tokenize('----');
+    expect(toks[0].type).toBe('hr');
+  });
+
   it('|> → quote_open token', () => {
     const toks = tokenize('|>');
     expect(toks[0].type).toBe('quote_open');
@@ -1743,5 +1800,31 @@ describe('§Tokenizer', () => {
   it(':= term → def_term token', () => {
     const toks = tokenize(':= My Term');
     expect(toks[0].type).toBe('def_term');
+  });
+
+  it('? term / = dd lines → dl_dt / dl_dd tokens', () => {
+    const toks = tokenize('? My Term\n= My Definition');
+    expect(toks[0].type).toBe('dl_dt');
+    expect(toks[1].type).toBe('dl_dd');
+  });
+
+  it('indented ? term is not a dl_dt token (top-level only)', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const toks = tokenize('  ? Nested Term');
+      expect(toks[0].type).toBe('text');
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  it('indented := term is not a def_term token (top-level only)', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const toks = tokenize('  := Nested Term');
+      expect(toks[0].type).toBe('text');
+    } finally {
+      jest.restoreAllMocks();
+    }
   });
 });

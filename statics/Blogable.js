@@ -6,7 +6,7 @@ Prism.languages.blogable = {
   'shebang-close': { pattern:/^!#$/m,               alias:'keyword' },
   'front-fence':   { pattern:/^@@$/m,               alias:'keyword' },
   'math-fence':    { pattern:/^\$\$$/m,             alias:'keyword' },
-  'hr':            { pattern:/^---$/m,              alias:'punctuation' },
+  'hr':            { pattern:/^-{3,}$/m,            alias:'punctuation' },
   'quote-fence':   { pattern:/^\|>$|^<\|$/m,        alias:'string' },
   'modifier': {
     pattern:/^@\[[a-z][a-z0-9-]*:.*\]$/m,
@@ -323,7 +323,7 @@ function tokenize(lines) {
     // ---- トップレベル ----
     if (t==='')    { tokens.push({type:'empty'}); continue; }
     if (t==='@@')  { tokens.push({type:'front_open'}); mode='front'; continue; }
-    if (t==='---') { tokens.push({type:'hr'}); continue; }
+    if (/^-{3,}$/.test(t)) { tokens.push({type:'hr'}); continue; }
     if (t==='|>')  { tokens.push({type:'quote_open'}); mode='quote'; continue; }
     if (t==='$$')  { tokens.push({type:'math_open'}); mode='math'; continue; }
 
@@ -364,9 +364,14 @@ function tokenize(lines) {
     // 1行引用
     if (t.startsWith('> ')) { tokens.push({type:'bq_inline', text:t.slice(2)}); continue; }
 
-    // := 定義ブロック（行頭）
-    const defM=t.match(/^:=\s+(.*)/);
+    // := 定義ブロック（行頭のみ。ネスト不可）
+    const defM=raw.match(/^:=\s+(.*)/);
     if (defM) { tokens.push({type:'def_term', text:defM[1]}); continue; }
+    const nestedDefM=raw.match(/^( +):=\s+(.*)/);
+    if (nestedDefM) {
+      pushDiag('E403',`Definition syntax ":= ${nestedDefM[2]}" is top-level only. Remove indentation and place it outside lists.`);
+      tokens.push({type:'text', text:t}); continue;
+    }
 
     // `: ` 段落ブロック（明示的な段落 — モディファイア使用可）
     const paraM=t.match(/^: (.+)/);
@@ -381,7 +386,7 @@ function tokenize(lines) {
     if (taskM) { tokens.push({type:'task', indent:taskM[1].length, checked:taskM[2].toLowerCase()==='x', text:taskM[3]}); continue; }
 
     // odd-indent list items — [E401] invalid list indentation, fall back to text
-    const oddIndentM=raw.match(/^( +)(#|-)\s+/);
+    const oddIndentM=raw.match(/^( +)(#|-|\?|=)\s+/);
     if (oddIndentM && oddIndentM[1].length % 2 !== 0) {
       pushDiag('E401',`List item has ${oddIndentM[1].length} leading space(s); nesting uses two-space steps (0, 2, 4, …). Item kept as plain text.`);
       tokens.push({type:'text', text:t}); continue;
@@ -391,6 +396,25 @@ function tokenize(lines) {
     const ulM=raw.match(/^((?:  )*)-\s+(.*)/);
     if (ulM && !raw.trim().startsWith('-[')) {
       tokens.push({type:'ul', indent:ulM[1].length, text:ulM[2]}); continue;
+    }
+
+    // dl: ? term / = description（インデントはスペースのみ・2個単位）
+    const dlTermM=raw.match(/^((?:  )*)\?\s+(.*)/);
+    if (dlTermM) {
+      if (dlTermM[1].length>0) {
+        pushDiag('E403',`Casual DL term "? ${dlTermM[2]}" is top-level only. Remove indentation and place it outside lists.`);
+        tokens.push({type:'text', text:t}); continue;
+      }
+      tokens.push({type:'dl_dt', indent:dlTermM[1].length, text:dlTermM[2]}); continue;
+    }
+
+    const dlDescM=raw.match(/^((?:  )*)=\s+(.*)/);
+    if (dlDescM) {
+      if (dlDescM[1].length>0) {
+        pushDiag('E403',`Casual DL description "= ${dlDescM[2]}" is top-level only. Remove indentation and place it outside lists.`);
+        tokens.push({type:'text', text:t}); continue;
+      }
+      tokens.push({type:'dl_dd', indent:dlDescM[1].length, text:dlDescM[2]}); continue;
     }
 
     // ol: # item（インデントはスペースのみ・2個単位）
@@ -422,17 +446,21 @@ function buildAST(tokens) {
   function parseListItems(baseIndent, listType) {
     // listType: enforced at this level (same-level items must share a type).
     //           Omit (undefined) to allow mixed types — used when recursing for children.
+    const isListToken=t=>t==='ul'||t==='ol';
+    const normType=t=>t;
+    const levelType=normType(listType);
     const items=[];
     while (i<tokens.length) {
       const tok=tokens[i];
-      const typeOk=!listType||tok.type===listType;
-      if ((tok.type==='ul'||tok.type==='ol') && tok.indent===baseIndent && typeOk) {
+      const tokType=normType(tok.type);
+      const typeOk=!levelType||tokType===levelType;
+      if (isListToken(tok.type) && tok.indent===baseIndent && typeOk) {
         i++;
-        const item={listType:tok.type, text:tok.text, children:null};
+        const item={listType:tokType, text:tok.text, children:null};
         if (i<tokens.length) {
           const next=tokens[i];
           // Nested children may be a different type — recurse without listType constraint
-          if ((next.type==='ul'||next.type==='ol') && next.indent===baseIndent+2)
+          if (isListToken(next.type) && next.indent===baseIndent+2)
             item.children=parseListItems(next.indent);
         }
         items.push(item);
@@ -450,23 +478,23 @@ function buildAST(tokens) {
       cur.items.push(item);
     }
     let html='';
-    for (const group of groups) {
-      const isTask=group.type==='task';
-      const tag=group.type==='ol'?'ol':'ul';
-      if (html) html+='\n';
-      html+=`<${tag}>\n`;
-      for (const item of group.items) {
-        if (isTask) {
-          html+=`  <li class="task-item"><input type="checkbox" disabled${item.checked?' checked':''}> ${parseInline(item.text)}</li>\n`;
-        } else {
-          html+=`  <li>${parseInline(item.text)}`;
-          if (item.children) html+='\n'+renderListItems(item.children).split('\n').map(l=>'  '+l).join('\n')+'\n  ';
-          html+=`</li>\n`;
+      for (const group of groups) {
+        const isTask=group.type==='task';
+        const tag=group.type==='ol'?'ol':'ul';
+        if (html) html+='\n';
+        html+=`<${tag}>\n`;
+        for (const item of group.items) {
+          if (isTask) {
+            html+=`  <li class="task-item"><input type="checkbox" disabled${item.checked?' checked':''}> ${parseInline(item.text)}</li>\n`;
+          } else {
+            html+=`  <li>${parseInline(item.text)}`;
+            if (item.children) html+='\n'+renderListItems(item.children).split('\n').map(l=>'  '+l).join('\n')+'\n  ';
+            html+=`</li>\n`;
+          }
         }
+        html+=`</${tag}>`;
       }
-      html+=`</${tag}>`;
-    }
-    return html;
+      return html;
   }
 
   // フロントマターパース
@@ -488,6 +516,7 @@ function buildAST(tokens) {
   function parseFrontLines(lines) {
     const meta={};
     for (const line of lines) {
+      if (/^\s*#/.test(line)) continue;
       const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/);
       if (!m) {
         // [W201] Non-empty lines that do not match FrontMetaLine syntax are invalid
@@ -648,11 +677,40 @@ function buildAST(tokens) {
       continue;
     }
 
+    // casual DL block (? term + one-or-more = desc) — top-level only
+    if (tok.type==='dl_dt' && tok.indent===0) {
+      const entries=[];
+      while (i<tokens.length && tokens[i].type==='dl_dt' && tokens[i].indent===0) {
+        const term=tokens[i++].text;
+        const ddLines=[];
+        while (i<tokens.length && tokens[i].type==='dl_dd' && tokens[i].indent===0) ddLines.push(tokens[i++].text);
+        if (ddLines.length===0) {
+          pushDiag('E403',`Definition term "${term}" has no body text. Add at least one "= " line after the "? " line.`);
+          nodes.push({type:'paragraph', html:parseInline(`? ${term}`)});
+        } else {
+          entries.push({term, ddLines});
+        }
+      }
+      if (entries.length>0) {
+        const html='<dl>\n'+entries.map(e=>`  <dt>${parseInline(e.term)}</dt><dd>${e.ddLines.map(l=>parseInline(l)).join('<br>\n')}</dd>`).join('\n')+'\n</dl>';
+        const mods=cm();
+        nodes.push({type:'list', html, mods});
+      }
+      continue;
+    }
+
     // ul / ol
     if (tok.type==='ul'||tok.type==='ol') {
       const items=parseListItems(tok.indent, tok.type);
       const mods=cm();
       nodes.push({type:'list', html:renderListItems(items), mods});
+      continue;
+    }
+
+    if (tok.type==='dl_dd') {
+      pushDiag('E403',`Casual DL description "${tok.text}" has no matching "? term" above it. Add a "? term" line immediately before it.`);
+      i++;
+      nodes.push({type:'paragraph', html:parseInline(tok.text)});
       continue;
     }
 
@@ -797,7 +855,7 @@ function astToHtml(nodes, forDisplay=false) {
       case 'list': {
         const attrs=buildAttrs(node.mods);
         if (!attrs) return node.html;
-        return node.html.replace(/^<(ul|ol)/, `<$1${attrs}`);
+        return node.html.replace(/^<(ul|ol|dl)/, `<$1${attrs}`);
       }
 
       case 'codeblock': {
