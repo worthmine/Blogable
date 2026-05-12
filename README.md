@@ -535,7 +535,7 @@ Warnings notify without stopping rendering.
 | E401 | Error | List indentation is not a multiple of two. Use 0, 2, 4, … spaces for each nesting level. |
 | E402 | Error | Heading depth exceeds h6. Use 2–6 colons: `:: h2` … `:::::: h6`. |
 | E403 | Error | Definition term has no body. Add at least one paragraph after the `:= term` line. |
-| W601 | Warning | `[#id]` — no heading or anchor with that id found. Add `[#id]` on its own line to create the target. |
+| W601 | Warning | `[#id]` — no heading, anchor, or definition-term id with that id found. Add `[#id]` on its own line (or define a matching heading/term id) to create the target. |
 | W201 | Warning | Malformed front matter line. Expected format: `key: value`. |
 | W202 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
 | W001 | Warning | Unterminated code block: `#!lang` opened but closing `!#` not found before EOF. |
