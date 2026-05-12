@@ -32,6 +32,10 @@ SHEBANG_LANG_MAP = {
     'ebnf': 'ebnf',
 }
 
+
+class FrontMatterValidationError(ValueError):
+    """Raised when front-matter values are syntactically valid but unsupported."""
+
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
@@ -269,7 +273,7 @@ def convert_front_matter(fm_lines, mode='zenn'):
         if 'x-emoji' in meta:
             emoji = meta['x-emoji']
             if not emoji or re.search(r'\s', emoji):
-                raise ValueError('Invalid x-emoji: use a non-empty value without whitespace')
+                raise FrontMatterValidationError('Invalid x-emoji: use a non-empty value without whitespace')
         else:
             emoji = '🚀'
         out.append(f'emoji: "{emoji}"')
@@ -277,7 +281,7 @@ def convert_front_matter(fm_lines, mode='zenn'):
         if 'x-type' in meta:
             article_type = meta['x-type']
             if article_type not in ('tech', 'idea'):
-                raise ValueError('Invalid x-type: expected "tech" or "idea"')
+                raise FrontMatterValidationError('Invalid x-type: expected "tech" or "idea"')
         else:
             article_type = 'tech'
         out.append(f'type: "{article_type}"')
@@ -693,7 +697,7 @@ def main():
 
     try:
         result = convert(src, mode=args.mode)
-    except ValueError as e:
+    except FrontMatterValidationError as e:
         print(str(e), file=sys.stderr)
         raise SystemExit(2)
 
