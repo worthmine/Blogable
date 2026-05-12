@@ -708,7 +708,7 @@ function buildAST(tokens) {
     }
 
     if (tok.type==='dl_dd') {
-      pushDiag('E403',`Casual DL description "= ${tok.text}" has no matching "? term" above it. Add a "? term" line immediately before it.`);
+      pushDiag('E403',`Casual DL description "${tok.text}" has no matching "? term" above it. Add a "? term" line immediately before it.`);
       i++;
       nodes.push({type:'paragraph', html:parseInline(tok.text)});
       continue;
