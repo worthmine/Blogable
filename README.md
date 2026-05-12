@@ -337,6 +337,37 @@ SVG files are supported.
 
 ---
 
+## ExternalEmbed
+
+```ebnf
+ExternalEmbedBlock = ExternalEmbed , NL , { Meta } ;
+ExternalEmbed      = "!!" , HTTPS_URL , [ "|" , TEXT ] , "!!" ;
+```
+
+**ExternalEmbed**
+
+ExternalEmbed embeds or links an external resource identified by an HTTPS URL.
+It may appear inline within a paragraph, or as a standalone block line.
+The resource type is inferred from the URL:
+
+- **Image** (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.svg`) — renders as `<figure><img>`.
+- **Video** (`.mp4`, `.webm`, `.ogg`, `.ogv`, `.mov`) — renders as `<figure><video>`.
+- **Other** — renders as an external link `<a rel="noopener noreferrer" target="_blank">`.
+
+The optional TEXT after `|` is used as alt text (for images/video) or link label.
+When inline, ExternalEmbed always renders as an external link regardless of media type.
+Only `https://` URLs are accepted; other schemes are output as escaped plain text.
+
+The three resource types are strictly partitioned:
+
+| Construct | Syntax | Scope |
+|-----------|--------|-------|
+| ObsidianLink | `[[path\|display]]` | Local links |
+| ObsidianEmbed | `![[path\|alt]]` | Local image/video embeds |
+| ExternalEmbed | `!!URL\|alt!!` | External links, images, and videos |
+
+---
+
 ## Lists
 
 ```ebnf
@@ -373,7 +404,7 @@ Casual DL (`?` / `=`) is top-level only and MUST NOT be nested inside other list
 InlineText = { Inline } ;
 
 Inline = Code
-       | ExternalLink
+       | ExternalEmbed
        | Footnote
        | ObsidianAnchor
        | ObsidianLink
@@ -386,7 +417,7 @@ Inline = Code
 Code         = "`" , { CodeChar } , "`" ;
 CodeChar     = ? any character except "`" and NL ? ;
 
-ExternalLink = "[" , TEXT , "]" , "(" , HTTPS_URL , ")" ;
+ExternalEmbed = "!!" , HTTPS_URL , [ "|" , TEXT ] , "!!" ;
 Footnote  = "[^" , TEXT , "]" ;
 ObsidianAnchor = "[[" , "#" , HEADING , "]]" ;
 ObsidianLink   = "[[" , PATH , [ "#" , HEADING ] , [ "|" , TEXT ] , "]]" ;
@@ -410,7 +441,7 @@ Plain = { ANY - NL } ;
 
 Inline elements MUST NOT nest.
 Inline evaluation order is:
-Code, ExternalLink, Footnote, ObsidianAnchor, ObsidianLink, Strong, Emphasis, Delete, Insert.
+Code, ExternalEmbed, Footnote, ObsidianAnchor, ObsidianLink, Strong, Emphasis, Delete, Insert.
 Inline code has no escape syntax.
 
 ---

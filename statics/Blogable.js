@@ -26,7 +26,7 @@ Prism.languages.blogable = {
   'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
   'anchor-block':  { pattern:/^\[#[^\]]+\]$/m,       alias:'symbol' },
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
-  'inline-link':   { pattern:/\[[^\[\]\n]+\]\(https:\/\/[^\)\n]+\)/, alias:'url' },
+  'external-embed': { pattern:/!!https:\/\/[^!\n]+!!/,               alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
   'obsidian-embed':  { pattern:/^!\[\[[^\]\n]+\]\]$/m,   alias:'url' },
   'obsidian-anchor': { pattern:/\[\[#[^\]\n]+\]\]/,     alias:'symbol' },
@@ -46,6 +46,7 @@ Prism.languages.blogable = {
 
 // ---- 定数 ----
 const IMAGE_EXTS = /\.(jpe?g|png|gif|webp|svg)(\?.*)?$/i; // ObsidianEmbed では SVG も許容
+const VIDEO_EXTS = /\.(mp4|webm|ogg|ogv|mov)(\?.*)?$/i;
 
 const SHEBANG_LANG_MAP = {
   python:'python', python3:'python', python2:'python',
@@ -69,6 +70,7 @@ function slugify(text) {
     .replace(/-+/g,'-').replace(/^-|-$/g,'');
 }
 function isImageUrl(url) { try { return IMAGE_EXTS.test(new URL(url).pathname); } catch { return IMAGE_EXTS.test(url); } }
+function isVideoUrl(url) { try { return VIDEO_EXTS.test(new URL(url).pathname); } catch { return VIDEO_EXTS.test(url); } }
 function getHostname(url) {
   try {
     if (typeof URL==='function') return new URL(url).hostname;
@@ -202,7 +204,7 @@ let definitionTerms=new Set();
 
 function parseInline(text) {
   // Single-pass inline parser; implements spec evaluation order:
-  // Code > Link > Footnote > ObsidianAnchor > ObsidianLink > Strong > Emphasis > Delete > Insert > Plain
+  // Code > ExternalEmbed > Footnote > ObsidianAnchor > ObsidianLink > Strong > Emphasis > Delete > Insert > Plain
   // Inline elements MUST NOT nest (spec §InlineSyntax).
   // The interior of every matched span is plain-escaped text only — never re-parsed.
   let out = '';
@@ -219,10 +221,12 @@ function parseInline(text) {
       i += m[0].length; continue;
     }
 
-    // ── ExternalLink  [TEXT](HTTPS_URL)  ────────────────────────────
-    if ((m = rest.match(/^\[([^\[\]\n]+)\]\((https:\/\/[^\)\n]+)\)/))) {
-      const label = m[1], url = m[2];
-      out += isSafeUrl(url) ? extLink(url, esc(label)) : esc(m[0]);
+    // ── ExternalEmbed  !!HTTPS_URL!! or !!HTTPS_URL|TEXT!! ──────────────────
+    // Inline form: always renders as an external link (block form auto-detects image/video).
+    if ((m = rest.match(/^!!(https:\/\/[^|!\n]+?)(?:\|([^!\n]*))?!!/))) {
+      const url = m[1].trim(), label = m[2] !== undefined ? m[2].trim() : null;
+      const display = label || getHostname(url);
+      out += isSafeUrl(url) ? extLink(url, esc(display)) : esc(m[0]);
       i += m[0].length; continue;
     }
 
@@ -434,6 +438,13 @@ function tokenize(lines) {
     // ol: # item（インデントはスペースのみ・2個単位）
     const olM=raw.match(/^((?:  )*)#\s+(.*)/);
     if (olM) { tokens.push({type:'ol', indent:olM[1].length, text:olM[2]}); continue; }
+
+    // ExternalEmbed !!URL!! or !!URL|alt!! (block) — 外部リソース（リンク・画像・動画）
+    const extEmbedM=t.match(/^!!(https:\/\/[^|!\n]+?)(?:\|([^!\n]*))?!!$/);
+    if (extEmbedM) {
+      tokens.push({type:'external_embed', url:extEmbedM[1].trim(), alt:extEmbedM[2]!==undefined?extEmbedM[2].trim():null});
+      continue;
+    }
 
     // URL単独行（buildAST で安全に扱える HTTPS のみを URL ブロック化する）
     if (/^https:\/\/\S+$/.test(t)) { tokens.push({type:'url', url:t}); continue; }
@@ -768,6 +779,14 @@ function buildAST(tokens) {
       continue;
     }
 
+    // ExternalEmbed !!URL!! or !!URL|alt!! — 外部リソース（リンク・画像・動画）
+    if (tok.type==='external_embed') {
+      i++;
+      const mods=cm();
+      nodes.push({type:'external_embed', url:tok.url, alt:tok.alt, mods});
+      continue;
+    }
+
     // `: ` 段落ブロック（明示的な段落 — モディファイア使用可）
     if (tok.type==='para_block') {
       const lines=[tok.text];
@@ -914,6 +933,21 @@ function astToHtml(nodes, forDisplay=false) {
 
   case 'autolink': {
     return `<p>${extLink(node.url, esc(node.label))}</p>`;
+  }
+
+  case 'external_embed': {
+    const url = node.url;
+    if (!isSafeUrl(url)) return `<p>${esc(url)}</p>`;
+    const alt = node.alt || node.mods.find(m=>m.key==='alt')?.value || '';
+    const title = node.mods.find(m=>m.key==='title')?.value || '';
+    if (isImageUrl(url)) {
+      return `<figure class="blogable-figure">\n  <img src="${esc(url)}" alt="${esc(alt)}"${title?` title="${esc(title)}"`:''} loading="lazy" decoding="async">\n</figure>`;
+    }
+    if (isVideoUrl(url)) {
+      return `<figure class="blogable-figure">\n  <video src="${esc(url)}" controls loading="lazy">${alt?esc(alt):''}</video>\n${title?`  <figcaption>${esc(title)}</figcaption>\n`:''}</figure>`;
+    }
+    const label = alt || getHostname(url);
+    return `<p>${extLink(url, esc(label))}</p>`;
   }
 
   case 'paragraph': return `<p${node.mods?buildAttrs(node.mods):''}>${node.html}</p>`;

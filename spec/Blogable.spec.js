@@ -736,24 +736,72 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/`line1/);
   });
 
-  it('ExternalLink: [label](https://url) → <a href="…">label</a>', () => {
-    const html = parse('[Visit Example](https://example.com)');
+  it('ExternalEmbed: !!https://url!! → external link paragraph', () => {
+    const html = parse('!!https://example.com!!');
     expect(html).toMatch(/<a href="https:\/\/example\.com"/);
-    expect(html).toMatch(/Visit Example/);
     expect(html).toMatch(/rel="noopener noreferrer"/);
     expect(html).toMatch(/target="_blank"/);
   });
 
-  it('ExternalLink: label text may contain spaces', () => {
-    // Label is everything between [ and ]; URL is inside the parens.
-    const html = parse('[label text](https://example.com/path)');
+  it('ExternalEmbed: !!url|label!! → external link with label', () => {
+    const html = parse('!!https://example.com|Visit Example!!');
+    expect(html).toMatch(/<a href="https:\/\/example\.com"/);
+    expect(html).toMatch(/Visit Example/);
+    expect(html).toMatch(/rel="noopener noreferrer"/);
+  });
+
+  it('ExternalEmbed: label may contain spaces', () => {
+    const html = parse('!!https://example.com/path|label text!!');
     expect(html).toMatch(/href="https:\/\/example\.com\/path"/);
     expect(html).toMatch(/>label text</);
   });
 
-  it('ExternalLink: http:// is rejected (https only)', () => {
-    const html = parse('[label](http://example.com)');
+  it('ExternalEmbed: http:// is rejected (https only)', () => {
+    const html = parse('!!http://example.com!!');
     expect(html).not.toMatch(/<a href="http:\/\//);
+  });
+
+  it('ExternalEmbed: image URL → <figure><img> (block)', () => {
+    const html = parse('!!https://example.com/photo.png!!');
+    expect(html).toMatch(/<figure class="blogable-figure">/);
+    expect(html).toMatch(/<img src="https:\/\/example\.com\/photo\.png"/);
+  });
+
+  it('ExternalEmbed: image URL with alt → <img alt="...">', () => {
+    const html = parse('!!https://example.com/photo.jpg|A nice photo!!');
+    expect(html).toMatch(/alt="A nice photo"/);
+    expect(html).toMatch(/<img /);
+  });
+
+  it('ExternalEmbed: video URL → <figure><video>', () => {
+    const html = parse('!!https://example.com/video.mp4!!');
+    expect(html).toMatch(/<figure class="blogable-figure">/);
+    expect(html).toMatch(/<video src="https:\/\/example\.com\/video\.mp4"/);
+  });
+
+  it('ExternalEmbed: video URL with caption', () => {
+    const html = parse('!!https://example.com/clip.webm|Promo clip!!');
+    expect(html).toMatch(/<video /);
+    expect(html).toMatch(/Promo clip/);
+  });
+
+  it('ExternalEmbed: inline !!url|label!! within paragraph → link', () => {
+    const html = parse('See !!https://example.com|this site!! for more.');
+    expect(html).toMatch(/<a href="https:\/\/example\.com"/);
+    expect(html).toMatch(/this site/);
+  });
+
+  it('ExternalEmbed: inline image URL → still renders as link (not figure)', () => {
+    // When inline (not standalone line), always renders as <a>
+    const html = parse('Download !!https://cdn.example.com/img.png|photo!! here.');
+    expect(html).toMatch(/<a /);
+    expect(html).not.toMatch(/<figure/);
+  });
+
+  it('ExternalEmbed: [label](URL) old syntax no longer produces a link', () => {
+    // Old Markdown-style ExternalLink syntax is no longer recognised
+    const html = parse('[Visit Example](https://example.com)');
+    expect(html).not.toMatch(/href="https:\/\/example\.com"/);
   });
 
   it('Footnote: [^text] → superscript footnote reference', () => {
