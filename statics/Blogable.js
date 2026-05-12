@@ -205,12 +205,24 @@ function getBlogableDiagnostics(){ return diagnostics.slice(); }
 
 // ---- インライン ----
 let footnotes=[];
-// 内部アンカー解決用のIDマップ（見出し・定義用語）
+// 内部アンカー解決用のIDマップ（見出し・定義用語・アンカーブロック）
 let anchorIds={};
+// ドキュメント内IDの使用回数（ベースIDごとにカウントして重複時は -1, -2... を付与）
+let idCounts=new Map();
 // 定義用語の重複チェック
 let definitionTerms=new Set();
-// 定義用語IDのユニーク化
-let definitionTermIdCounts=new Map();
+
+function reserveAnchorId(rawId, sourceLabel='block') {
+  const baseId=slugify(rawId)||'section';
+  const seenCount=idCounts.get(baseId)||0;
+  const resolvedId=seenCount===0 ? baseId : `${baseId}-${seenCount}`;
+  idCounts.set(baseId, seenCount+1);
+  anchorIds[resolvedId]=true;
+  if (seenCount>0) {
+    pushDiag('E405',`${sourceLabel} ID "${baseId}" is already in use. Assigned "${resolvedId}" to keep IDs unique within the document.`);
+  }
+  return resolvedId;
+}
 
 function parseInline(text) {
   // Single-pass inline parser; implements spec evaluation order:
@@ -262,7 +274,7 @@ function parseInline(text) {
       if (Object.hasOwn(anchorIds, slug)) {
         out += `<a href="#${esc(slug)}" class="obsidian-anchor">${esc(id)}</a>`;
       } else {
-        pushDiag('W601',`[#${id}] — no heading, definition term, or anchor with that id found. Add "[#${id}]" on its own line to create the target.`);
+        pushDiag('W601',`[#${id}] — no heading, anchor block, definition term, or @[id] target with that id found. Add "[#${id}]" on its own line (or define a matching target id).`);
         out += esc(id);
       }
       i += m[0].length; continue;
@@ -599,9 +611,10 @@ function buildAST(tokens) {
     if (tok.type==='heading') {
       i++;
       const mods=cm();
-      const id=slugify(tok.text);
-      anchorIds[id]=true;
-      nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(mods)});
+      const customId=mods.find(m=>m.key==='id')?.value;
+      const otherMods=mods.filter(m=>m.key!=='id');
+      const id=reserveAnchorId(customId||tok.text, customId?'heading modifier':'heading');
+      nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(otherMods)});
       continue;
     }
 
@@ -685,18 +698,19 @@ function buildAST(tokens) {
       }
       const mods=cm();
       const termHtml=parseInline(term);
-      const baseTermId=slugify(term)||'definition';
-      const seenCount=definitionTermIdCounts.get(baseTermId)||0;
-      const termId=seenCount===0 ? baseTermId : `${baseTermId}-${seenCount}`;
-      definitionTermIdCounts.set(baseTermId, seenCount+1);
-      anchorIds[termId]=true;
+      const termId=reserveAnchorId(term,'definition term');
       const ddHtml=ddLines.map(l=>`<p>${parseInline(l)}</p>`).join('\n');
       nodes.push({type:'def_block', term, termId, termHtml, ddLines, ddHtml, mods});
       continue;
     }
 
     // 内部アンカーブロック
-    if (tok.type==='anchor_block') { i++; nodes.push({type:'anchor_block', id:tok.id, label:tok.label}); continue; }
+    if (tok.type==='anchor_block') {
+      i++;
+      const id=reserveAnchorId(tok.id,'anchor block');
+      nodes.push({type:'anchor_block', id, label:tok.label});
+      continue;
+    }
 
     // コードブロック
     if (tok.type==='shebang_open') {
@@ -990,7 +1004,7 @@ anchorIds={};
 footnotes=[];
 diagnostics=[];
 definitionTerms=new Set();
-definitionTermIdCounts=new Map();
+idCounts=new Map();
 return buildAST(tokenize(src.split('\n')));
 }
 

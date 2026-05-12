@@ -151,6 +151,14 @@ describe('§Headings', () => {
     expect(html).toMatch(/<h2 id="my-section"[^>]*><a href="#my-section">My Section<\/a><\/h2>/);
   });
 
+  it('heading @[id: custom-id] overrides auto id without duplicating id attributes', () => {
+    const html = parse(':: My Section\n@[id: custom-id]');
+    const headingTag = (html.match(/<h2[^>]*>/) || [''])[0];
+    expect(headingTag).toMatch(/id="custom-id"/);
+    expect(headingTag.match(/\sid="/g) || []).toHaveLength(1);
+    expect(html).toMatch(/<a href="#custom-id">My Section<\/a>/);
+  });
+
   it('numbered heading contains a self-referential anchor link', () => {
     const html = parse('::# Section One');
     expect(html).toMatch(/<h2 [^>]*><a href="#section-one">Section One<\/a><\/h2>/);
@@ -861,6 +869,13 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/<a href="#my-section" class="obsidian-anchor"/);
   });
 
+  it('ObsidianAnchor: [[#anchor-id]] resolves to an anchor block id', () => {
+    const src = '[#My Anchor]\n\nSee [[#my-anchor]] here.';
+    const html = parse(src);
+    expect(html).toMatch(/<a href="#my-anchor" class="obsidian-anchor">my-anchor<\/a>/);
+    expect(getDiagnostics().some(d => d.code === 'W601')).toBe(false);
+  });
+
   it('ObsidianAnchor: [[#unknown]] emits [W601] and renders plain text', () => {
     // ObsidianAnchor is inline-only; use it inside paragraph text so it is not
     // tokenised as a standalone anchor_block.
@@ -1098,7 +1113,10 @@ describe('§Metadata', () => {
   it('@[id: value] after a block sets id attribute', () => {
     const src = ':: Section\n@[id: custom-id]';
     const html = parse(src);
-    expect(html).toMatch(/id="custom-id"/);
+    const headingTag = (html.match(/<h2[^>]*>/) || [''])[0];
+    expect(headingTag).toMatch(/id="custom-id"/);
+    expect(headingTag.match(/\sid="/g) || []).toHaveLength(1);
+    expect(html).toMatch(/<a href="#custom-id">Section<\/a>/);
   });
 
   it('@[x-foo: bar] after a block adds data-foo="bar"', () => {
@@ -1474,6 +1492,28 @@ describe('§Diagnostics', () => {
     expect(getDiagnostics().some(d => d.code === 'E404')).toBe(false);
   });
 
+  it('[E405] is emitted when duplicate ids are generated in one document', () => {
+    parse(':: Section\n\n:: Section');
+    expect(getDiagnostics().some(d => d.code === 'E405')).toBe(true);
+  });
+
+  it('[E405] keeps ids unique by assigning suffixed id to the later block', () => {
+    const html = parse(':: Section\n\n:: Section');
+    expect(html).toMatch(/<h2 id="section"[^>]*><a href="#section">Section<\/a><\/h2>/);
+    expect(html).toMatch(/<h2 id="section-1"[^>]*><a href="#section-1">Section<\/a><\/h2>/);
+  });
+
+  it('[E405] is emitted when heading @[id] collides with an existing id', () => {
+    parse(':: Intro\n\n:: Another\n@[id: intro]');
+    expect(getDiagnostics().some(d => d.code === 'E405')).toBe(true);
+  });
+
+  it('[E405] is reset between parse() calls (second parse is independent)', () => {
+    parse(':: Intro\n\n:: Intro');
+    parse(':: Intro');
+    expect(getDiagnostics().some(d => d.code === 'E405')).toBe(false);
+  });
+
   // ── W801: orphaned modifier ───────────────────────────────────────────────
 
   it('[W801] is emitted for a modifier following a plain text paragraph', () => {
@@ -1530,6 +1570,7 @@ describe('§Diagnostics', () => {
       { src: '|>\nno close',                 code: 'W002' },
       { src: '$$\nno close',                 code: 'W003' },
       { src: ':= T\nB.\n\n:= T\nB2.',       code: 'E404' },
+      { src: ':: Intro\n\n:: Intro',         code: 'E405' },
       { src: 'Plain.\n@[class: orphan]',     code: 'W801' },
     ];
     for (const { src, code } of codes) {
@@ -1574,6 +1615,7 @@ describe('§Diagnostics', () => {
       '|>\nno close',
       '$$\nno close',
       ':= T\nB.\n\n:= T\nB2.',
+      ':: Intro\n\n:: Intro',
       'Plain.\n@[class: orphan]',
     ];
     for (const src of cases) {
