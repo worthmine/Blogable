@@ -779,7 +779,7 @@ function buildAST(tokens) {
       i++;
       const mods=cm();
       const altMod=tok.alt!==null?[{key:'alt',value:tok.alt}]:[];
-      // @[alt: ...] modifier has no effect on ObsidianEmbed; alt text must be set inline: ![[path|alt text]]
+      // @[alt: ...] modifier is ignored on ObsidianEmbed; alt text must be set inline: ![[path|alt text]]
       const safeMods=mods.filter(m=>m.key!=='alt');
       nodes.push({type:'figure', images:[{url:tok.path, mods:[...altMod,...safeMods]}]});
       continue;
