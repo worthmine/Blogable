@@ -244,9 +244,7 @@ function parseInline(text) {
       if (Object.hasOwn(headingIds, slug)) {
         out += `<a href="#${esc(slug)}" class="anchor-ref">${esc(id)}</a>`;
       } else {
-        pushDiag('W601',`[#${id}] could not be linked - no heading or anchor block with that id was found earlier in the document. `+
-          `To create a linkable target, add a standalone anchor block "[#${id}]" on its own line, or add a heading whose text slugifies to "${id}". `+
-          `The inline reference [#id] links to the nearest matching target above it.`);
+        pushDiag('W601',`[#${id}] — no heading or anchor with that id found. Add "[#${id}]" on its own line to create the target.`);
         out += esc(id);
       }
       i += m[0].length; continue;
@@ -335,10 +333,7 @@ function tokenize(lines) {
       const mk=modM[1];
       if (!ALLOWED_META_KEYS.has(mk) && !/^x-[a-z0-9-]+$/.test(mk)) {
         // [E202] Unknown MetaKey: fall back to literal text (spec: errors fall back safely)
-        pushDiag('E202',`"${mk}" is not a recognised modifier key. `+
-          `Use one of the built-in keys: ${[...ALLOWED_META_KEYS].join(', ')}. `+
-          `For custom data attributes write x-<name> (e.g. @[x-role: note]), which renders as data-<name>="…". `+
-          `Modifier syntax: @[key: value] on a line immediately after the block, with no blank line between them.`);
+        pushDiag('E202',`"${mk}" is not a recognised modifier key. Use: ${[...ALLOWED_META_KEYS].join(', ')}; or x-<name> for custom data attributes (e.g. @[x-role: note]).`);
         tokens.push({type:'text', text:t}); continue;
       }
       tokens.push({type:'modifier', key:mk, value:modM[2]}); continue;
@@ -362,9 +357,7 @@ function tokenize(lines) {
     // 見出しレベル超過（7コロン以上） — [E402]: fall back to text
     const overH=t.match(/^(:{7,})(?:\s|#\s)/);
     if (overH) {
-      pushDiag('E402',`${overH[1].length} colons produce a heading deeper than h6, which is the lowest heading level in HTML. `+
-        `Use 2–6 colons to create h2–h6: ":: h2", "::: h3", ":::: h4", "::::: h5", ":::::: h6". `+
-        `The line has been kept as plain text.`);
+      pushDiag('E402',`${overH[1].length} colons exceed h6 (the deepest heading in HTML). Use 2–6 colons: ":: h2" … ":::::: h6". Line kept as plain text.`);
       tokens.push({type:'text', text:t}); continue;
     }
 
@@ -390,9 +383,7 @@ function tokenize(lines) {
     // odd-indent list items — [E401] invalid list indentation, fall back to text
     const oddIndentM=raw.match(/^( +)(#|-)\s+/);
     if (oddIndentM && oddIndentM[1].length % 2 !== 0) {
-      pushDiag('E401',`List item has ${oddIndentM[1].length} leading space(s), but nesting uses two-space steps. `+
-        `Use 0 spaces for a top-level item, 2 spaces for one level of nesting, 4 for two levels, and so on. `+
-        `Example: "- top", "  - nested", "    - deeper". The item has been kept as plain text.`);
+      pushDiag('E401',`List item has ${oddIndentM[1].length} leading space(s); nesting uses two-space steps (0, 2, 4, …). Item kept as plain text.`);
       tokens.push({type:'text', text:t}); continue;
     }
 
@@ -413,17 +404,10 @@ function tokenize(lines) {
     tokens.push({type:'text', text:t});
   }
   // 未閉鎖ブロックの検知 — EOF 時点でブロックが閉じていない場合に警告を発する
-  if (mode==='front')   pushDiag('W202','Front matter block was opened with @@ but the document ended before the closing @@. '+
-    'The block should look like:\n  @@\n  title: My Title\n  author: Name\n  @@\n'+
-    'All key: value lines between the @@ delimiters are treated as front matter.');
-  if (mode==='shebang') pushDiag('W001','Code block was opened but the document ended before the closing "!#" line. '+
-    'The block should look like:\n  #!lang\n  ...code...\n  !#\n'+
-    'Replace "lang" with the language name (e.g. bash, python, javascript).');
-  if (mode==='quote')   pushDiag('W002','Block quote was opened with "|>" but the document ended before the closing "<|" line. '+
-    'The block should look like:\n  |>\n  Quoted text.\n  <|\n'+
-    'Optionally add @[author: Name] or @[cite: https://…] right after the closing "<|".');
-  if (mode==='math')    pushDiag('W003','Math block was opened with "$$" but the document ended before the second "$$" line. '+
-    'The block should look like:\n  $$\n  x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}\n  $$');
+  if (mode==='front')   pushDiag('W202','Unterminated front matter: @@ was opened but the closing @@ was not found before EOF.');
+  if (mode==='shebang') pushDiag('W001','Unterminated code block: #!lang was opened but the closing !# was not found before EOF.');
+  if (mode==='quote')   pushDiag('W002','Unterminated block quote: |> was opened but the closing <| was not found before EOF.');
+  if (mode==='math')    pushDiag('W003','Unterminated math block: $$ was opened but the closing $$ was not found before EOF.');
   return tokens;
 }
 
@@ -508,18 +492,14 @@ function buildAST(tokens) {
       const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/);
       if (!m) {
         // [W201] Non-empty lines that do not match FrontMetaLine syntax are invalid
-        if (line !== '') pushDiag('W201',`Could not parse front matter line: "${line}". `+
-          `Each line inside @@ … @@ must follow the format "key: value" where the key starts with a lowercase letter and contains only lowercase letters, digits, and hyphens. `+
-          `Example: "title: My Blog Post". The line has been skipped.`);
+        if (line !== '') pushDiag('W201',`Malformed front matter line: "${line}". Expected format: "key: value".`);
         continue;
       }
 
       const key=m[1];
       if (!isAllowedFrontMatterKey(key)) {
         // [E201] Invalid key: invalidate this construct and continue (spec: errors fall back safely)
-        pushDiag('E201',`"${key}" is not a recognised front matter key and has been skipped. `+
-          `The allowed keys are: title, author, date, updated, description, tags, slug, draft, lang. `+
-          `For custom metadata use the x-* prefix, for example "x-series: Getting Started"`);
+        pushDiag('E201',`"${key}" is not a recognised front matter key. Allowed: title, author, date, updated, description, tags, slug, draft, lang; or x-* for custom metadata.`);
         continue;
       }
 
@@ -624,16 +604,12 @@ function buildAST(tokens) {
       }
       // [E403] 定義本文（DD）が空の場合 — spec: DefinitionBlock requires at least one paragraph (DD)
       if (ddLines.length===0) {
-        pushDiag('E403',`Definition term "${term}" has no body text. `+
-          `A DefinitionBlock needs at least one paragraph on the line(s) immediately following the ":=" line. `+
-          `Example:\n  := ${term}\n  The explanation of ${term} goes here.`);
+        pushDiag('E403',`Definition term "${term}" has no body text. Add at least one paragraph after the := line.`);
       }
       // [W401] 定義用語の重複 — spec: Definition-list terms are unique across the document
       const termKey=term.trim().toLowerCase();
       if (definitionTerms.has(termKey)) {
-        pushDiag('W401',`The definition term "${term}" appears more than once in this document. `+
-          `Each term in a DefinitionBlock must be unique (comparison is case-insensitive). `+
-          `Consider merging the two definitions, or rename one term to distinguish them.`);
+        pushDiag('W401',`Definition term "${term}" is defined more than once. Terms must be unique (case-insensitive).`);
       } else {
         definitionTerms.add(termKey);
       }
@@ -754,10 +730,7 @@ function buildAST(tokens) {
 
     // [W801] 孤立したモディファイア — どのブロックにも消費されなかった修飾キー
     if (tok.type==='modifier') {
-      pushDiag('W801',`@[${tok.key}: ${tok.value}] was not applied because it is not directly attached to a supported block. `+
-        `A modifier must appear on the line immediately after the block it targets, with no blank line between them. `+
-        `Blocks that accept modifiers: headings (:: …), explicit paragraphs (: …), lists, blockquotes, code blocks, math blocks, definition blocks, and images. `+
-        `Plain text paragraphs do not accept modifiers - use the ": " prefix to make a paragraph modifier-aware.`);
+      pushDiag('W801',`@[${tok.key}: ${tok.value}] was not applied to any block. Place it on the line immediately after a supported block with no blank line in between.`);
     }
     i++;
   }

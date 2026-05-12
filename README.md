@@ -475,21 +475,21 @@ The parser produces diagnostics with fixed codes.
 Errors invalidate the construct and fall back safely.
 Warnings notify without stopping rendering.
 
-| Code | Kind | Trigger and Guidance |
-|------|------|----------------------|
-| E201 | Error | A front matter key is not in the allowed list and is not an `x-*` custom key. Allowed keys: `title`, `author`, `date`, `updated`, `description`, `tags`, `slug`, `draft`, `lang`. For custom metadata use the `x-*` prefix, e.g. `x-series: Getting Started`. |
-| E202 | Error | A modifier key is not one of the built-in keys (`class`, `id`, `title`, `cite`, `author`, `alt`) and does not match `x-*`. For custom data attributes write `x-<name>` (e.g. `@[x-role: note]`), which renders as `data-<name>="…"`. Modifier syntax: `@[key: value]` on the line immediately after the block, with no blank line between them. |
-| E401 | Error | A list item's leading spaces are not a multiple of two. Use 0 spaces for a top-level item, 2 for one level of nesting, 4 for two levels, and so on. Example: `- top`, `  - nested`, `    - deeper`. |
-| E402 | Error | More than 6 colons were used for a heading. HTML only supports h1–h6, so the maximum is 6 colons. Use 2–6 colons: `:: h2`, `::: h3`, `:::: h4`, `::::: h5`, `:::::: h6`. |
-| E403 | Error | A `:=` term has no following body paragraph. A DefinitionBlock requires at least one paragraph (DD) on the line(s) immediately after the `:= Term` line. Example: `:= Term` followed by `The explanation goes here.` |
-| W601 | Warning | `[#id]` references an anchor that does not exist earlier in the document. Add a standalone `[#id]` anchor block on its own line to create the target, or ensure the heading text slugifies to the expected id. |
-| W201 | Warning | A line inside `@@ … @@` does not match `key: value` format. Keys must start with a lowercase letter and contain only lowercase letters, digits, and hyphens. Example: `title: My Blog Post`. |
-| W202 | Warning | A `@@` front matter block was opened but the document ended before the closing `@@`. The correct form is `@@` / one or more `key: value` lines / `@@`. |
-| W001 | Warning | A code block was opened with `#!lang` but no closing `!#` line was found before EOF. Every code block must end with `!#` on its own line. Replace `lang` with the language name (e.g. `bash`, `python`, `javascript`). |
-| W002 | Warning | A block quote was opened with `\|>` but no closing `<\|` line was found before EOF. Every block quote must end with `<\|` on its own line. Optionally follow the closing `<\|` with `@[author: Name]` or `@[cite: https://…]`. |
-| W003 | Warning | A math block was opened with `$$` but no second `$$` line was found before EOF. Every math block must end with `$$` on its own line. |
-| W401 | Warning | The same `:= term` appears more than once in the document (comparison is case-insensitive). Merge the two definitions or rename one term to make them distinct. |
-| W801 | Warning | A `@[key: value]` modifier was not directly attached to a block. Modifiers must appear on the line immediately after a heading, `: ` paragraph, list, blockquote, code block, math block, definition block, or image — with no blank line between them. Plain text paragraphs need the `: ` prefix to accept a modifier. |
+| Code | Kind | Trigger |
+|------|------|---------|
+| E201 | Error | Unknown front matter key. Allowed: `title`, `author`, `date`, `updated`, `description`, `tags`, `slug`, `draft`, `lang`; or `x-*` for custom metadata. |
+| E202 | Error | Unknown modifier key. Built-in keys: `class`, `id`, `title`, `cite`, `author`, `alt`; or `x-<name>` for custom data attributes. |
+| E401 | Error | List indentation is not a multiple of two. Use 0, 2, 4, … spaces for each nesting level. |
+| E402 | Error | Heading depth exceeds h6. Use 2–6 colons: `:: h2` … `:::::: h6`. |
+| E403 | Error | Definition term has no body. Add at least one paragraph after the `:= term` line. |
+| W601 | Warning | `[#id]` — no heading or anchor with that id found. Add `[#id]` on its own line to create the target. |
+| W201 | Warning | Malformed front matter line. Expected format: `key: value`. |
+| W202 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
+| W001 | Warning | Unterminated code block: `#!lang` opened but closing `!#` not found before EOF. |
+| W002 | Warning | Unterminated block quote: `\|>` opened but closing `<\|` not found before EOF. |
+| W003 | Warning | Unterminated math block: `$$` opened but closing `$$` not found before EOF. |
+| W401 | Warning | Duplicate definition term. Terms must be unique (case-insensitive). |
+| W801 | Warning | Orphaned modifier: not placed on the line immediately after a supported block. |
 
 ---
 
