@@ -471,6 +471,7 @@ DefinitionBlock = ":=" , SP , Term , NL , DD , { Meta } ;
 Definition blocks behave as list items in the DL system.
 The definition body is one or more paragraphs.
 Definition-list terms are unique across the document.
+Each `:= term` generates a unique slug id and keeps it on the rendered term heading (`<dt id="..."><a href="#...">…</a></dt>`).
 DefinitionBlock (`:=`) is top-level only and MUST NOT be nested inside lists.
 
 ---
@@ -534,13 +535,13 @@ Warnings notify without stopping rendering.
 | E401 | Error | List indentation is not a multiple of two. Use 0, 2, 4, … spaces for each nesting level. |
 | E402 | Error | Heading depth exceeds h6. Use 2–6 colons: `:: h2` … `:::::: h6`. |
 | E403 | Error | Definition term has no body. Add at least one paragraph after the `:= term` line. |
-| W601 | Warning | `[#id]` — no heading or anchor with that id found. Add `[#id]` on its own line to create the target. |
+| W601 | Warning | `[#id]` — no heading, anchor, or definition-term id with that id found. Add `[#id]` on its own line (or define a matching heading/term id) to create the target. |
 | W201 | Warning | Malformed front matter line. Expected format: `key: value`. |
 | W202 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
 | W001 | Warning | Unterminated code block: `#!lang` opened but closing `!#` not found before EOF. |
 | W002 | Warning | Unterminated block quote: `\|>` opened but closing `<\|` not found before EOF. |
 | W003 | Warning | Unterminated math block: `$$` opened but closing `$$` not found before EOF. |
-| W401 | Warning | Duplicate definition term. Terms must be unique (case-insensitive). |
+| E404 | Error | Duplicate definition term. Terms must be unique (case-insensitive). |
 | W801 | Warning | Orphaned modifier: not placed on the line immediately after a supported block. |
 
 ---

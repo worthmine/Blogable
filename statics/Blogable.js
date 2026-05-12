@@ -205,10 +205,12 @@ function getBlogableDiagnostics(){ return diagnostics.slice(); }
 
 // ---- インライン ----
 let footnotes=[];
-// ヘッドのIDマップ（内部アンカー解決用）
-let headingIds={};
+// 内部アンカー解決用のIDマップ（見出し・定義用語）
+let anchorIds={};
 // 定義用語の重複チェック
 let definitionTerms=new Set();
+// 定義用語IDのユニーク化
+let definitionTermIdCounts=new Map();
 
 function parseInline(text) {
   // Single-pass inline parser; implements spec evaluation order:
@@ -257,10 +259,10 @@ function parseInline(text) {
     // ── ObsidianAnchor  [[#ID]] ──────────────────────────────────────────
     if ((m = rest.match(/^\[\[#([^\]\n]+)\]\]/))) {
       const id = m[1], slug = slugify(id);
-      if (Object.hasOwn(headingIds, slug)) {
+      if (Object.hasOwn(anchorIds, slug)) {
         out += `<a href="#${esc(slug)}" class="obsidian-anchor">${esc(id)}</a>`;
       } else {
-        pushDiag('W601',`[#${id}] — no heading or anchor with that id found. Add "[#${id}]" on its own line to create the target.`);
+        pushDiag('W601',`[#${id}] — no heading, definition term, or anchor with that id found. Add "[#${id}]" on its own line to create the target.`);
         out += esc(id);
       }
       i += m[0].length; continue;
@@ -598,7 +600,7 @@ function buildAST(tokens) {
       i++;
       const mods=cm();
       const id=slugify(tok.text);
-      headingIds[id]=true;
+      anchorIds[id]=true;
       nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(mods)});
       continue;
     }
@@ -674,17 +676,22 @@ function buildAST(tokens) {
       if (ddLines.length===0) {
         pushDiag('E403',`Definition term "${term}" has no body text. Add at least one paragraph after the := line.`);
       }
-      // [W401] 定義用語の重複 — spec: Definition-list terms are unique across the document
+      // [E404] 定義用語の重複 — spec: Definition-list terms are unique across the document
       const termKey=term.trim().toLowerCase();
       if (definitionTerms.has(termKey)) {
-        pushDiag('W401',`Definition term "${term}" is defined more than once. Terms must be unique (case-insensitive).`);
+        pushDiag('E404',`Definition term "${term}" is defined more than once. Terms must be unique (case-insensitive).`);
       } else {
         definitionTerms.add(termKey);
       }
       const mods=cm();
       const termHtml=parseInline(term);
+      const baseTermId=slugify(term)||'definition';
+      const seenCount=definitionTermIdCounts.get(baseTermId)||0;
+      const termId=seenCount===0 ? baseTermId : `${baseTermId}-${seenCount}`;
+      definitionTermIdCounts.set(baseTermId, seenCount+1);
+      anchorIds[termId]=true;
       const ddHtml=ddLines.map(l=>`<p>${parseInline(l)}</p>`).join('\n');
-      nodes.push({type:'def_block', term, termHtml, ddLines, ddHtml, mods});
+      nodes.push({type:'def_block', term, termId, termHtml, ddLines, ddHtml, mods});
       continue;
     }
 
@@ -881,7 +888,7 @@ function astToHtml(nodes, forDisplay=false) {
       }
 
       case 'def_block': {
-        return `<dl${mergeAttrs('def-block', node.mods)}><dt>${node.termHtml}</dt><dd>${node.ddHtml}</dd></dl>`;
+        return `<dl${mergeAttrs('def-block', node.mods)}><dt id="${esc(node.termId)}"><a href="#${esc(node.termId)}">${node.termHtml}</a></dt><dd>${node.ddHtml}</dd></dl>`;
       }
 
       case 'anchor_block': {
@@ -979,10 +986,11 @@ return html;
 }
 
 function parseToAST(src) {
-headingIds={};
+anchorIds={};
 footnotes=[];
 diagnostics=[];
 definitionTerms=new Set();
+definitionTermIdCounts=new Map();
 return buildAST(tokenize(src.split('\n')));
 }
 
