@@ -976,14 +976,12 @@ function renderKaTeXBlocks(container) {
   container.querySelectorAll('pre.math-block').forEach(pre => {
     const code = pre.querySelector('code');
     if (!code) return;
-    const lines = code.textContent.split('\n').filter(line => line.trim());
-    code.innerHTML = lines.map(line => {
-      try {
-        return katex.renderToString(line, { displayMode: true, throwOnError: false });
-      } catch(e) {
-        return `<span class="katex-error">${esc(line)}</span>`;
-      }
-    }).join('');
+    const tex = code.textContent.trim();
+    try {
+      code.innerHTML = katex.renderToString(tex, { displayMode: true, throwOnError: false });
+    } catch(e) {
+      code.innerHTML = `<span class="katex-error">${esc(tex)}</span>`;
+    }
   });
 }
 function render(){
