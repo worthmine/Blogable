@@ -846,6 +846,16 @@ class TestFixtureArticleJa(unittest.TestCase):
 class TestCliModes(unittest.TestCase):
 
     SCRIPT = os.path.join(os.path.dirname(__file__), '..', 'Blogable2md.py')
+    EXECUTABLE = os.path.join(os.path.dirname(__file__), '..', 'Blogable2md')
+
+    def test_cli_executable_entrypoint(self):
+        proc = subprocess.run(
+            [self.EXECUTABLE, '--help'],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertIn('--obsidian', proc.stdout)
 
     def test_cli_qiita_mode(self):
         src = dedent("""\
