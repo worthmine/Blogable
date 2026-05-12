@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Blogable2ZennMd.py – Convert Blogable v1.1-alpha markup to Zenn-compatible Markdown.
+Blogable2md.py – Convert Blogable v1.1-alpha markup to platform Markdown.
 
 Usage:
-  python Blogable2ZennMd.py input.txt            # writes <slug>.md (from front-matter) or input.md
-  python Blogable2ZennMd.py input.txt output.md  # writes output.md
-  python Blogable2ZennMd.py -                    # reads stdin, writes stdout
+  python Blogable2md.py --Zenn input.txt            # writes <slug>.md (from front-matter) or input.md
+  python Blogable2md.py --Qiita input.txt output.md # writes output.md
+  python Blogable2md.py --gh input.txt output.md    # writes GitHub-flavored Markdown
+  python Blogable2md.py --obsidian input.txt output.md # writes Obsidian-flavored Markdown
+  python Blogable2md.py --Zenn -                    # reads stdin, writes stdout
 """
 
 import sys
@@ -29,6 +31,10 @@ SHEBANG_LANG_MAP = {
     'blogable': 'blogable',
     'ebnf': 'ebnf',
 }
+
+
+class FrontMatterValidationError(ValueError):
+    """Raised when front-matter values are syntactically valid but unsupported."""
 
 # ---------------------------------------------------------------------------
 # Utilities
@@ -210,15 +216,30 @@ def convert_inline(text, footnotes):
 # Front matter conversion
 # ---------------------------------------------------------------------------
 
-def convert_front_matter(fm_lines):
+def convert_front_matter(fm_lines, mode='zenn'):
     """
-    Convert Blogable front-matter lines to Zenn YAML front-matter.
+    Convert Blogable front-matter lines to platform YAML front-matter.
 
-    Blogable keys  ->  Zenn keys
-    title          ->  title
-    tags           ->  topics  (comma-separated -> YAML array)
-    slug           ->  slug
-    author/date/updated/description/lang/draft/x-* -> omitted
+    mode='zenn':
+      title -> title
+      tags  -> topics
+      slug  -> slug
+
+    mode='qiita':
+      title -> title
+      tags  -> tags
+      private -> private
+      id/organization_url_name/slide are omitted
+
+    mode='gh':
+      title -> title
+      tags  -> tags
+      platform-specific keys are omitted
+
+    mode='obsidian':
+      title -> title
+      tags  -> tags
+      platform-specific keys are omitted
     """
     meta = {}
     for line in fm_lines:
@@ -236,25 +257,51 @@ def convert_front_matter(fm_lines):
     title = meta.get('title', '')
     out.append(f'title: "{title}"')
 
-    # emoji: default placeholder emoji for new articles
-    out.append('emoji: "🚀"')
-
-    # type (Zenn: "tech" or "idea"; not in Blogable – default tech)
-    out.append('type: "tech"')
-
-    # topics (from tags)
-    if 'tags' in meta:
-        tags = [t.strip() for t in meta['tags'].split(',') if t.strip()]
-        out.append('topics: [' + ', '.join(f'"{t}"' for t in tags) + ']')
+    tags = [t.strip() for t in meta.get('tags', '').split(',') if t.strip()]
+    if mode == 'qiita':
+        if tags:
+            out.append('tags: [' + ', '.join(f'"{t}"' for t in tags) + ']')
+        else:
+            out.append('tags: []')
+        out.append('private: false')
+    elif mode in ('gh', 'obsidian'):
+        if tags:
+            out.append('tags: [' + ', '.join(f'"{t}"' for t in tags) + ']')
+        else:
+            out.append('tags: []')
     else:
-        out.append('topics: []')
+        if 'x-emoji' in meta:
+            emoji = meta['x-emoji']
+            if not emoji:
+                raise FrontMatterValidationError('Invalid x-emoji: use a non-empty value')
+            if re.search(r'\s', emoji):
+                raise FrontMatterValidationError('Invalid x-emoji: do not include whitespace')
+        else:
+            emoji = '🚀'
+        out.append(f'emoji: "{emoji}"')
 
-    # published: always false by default for safety
-    out.append('published: false')
+        if 'x-type' in meta:
+            article_type = meta['x-type']
+            if not article_type:
+                raise FrontMatterValidationError('Invalid x-type: use a non-empty value ("tech" or "idea")')
+            if article_type not in ('tech', 'idea'):
+                raise FrontMatterValidationError('Invalid x-type: expected "tech" or "idea"')
+        else:
+            article_type = 'tech'
+        out.append(f'type: "{article_type}"')
 
-    # slug
-    if 'slug' in meta:
-        out.append(f'slug: "{meta["slug"]}"')
+        # topics (from tags)
+        if tags:
+            out.append('topics: [' + ', '.join(f'"{t}"' for t in tags) + ']')
+        else:
+            out.append('topics: []')
+
+        # published: always false by default for safety
+        out.append('published: false')
+
+        # slug
+        if 'slug' in meta:
+            out.append(f'slug: "{meta["slug"]}"')
 
     out.append('---')
     return out
@@ -301,7 +348,7 @@ def _is_list_line(raw_line):
 # Main converter
 # ---------------------------------------------------------------------------
 
-def convert(src):
+def convert(src, mode='zenn'):
     lines = src.splitlines()
     out = []
     footnotes = []
@@ -325,7 +372,7 @@ def convert(src):
                 fm_lines.append(lines[i].strip())
                 i += 1
             i += 1  # skip closing @@
-            out.extend(convert_front_matter(fm_lines))
+            out.extend(convert_front_matter(fm_lines, mode=mode))
             out.append('')
             continue
 
@@ -598,8 +645,38 @@ def convert(src):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Convert Blogable v1.1-alpha markup to Zenn-compatible Markdown.'
+        description='Convert Blogable v1.1-alpha markup to platform Markdown (Zenn, Qiita, GitHub, Obsidian).'
     )
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        '--Zenn',
+        dest='mode',
+        action='store_const',
+        const='zenn',
+        help='Output Zenn-oriented Markdown (default)'
+    )
+    mode_group.add_argument(
+        '--Qiita',
+        dest='mode',
+        action='store_const',
+        const='qiita',
+        help='Output Qiita-oriented Markdown'
+    )
+    mode_group.add_argument(
+        '--gh',
+        dest='mode',
+        action='store_const',
+        const='gh',
+        help='Output GitHub-flavored Markdown'
+    )
+    mode_group.add_argument(
+        '--obsidian',
+        dest='mode',
+        action='store_const',
+        const='obsidian',
+        help='Output Obsidian-flavored Markdown'
+    )
+    parser.set_defaults(mode='zenn')
     parser.add_argument(
         'input', nargs='?', default='-',
         help='Input Blogable file (default: stdin when omitted or "-")'
@@ -622,7 +699,11 @@ def main():
             slug = extract_slug(src)
             out_path = Path(slug + '.md') if slug else in_path.with_suffix('.md')
 
-    result = convert(src)
+    try:
+        result = convert(src, mode=args.mode)
+    except FrontMatterValidationError as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(2)
 
     if out_path:
         out_path.write_text(result, encoding='utf-8')

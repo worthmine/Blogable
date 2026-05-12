@@ -1,11 +1,11 @@
 """
-spec/test_Blogable2ZennMd.py
-Unit tests for Blogable2ZennMd.py
+spec/test_Blogable2md.py
+Unit tests for Blogable2md.py
 
 Run with:
   python -m unittest discover -s spec -p 'test_*.py' -v
   # or (if pytest is installed)
-  pytest spec/test_Blogable2ZennMd.py -v
+  pytest spec/test_Blogable2md.py -v
 """
 
 import sys
@@ -18,7 +18,7 @@ import tempfile
 # Make sure the root of the repo is on sys.path so we can import the module.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from Blogable2ZennMd import (
+from Blogable2md import (
     slugify,
     is_image_url,
     detect_lang,
@@ -278,6 +278,72 @@ class TestConvertFrontMatter(unittest.TestCase):
     def test_inline_comment_stripped(self):
         out = self._fm(['title: My Title # ignore me'])
         self.assertIn('title: "My Title"', out)
+
+    def test_zenn_x_type_and_x_emoji_override_defaults(self):
+        out = self._fm(['x-type: idea', 'x-emoji: 💡'])
+        self.assertIn('type: "idea"', out)
+        self.assertIn('emoji: "💡"', out)
+
+    def test_invalid_x_type_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid x-type'):
+            self._fm(['x-type: invalid'])
+
+    def test_empty_x_type_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid x-type'):
+            self._fm(['x-type: '])
+
+    def test_invalid_x_emoji_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid x-emoji'):
+            self._fm(['x-emoji: bad value'])
+
+    def test_empty_x_emoji_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid x-emoji'):
+            self._fm(['x-emoji: '])
+
+    # Qiita mode
+    def test_qiita_tags(self):
+        out = convert_front_matter(['tags: python, javascript'], mode='qiita')
+        self.assertIn('tags: ["python", "javascript"]', out)
+
+    def test_qiita_private_false(self):
+        out = convert_front_matter([], mode='qiita')
+        self.assertIn('private: false', out)
+
+    def test_qiita_omits_zenn_only_fields(self):
+        out = convert_front_matter(['slug: my-article', 'tags: x'], mode='qiita')
+        self.assertFalse(any(line.startswith('emoji:') for line in out))
+        self.assertFalse(any(line.startswith('type:') for line in out))
+        self.assertFalse(any(line.startswith('topics:') for line in out))
+        self.assertFalse(any(line.startswith('published:') for line in out))
+        self.assertFalse(any(line.startswith('slug:') for line in out))
+
+    # GitHub mode
+    def test_gh_tags(self):
+        out = convert_front_matter(['tags: python, markdown'], mode='gh')
+        self.assertIn('tags: ["python", "markdown"]', out)
+
+    def test_gh_omits_platform_specific_fields(self):
+        out = convert_front_matter(['slug: keep-out', 'tags: x'], mode='gh')
+        self.assertFalse(any(line.startswith('emoji:') for line in out))
+        self.assertFalse(any(line.startswith('type:') for line in out))
+        self.assertFalse(any(line.startswith('topics:') for line in out))
+        self.assertFalse(any(line.startswith('published:') for line in out))
+        self.assertFalse(any(line.startswith('private:') for line in out))
+        self.assertFalse(any(line.startswith('slug:') for line in out))
+
+    # Obsidian mode
+    def test_obsidian_tags(self):
+        out = convert_front_matter(['tags: notes, blogable'], mode='obsidian')
+        self.assertIn('tags: ["notes", "blogable"]', out)
+
+    def test_obsidian_omits_platform_specific_fields(self):
+        out = convert_front_matter(['slug: keep-out', 'tags: x'], mode='obsidian')
+        self.assertFalse(any(line.startswith('emoji:') for line in out))
+        self.assertFalse(any(line.startswith('type:') for line in out))
+        self.assertFalse(any(line.startswith('topics:') for line in out))
+        self.assertFalse(any(line.startswith('published:') for line in out))
+        self.assertFalse(any(line.startswith('private:') for line in out))
+        self.assertFalse(any(line.startswith('slug:') for line in out))
 
 
 # ---------------------------------------------------------------------------
@@ -588,7 +654,7 @@ class TestFixtureArticle(unittest.TestCase):
 
     FIXTURE = os.path.join(os.path.dirname(__file__), 'fixture_article.txt')
     FIXTURE_MD = os.path.join(os.path.dirname(__file__), 'fixture_article.md')
-    SCRIPT = os.path.join(os.path.dirname(__file__), '..', 'Blogable2ZennMd.py')
+    SCRIPT = os.path.join(os.path.dirname(__file__), '..', 'Blogable2md.py')
 
     @classmethod
     def setUpClass(cls):
@@ -698,7 +764,7 @@ class TestFixtureArticleJa(unittest.TestCase):
 
     FIXTURE = os.path.join(os.path.dirname(__file__), 'fixture_article_ja.txt')
     FIXTURE_MD = os.path.join(os.path.dirname(__file__), 'fixture_article_ja.md')
-    SCRIPT = os.path.join(os.path.dirname(__file__), '..', 'Blogable2ZennMd.py')
+    SCRIPT = os.path.join(os.path.dirname(__file__), '..', 'Blogable2md.py')
 
     @classmethod
     def setUpClass(cls):
@@ -796,6 +862,167 @@ class TestFixtureArticleJa(unittest.TestCase):
                 fixture_md = fh.read()
 
             self.assertEqual(generated_md, fixture_md)
+
+
+class TestCliModes(unittest.TestCase):
+
+    SCRIPT = os.path.join(os.path.dirname(__file__), '..', 'Blogable2md.py')
+    EXECUTABLE = os.path.join(os.path.dirname(__file__), '..', 'Blogable2md')
+
+    def test_cli_executable_entrypoint(self):
+        proc = subprocess.run(
+            [self.EXECUTABLE, '--help'],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertIn('--obsidian', proc.stdout)
+
+    def test_cli_qiita_mode(self):
+        src = dedent("""\
+            @@
+            title: My Qiita Article
+            tags: python, blogable
+            slug: keep-for-zenn-only
+            @@
+            :: Heading
+        """)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            in_path = os.path.join(tmpdir, 'in.txt')
+            out_path = os.path.join(tmpdir, 'out.md')
+            with open(in_path, 'w', encoding='utf-8') as fh:
+                fh.write(src)
+
+            subprocess.run(
+                [sys.executable, self.SCRIPT, '--Qiita', in_path, out_path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            with open(out_path, encoding='utf-8') as fh:
+                out = fh.read()
+            self.assertIn('title: "My Qiita Article"', out)
+            self.assertIn('tags: ["python", "blogable"]', out)
+            self.assertIn('private: false', out)
+            self.assertNotIn('emoji: "🚀"', out)
+            self.assertNotIn('topics:', out)
+            self.assertNotIn('published:', out)
+            self.assertNotIn('slug:', out)
+
+    def test_cli_zenn_mode_explicit_flag(self):
+        src = dedent("""\
+            @@
+            title: My Zenn Article
+            tags: python
+            slug: zenn-slug
+            @@
+        """)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            in_path = os.path.join(tmpdir, 'in.txt')
+            out_path = os.path.join(tmpdir, 'out.md')
+            with open(in_path, 'w', encoding='utf-8') as fh:
+                fh.write(src)
+
+            subprocess.run(
+                [sys.executable, self.SCRIPT, '--Zenn', in_path, out_path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            with open(out_path, encoding='utf-8') as fh:
+                out = fh.read()
+            self.assertIn('emoji: "🚀"', out)
+            self.assertIn('topics: ["python"]', out)
+            self.assertIn('published: false', out)
+            self.assertIn('slug: "zenn-slug"', out)
+
+    def test_cli_gh_mode(self):
+        src = dedent("""\
+            @@
+            title: My GitHub Article
+            tags: python, docs
+            slug: no-slug-for-gh
+            @@
+        """)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            in_path = os.path.join(tmpdir, 'in.txt')
+            out_path = os.path.join(tmpdir, 'out.md')
+            with open(in_path, 'w', encoding='utf-8') as fh:
+                fh.write(src)
+
+            subprocess.run(
+                [sys.executable, self.SCRIPT, '--gh', in_path, out_path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            with open(out_path, encoding='utf-8') as fh:
+                out = fh.read()
+            self.assertIn('title: "My GitHub Article"', out)
+            self.assertIn('tags: ["python", "docs"]', out)
+            self.assertNotIn('emoji: "🚀"', out)
+            self.assertNotIn('type: "tech"', out)
+            self.assertNotIn('topics:', out)
+            self.assertNotIn('published:', out)
+            self.assertNotIn('private:', out)
+            self.assertNotIn('slug:', out)
+
+    def test_cli_obsidian_mode(self):
+        src = dedent("""\
+            @@
+            title: My Obsidian Note
+            tags: notes, wiki
+            slug: no-slug-for-obsidian
+            @@
+        """)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            in_path = os.path.join(tmpdir, 'in.txt')
+            out_path = os.path.join(tmpdir, 'out.md')
+            with open(in_path, 'w', encoding='utf-8') as fh:
+                fh.write(src)
+
+            subprocess.run(
+                [sys.executable, self.SCRIPT, '--obsidian', in_path, out_path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            with open(out_path, encoding='utf-8') as fh:
+                out = fh.read()
+            self.assertIn('title: "My Obsidian Note"', out)
+            self.assertIn('tags: ["notes", "wiki"]', out)
+            self.assertNotIn('emoji: "🚀"', out)
+            self.assertNotIn('type: "tech"', out)
+            self.assertNotIn('topics:', out)
+            self.assertNotIn('published:', out)
+            self.assertNotIn('private:', out)
+            self.assertNotIn('slug:', out)
+
+    def test_cli_invalid_x_type_exits_with_error(self):
+        src = dedent("""\
+            @@
+            title: Invalid
+            x-type: invalid
+            @@
+        """)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            in_path = os.path.join(tmpdir, 'in.txt')
+            out_path = os.path.join(tmpdir, 'out.md')
+            with open(in_path, 'w', encoding='utf-8') as fh:
+                fh.write(src)
+
+            proc = subprocess.run(
+                [sys.executable, self.SCRIPT, '--Zenn', in_path, out_path],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('Invalid x-type', proc.stderr)
 
 
 if __name__ == '__main__':
