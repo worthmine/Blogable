@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Blogable2md.py – Convert Blogable v1.1-alpha markup to Markdown for Zenn or Qiita.
+Blogable2md.py – Convert Blogable v1.1-alpha markup to platform Markdown.
 
 Usage:
   python Blogable2md.py --Zenn input.txt            # writes <slug>.md (from front-matter) or input.md
   python Blogable2md.py --Qiita input.txt output.md # writes output.md
+  python Blogable2md.py --gh input.txt output.md    # writes GitHub-flavored Markdown
   python Blogable2md.py --Zenn -                    # reads stdin, writes stdout
 """
 
@@ -224,6 +225,11 @@ def convert_front_matter(fm_lines, mode='zenn'):
       tags  -> tags
       private -> private
       id/organization_url_name/slide are omitted
+
+    mode='gh':
+      title -> title
+      tags  -> tags
+      platform-specific keys are omitted
     """
     meta = {}
     for line in fm_lines:
@@ -248,6 +254,11 @@ def convert_front_matter(fm_lines, mode='zenn'):
         else:
             out.append('tags: []')
         out.append('private: false')
+    elif mode == 'gh':
+        if tags:
+            out.append('tags: [' + ', '.join(f'"{t}"' for t in tags) + ']')
+        else:
+            out.append('tags: []')
     else:
         # emoji: default placeholder emoji for new articles
         out.append('emoji: "🚀"')
@@ -610,7 +621,7 @@ def convert(src, mode='zenn'):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Convert Blogable v1.1-alpha markup to Markdown for Zenn or Qiita.'
+        description='Convert Blogable v1.1-alpha markup to platform Markdown (Zenn, Qiita, GitHub).'
     )
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
@@ -626,6 +637,13 @@ def main():
         action='store_const',
         const='qiita',
         help='Output Qiita-oriented Markdown'
+    )
+    mode_group.add_argument(
+        '--gh',
+        dest='mode',
+        action='store_const',
+        const='gh',
+        help='Output GitHub-flavored Markdown'
     )
     parser.set_defaults(mode='zenn')
     parser.add_argument(
