@@ -280,6 +280,8 @@ def convert_front_matter(fm_lines, mode='zenn'):
 
         if 'x-type' in meta:
             article_type = meta['x-type']
+            if not article_type:
+                raise FrontMatterValidationError('Invalid x-type: use a non-empty value ("tech" or "idea")')
             if article_type not in ('tech', 'idea'):
                 raise FrontMatterValidationError('Invalid x-type: expected "tech" or "idea"')
         else:
@@ -699,7 +701,7 @@ def main():
         result = convert(src, mode=args.mode)
     except FrontMatterValidationError as e:
         print(str(e), file=sys.stderr)
-        raise SystemExit(2)
+        sys.exit(2)
 
     if out_path:
         out_path.write_text(result, encoding='utf-8')
