@@ -104,7 +104,10 @@ FrontMatterBlock =
   "@@" , NL ;
 
 FrontMetaLine =
-  FrontKey , ":" , SP , TEXT , NL ;
+  ( FrontKey , ":" , SP , TEXT
+  | YAMLCommentLine ) , NL ;
+
+YAMLCommentLine = "#" , TEXT ;
 
 FrontKey =
     "title"
@@ -121,6 +124,7 @@ FrontKey =
 **FrontMatter**
 
 Front matter is parsed and preserved as metadata, but it does not alter core body rendering.
+Front matter follows a commentable YAML-style line format (`# ...` comment lines are allowed).
 
 ---
 
@@ -167,7 +171,7 @@ The `: ` prefix is stripped from output.
 ## Horizontal Rule
 
 ```ebnf
-HorizontalRule = "---" , NL ;
+HorizontalRule = "---" , { "-" } , NL ;
 ```
 
 ---
@@ -195,6 +199,8 @@ A line beginning with `\!#` MUST be treated as a literal `!#`.
 
 The opener `#!<lang>` sets the `language-<lang>` class on the rendered block.
 A native shebang line (`#!/path/to/interpreter` or `#!/usr/bin/env <cmd>`) is also accepted as a block opener; the interpreter name is mapped to a canonical language class via the shebang map.
+`copy` (copy-all) excludes the shebang opener by default.
+Clicking a line number copies that exact line, including the shebang line when clicked.
 
 Recognised language tags and shebang aliases:
 
@@ -229,6 +235,7 @@ BlogableBlock =
 
 Blogable blocks present Blogable syntax literally.
 No re-parse is performed inside the block.
+BlogableBlock uses the same opener/closer, literal-content, and copy behavior as CodeBlock, with fixed language tag `blogable`.
 
 ---
 
@@ -246,6 +253,7 @@ EbnfBlock =
 
 Ebnf blocks present grammar definitions literally.
 No re-parse is performed inside the block.
+EbnfBlock uses the same opener/closer, literal-content, and copy behavior as CodeBlock, with fixed language tag `ebnf`.
 
 ---
 
@@ -335,10 +343,10 @@ ULItem   = "- " , InlineText , NL ;
 OLItem   = "# " , InlineText , NL ;
 TaskItem = "[" , ( " " | "x" ) , "]" , SP , InlineText , NL ;
 
-DLItem   = ":=" , SP , Term , NL , DD ;
+DLItem   = "? " , Term , NL , DDItem , { DDItem } ;
+DDItem   = "= " , InlineText , NL ;
 
 Term = InlineText ;
-DD   = Paragraph , { Paragraph } ;
 ```
 
 **ListBlock**
@@ -346,7 +354,7 @@ DD   = Paragraph , { Paragraph } ;
 A ListBlock contains one item type at a time.
 Indentation must use spaces only and must advance in multiples of two spaces.
 List blocks split when the item type changes, a blank line appears, or a non-list block appears.
-Definition-list terms are unique across the document.
+`?` / `=` DLItem is casual definition-list markup for list usage and is distinct from `:=` DefinitionBlock grammar.
 
 ---
 
@@ -419,6 +427,7 @@ DefinitionBlock = ":=" , SP , Term , NL , DD , { Meta } ;
 
 Definition blocks behave as list items in the DL system.
 The definition body is one or more paragraphs.
+Definition-list terms are unique across the document.
 
 ---
 
