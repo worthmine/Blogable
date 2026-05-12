@@ -237,9 +237,10 @@ print('フィボナッチ:', ', '.join(map(str, results)))
 
 :::# 内部アンカー
 
-[#blogable-v11-alpha-デモ]
+:: Blogable v1.1-alpha デモ用アンカーターゲット
+@[id: blogable-v11-alpha-demo]
 
-見出し参照: [[#番号付き h2]]
+見出し参照: [[#blogable-v11-alpha-demo]]
 
 ---
 

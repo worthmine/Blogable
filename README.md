@@ -459,6 +459,12 @@ Internal anchors reference document IDs.
 Resolvable targets are heading IDs (including `@[id: ...]` overrides), anchor-block IDs (`[#id]`), and definition-term IDs.
 Unresolved references produce a warning.
 
+**Anchor Notation Policy (Readability)**
+
+- `[[#id]]` is the canonical syntax for in-text references.
+- `[#id]` (anchor-block) is discouraged by default and should be treated as an exceptional fallback only.
+- Prefer defining targets via existing heading/definition IDs (`:: ...`, `@[id: ...]`, `:= term`) instead of introducing standalone anchor blocks.
+
 ---
 
 ## Definitions
@@ -538,7 +544,7 @@ Warnings notify without stopping rendering.
 | E402 | Error | Heading depth exceeds h6. Use 2–6 colons: `:: h2` … `:::::: h6`. |
 | E403 | Error | Definition term has no body. Add at least one paragraph after the `:= term` line. |
 | E405 | Error | Duplicate generated id in one document. IDs are not auto-renamed; resolve the collision in source. |
-| W601 | Warning | `[#id]` — no heading, anchor-block, definition-term, or `@[id]` target with that id found. Add `[#id]` on its own line (or define a matching target id) to create the target. |
+| W601 | Warning | `[#id]` — no heading, anchor-block, definition-term, or `@[id]` target with that id found. Define a matching target id (prefer heading/definition IDs; use standalone `[#id]` only as an exceptional fallback). |
 | W201 | Warning | Malformed front matter line. Expected format: `key: value`. |
 | W202 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
 | W001 | Warning | Unterminated code block: `#!lang` opened but closing `!#` not found before EOF. |

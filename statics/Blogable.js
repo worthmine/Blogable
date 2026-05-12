@@ -273,7 +273,7 @@ function parseInline(text) {
       if (Object.hasOwn(anchorIds, slug)) {
         out += `<a href="#${esc(slug)}" class="obsidian-anchor">${esc(id)}</a>`;
       } else {
-        pushDiag('W601',`[#${id}] — no heading, anchor block, definition term, or @[id] target with that id found. Add "[#${id}]" on its own line (or define a matching target id).`);
+        pushDiag('W601',`[#${id}] — no heading, anchor block, definition term, or @[id] target with that id found. Define a matching target id (prefer heading/definition IDs; use standalone "[#${id}]" only as an exceptional fallback).`);
         out += esc(id);
       }
       i += m[0].length; continue;
@@ -1229,7 +1229,7 @@ Heading  = "::" , { ":" } , SP , InlineText , NL ;
 
 [#blogable-v11-alpha-demo]
 
-見出し参照: [#インライン記法]
+見出し参照: [[#インライン記法]]
 `;
 
 updateDemoUrlLabelsFromSource(document.getElementById('source').value);
