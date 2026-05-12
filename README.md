@@ -340,7 +340,7 @@ SVG files are supported.
 
 ```ebnf
 ExternalEmbedBlock = ExternalEmbed , NL , { Meta } ;
-ExternalEmbed      = "!!" , HTTPS_URL , [ "|" , TEXT ] , "!!" ;
+ExternalEmbed      = "!!" , HTTPS_URL , [ ( "|" | SP ) , TEXT ] , "!!" ;
 ```
 
 **ExternalEmbed**
@@ -353,7 +353,9 @@ The resource type is inferred from the URL:
 - **Video** (`.mp4`, `.webm`, `.ogg`, `.ogv`, `.mov`) — renders as `<figure><video>`.
 - **Other** — renders as an external link `<a rel="noopener noreferrer" target="_blank">`.
 
-The optional TEXT after `|` is used as alt text (for images/video) or link label.
+The optional TEXT after `|` or a space (SP) is used as alt text (for images/video) or link label.
+Both `!!URL|alt text!!` and `!!URL alt text!!` are equivalent.
+Since valid URLs cannot contain spaces, a space is unambiguous as a separator.
 When inline, ExternalEmbed always renders as an external link regardless of media type.
 Only `https://` URLs are accepted; other schemes are output as escaped plain text.
 
@@ -363,7 +365,7 @@ The three resource types are strictly partitioned:
 |-----------|--------|-------|
 | ObsidianLink | `[[path\|display]]` | Local links |
 | ObsidianEmbed | `![[path\|alt]]` | Local image/video embeds |
-| ExternalEmbed | `!!URL\|alt!!` | External links, images, and videos |
+| ExternalEmbed | `!!URL\|alt!!` or `!!URL alt!!` | External links, images, and videos |
 
 ---
 

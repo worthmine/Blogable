@@ -229,9 +229,11 @@ function parseInline(text) {
       i += m[0].length; continue;
     }
 
-    // ── ExternalEmbed  !!HTTPS_URL!! or !!HTTPS_URL|TEXT!! ──────────────────
+    // ── ExternalEmbed  !!HTTPS_URL!! or !!HTTPS_URL|TEXT!! or !!HTTPS_URL TEXT!! ──────────────
     // Inline form: always renders as an external link (block form auto-detects image/video).
-    if ((m = rest.match(/^!!(https:\/\/[^|!\n]+?)(?:\|([^!\n]*))?!!/))) {
+    // Separator between URL and alt/label may be "|" or a single space (SP).
+    // URLs cannot contain spaces, so SP is unambiguous as a separator.
+    if ((m = rest.match(/^!!(https:\/\/[^ |!\n]+)(?:[| ]([^!\n]*))?!!/))) {
       const url = m[1].trim(), label = m[2] ? m[2].trim() : null;
       const display = label || getHostname(url);
       out += isSafeUrl(url) ? extLink(url, esc(display)) : esc(m[0]);
@@ -447,8 +449,9 @@ function tokenize(lines) {
     const olM=raw.match(/^((?:  )*)#\s+(.*)/);
     if (olM) { tokens.push({type:'ol', indent:olM[1].length, text:olM[2]}); continue; }
 
-    // ExternalEmbed !!URL!! or !!URL|alt!! (block) — 外部リソース（リンク・画像・動画）
-    const extEmbedM=t.match(/^!!(https:\/\/[^|!\n]+?)(?:\|([^!\n]*))?!!$/);
+    // ExternalEmbed !!URL!! or !!URL|alt!! or !!URL alt!! (block) — 外部リソース（リンク・画像・動画）
+    // "|" or SP may be used as the separator before alt text; URLs cannot contain spaces.
+    const extEmbedM=t.match(/^!!(https:\/\/[^ |!\n]+)(?:[| ]([^!\n]*))?!!$/);
     if (extEmbedM) {
       tokens.push({type:'external_embed', url:extEmbedM[1].trim(), alt:extEmbedM[2]?extEmbedM[2].trim():null});
       continue;

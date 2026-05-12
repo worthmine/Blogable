@@ -767,6 +767,24 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/>label text</);
   });
 
+  it('ExternalEmbed: SP separator — !!URL alt!! is equivalent to !!URL|alt!!', () => {
+    const html = parse('!!https://example.com/photo.jpg A nice photo!!');
+    expect(html).toMatch(/alt="A nice photo"/);
+    expect(html).toMatch(/<img /);
+  });
+
+  it('ExternalEmbed: SP separator — inline !!url label!! renders as external link', () => {
+    const html = parse('See !!https://example.com this site!! for more.');
+    expect(html).toMatch(/<a href="https:\/\/example\.com"/);
+    expect(html).toMatch(/this site/);
+  });
+
+  it('ExternalEmbed: SP separator — !!video.mp4 caption!! renders video with caption', () => {
+    const html = parse('!!https://example.com/clip.webm Promo clip!!');
+    expect(html).toMatch(/<video /);
+    expect(html).toMatch(/Promo clip/);
+  });
+
   it('ExternalEmbed: http:// is rejected (https only)', () => {
     const html = parse('!!http://example.com!!');
     expect(html).not.toMatch(/<a href="http:\/\//);
