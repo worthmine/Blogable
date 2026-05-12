@@ -255,7 +255,11 @@ function parseInline(text) {
     // ── ObsidianLink  [[PATH]] or [[PATH|DISPLAY]] or [[PATH#HEADING]] or [[PATH#HEADING|DISPLAY]]  ─────────────────────
     if ((m = rest.match(/^\[\[([^#\]\|\n][^\]\|\n]*)(?:\|([^\]\n]*))?\]\]/))) {
       const path = m[1].trim(), display = m[2] !== undefined ? m[2].trim() : m[1].trim();
-      out += `<a href="${esc(path)}" class="obsidian-link">${esc(display)}</a>`;
+      // ObsidianLink paths are local/relative only; reject any URL-scheme (e.g. javascript:, data:, https://)
+      const isSafe = !/^\s*[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(path);
+      out += isSafe
+        ? `<a href="${esc(path)}" class="obsidian-link">${esc(display)}</a>`
+        : esc(m[0]);
       i += m[0].length; continue;
     }
 
