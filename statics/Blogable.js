@@ -6,7 +6,7 @@ Prism.languages.blogable = {
   'shebang-close': { pattern:/^!#$/m,               alias:'keyword' },
   'front-fence':   { pattern:/^@@$/m,               alias:'keyword' },
   'math-fence':    { pattern:/^\$\$$/m,             alias:'keyword' },
-  'hr':            { pattern:/^---$/m,              alias:'punctuation' },
+  'hr':            { pattern:/^-{3,}$/m,            alias:'punctuation' },
   'quote-fence':   { pattern:/^\|>$|^<\|$/m,        alias:'string' },
   'modifier': {
     pattern:/^@\[[a-z][a-z0-9-]*:.*\]$/m,
@@ -69,7 +69,14 @@ function slugify(text) {
     .replace(/-+/g,'-').replace(/^-|-$/g,'');
 }
 function isImageUrl(url) { try { return IMAGE_EXTS.test(new URL(url).pathname); } catch { return IMAGE_EXTS.test(url); } }
-function getHostname(url) { try { return new URL(url).hostname; } catch { return url; } }
+function getHostname(url) {
+  try {
+    if (typeof URL==='function') return new URL(url).hostname;
+  } catch {}
+  // Test and VM harnesses may not provide the URL constructor; keep a deterministic fallback.
+  const m=String(url).match(/^https:\/\/([^\/?#]+)/);
+  return m ? m[1] : url;
+}
 function isSafeUrl(url) { return /^https:\/\//.test(url); }
 function esc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function extLink(href,text) { return `<a href="${esc(href)}" rel="noopener noreferrer" target="_blank">${text}</a>`; }
@@ -109,6 +116,9 @@ function mergeAttrs(baseClass, mods) {
   return ` class="${cls}"`+buildAttrs((mods||[]).filter(m=>m.key!=='class'));
 }
 
+// ---- Demo URL label extension (non-normative) ----
+const demoUrlLabelMap={}, demoLabeledUrls=new Set();
+/*
 // ---- OGP ----
 const ogpMap={}, fetchedUrls=new Set();
 function buildOfflineTitle(url) {
@@ -134,8 +144,45 @@ async function fetchNewOgps(src) {
   const el=document.getElementById('ogp-status');
   const count=Object.keys(ogpMap).length;
   el.style.display=count>0?'inline':'none';
+  // "URLラベル: ${count}件生成済" = "URL labels: ${count} items generated"
   el.textContent=`URLラベル: ${count}件生成済`;
   return updated;
+}
+*/
+function buildDemoUrlLabel(url) {
+  try {
+    const parsed=new URL(url);
+    const host=parsed.hostname.replace(/^www\./,'');
+    const parts=parsed.pathname.split('/').filter(Boolean).map(p=>decodeURIComponent(p));
+    const tail=parts.length?` / ${parts[parts.length-1]}`:'';
+    return `${host}${tail}`;
+  } catch {
+    return null;
+  }
+}
+function updateDemoUrlLabelsFromSource(src) {
+  const urls=[...new Set(src.split('\n').map(l=>l.trim()).filter(l=>/^https:\/\/\S+$/.test(l)&&!isImageUrl(l)))].filter(u=>!demoLabeledUrls.has(u));
+  if (!urls.length) return false;
+  urls.forEach(u=>demoLabeledUrls.add(u));
+  let updated=false;
+  for (const u of urls) {
+    const t=buildDemoUrlLabel(u);
+    if (t) { demoUrlLabelMap[u]=t; updated=true; }
+  }
+  const el=document.getElementById('url-label-status');
+  if (el) {
+    const count=Object.keys(demoUrlLabelMap).length;
+    el.style.display=count>0?'inline':'none';
+    el.textContent=`URL labels: ${count} generated`;
+  }
+  return updated;
+}
+function applyDemoUrlLabelExtension(nodes) {
+  return nodes.map(node=>{
+    if (node.type!=='autolink') return node;
+    const label=demoUrlLabelMap[node.url];
+    return label ? {...node, label} : node;
+  });
 }
 
 // ---- diagnostics ----
@@ -199,7 +246,7 @@ function parseInline(text) {
       if (Object.hasOwn(headingIds, slug)) {
         out += `<a href="#${esc(slug)}" class="obsidian-anchor">${esc(id)}</a>`;
       } else {
-        pushDiag('W001',`Unresolved internal anchor reference: [#${id}]`);
+        pushDiag('W601',`[#${id}] — no heading or anchor with that id found. Add "[#${id}]" on its own line to create the target.`);
         out += esc(id);
       }
       i += m[0].length; continue;
@@ -285,7 +332,7 @@ function tokenize(lines) {
     // ---- トップレベル ----
     if (t==='')    { tokens.push({type:'empty'}); continue; }
     if (t==='@@')  { tokens.push({type:'front_open'}); mode='front'; continue; }
-    if (t==='---') { tokens.push({type:'hr'}); continue; }
+    if (/^-{3,}$/.test(t)) { tokens.push({type:'hr'}); continue; }
     if (t==='|>')  { tokens.push({type:'quote_open'}); mode='quote'; continue; }
     if (t==='$$')  { tokens.push({type:'math_open'}); mode='math'; continue; }
 
@@ -294,8 +341,8 @@ function tokenize(lines) {
     if (modM) {
       const mk=modM[1];
       if (!ALLOWED_META_KEYS.has(mk) && !/^x-[a-z0-9-]+$/.test(mk)) {
-        // [E002] Unknown MetaKey: fall back to literal text (spec: errors fall back safely)
-        pushDiag('E002',`Unknown MetaKey: ${mk}. Allowed keys: ${[...ALLOWED_META_KEYS].join(', ')}, or x-* custom keys`);
+        // [E202] Unknown MetaKey: fall back to literal text (spec: errors fall back safely)
+        pushDiag('E202',`"${mk}" is not a recognised modifier key. Use: ${[...ALLOWED_META_KEYS].join(', ')}; or x-<name> for custom data attributes (e.g. @[x-role: note]).`);
         tokens.push({type:'text', text:t}); continue;
       }
       tokens.push({type:'modifier', key:mk, value:modM[2]}); continue;
@@ -316,19 +363,24 @@ function tokenize(lines) {
     const plnH=t.match(/^(:{2,6})\s+(.*)/);
     if (plnH) { tokens.push({type:'heading', colons:plnH[1].length, numbered:false, text:plnH[2]}); continue; }
 
-    // 見出しレベル超過（7コロン以上） — [E004]: fall back to text
+    // 見出しレベル超過（7コロン以上） — [E402]: fall back to text
     const overH=t.match(/^(:{7,})(?:\s|#\s)/);
     if (overH) {
-      pushDiag('E004',`Heading level out of range: ${overH[1].length} colons. The maximum heading level is h6 (6 colons).`);
+      pushDiag('E402',`${overH[1].length} colons exceed h6 (the deepest heading in HTML). Use 2–6 colons: ":: h2" … ":::::: h6". Line kept as plain text.`);
       tokens.push({type:'text', text:t}); continue;
     }
 
     // 1行引用
     if (t.startsWith('> ')) { tokens.push({type:'bq_inline', text:t.slice(2)}); continue; }
 
-    // := 定義ブロック（行頭）
-    const defM=t.match(/^:=\s+(.*)/);
+    // := 定義ブロック（行頭のみ。ネスト不可）
+    const defM=raw.match(/^:=\s+(.*)/);
     if (defM) { tokens.push({type:'def_term', text:defM[1]}); continue; }
+    const nestedDefM=raw.match(/^( +):=\s+(.*)/);
+    if (nestedDefM) {
+      pushDiag('E403',`Definition syntax ":= ${nestedDefM[2]}" is top-level only. Remove indentation and place it outside lists.`);
+      tokens.push({type:'text', text:t}); continue;
+    }
 
     // `: ` 段落ブロック（明示的な段落 — モディファイア使用可）
     const paraM=t.match(/^: (.+)/);
@@ -342,10 +394,10 @@ function tokenize(lines) {
     const taskM=raw.match(/^(\s*)\[([ x])\]\s+(.*)/);
     if (taskM) { tokens.push({type:'task', indent:taskM[1].length, checked:taskM[2].toLowerCase()==='x', text:taskM[3]}); continue; }
 
-    // odd-indent list items — [E003] invalid list indentation, fall back to text
-    const oddIndentM=raw.match(/^( +)(#|-)\s+/);
+    // odd-indent list items — [E401] invalid list indentation, fall back to text
+    const oddIndentM=raw.match(/^( +)(#|-|\?|=)\s+/);
     if (oddIndentM && oddIndentM[1].length % 2 !== 0) {
-      pushDiag('E003',`Invalid list indentation: ${oddIndentM[1].length} space(s). Indentation must be a multiple of two.`);
+      pushDiag('E401',`List item has ${oddIndentM[1].length} leading space(s); nesting uses two-space steps (0, 2, 4, …). Item kept as plain text.`);
       tokens.push({type:'text', text:t}); continue;
     }
 
@@ -353,6 +405,25 @@ function tokenize(lines) {
     const ulM=raw.match(/^((?:  )*)-\s+(.*)/);
     if (ulM && !raw.trim().startsWith('-[')) {
       tokens.push({type:'ul', indent:ulM[1].length, text:ulM[2]}); continue;
+    }
+
+    // dl: ? term / = description（インデントはスペースのみ・2個単位）
+    const dlTermM=raw.match(/^((?:  )*)\?\s+(.*)/);
+    if (dlTermM) {
+      if (dlTermM[1].length>0) {
+        pushDiag('E403',`Casual DL term "? ${dlTermM[2]}" is top-level only. Remove indentation and place it outside lists.`);
+        tokens.push({type:'text', text:t}); continue;
+      }
+      tokens.push({type:'dl_dt', indent:dlTermM[1].length, text:dlTermM[2]}); continue;
+    }
+
+    const dlDescM=raw.match(/^((?:  )*)=\s+(.*)/);
+    if (dlDescM) {
+      if (dlDescM[1].length>0) {
+        pushDiag('E403',`Casual DL description "= ${dlDescM[2]}" is top-level only. Remove indentation and place it outside lists.`);
+        tokens.push({type:'text', text:t}); continue;
+      }
+      tokens.push({type:'dl_dd', indent:dlDescM[1].length, text:dlDescM[2]}); continue;
     }
 
     // ol: # item（インデントはスペースのみ・2個単位）
@@ -370,10 +441,10 @@ function tokenize(lines) {
     tokens.push({type:'text', text:t});
   }
   // 未閉鎖ブロックの検知 — EOF 時点でブロックが閉じていない場合に警告を発する
-  if (mode==='front')   pushDiag('W003','Unterminated front matter block: missing closing @@');
-  if (mode==='shebang') pushDiag('W004','Unterminated code block: missing closing !#');
-  if (mode==='quote')   pushDiag('W005','Unterminated quote block: missing closing <|');
-  if (mode==='math')    pushDiag('W006','Unterminated math block: missing closing $$');
+  if (mode==='front')   pushDiag('W202','Unterminated front matter: @@ was opened but the closing @@ was not found before EOF.');
+  if (mode==='shebang') pushDiag('W001','Unterminated code block: #!lang was opened but the closing !# was not found before EOF.');
+  if (mode==='quote')   pushDiag('W002','Unterminated block quote: |> was opened but the closing <| was not found before EOF.');
+  if (mode==='math')    pushDiag('W003','Unterminated math block: $$ was opened but the closing $$ was not found before EOF.');
   return tokens;
 }
 
@@ -388,17 +459,21 @@ function buildAST(tokens) {
   function parseListItems(baseIndent, listType) {
     // listType: enforced at this level (same-level items must share a type).
     //           Omit (undefined) to allow mixed types — used when recursing for children.
+    const isListToken=t=>t==='ul'||t==='ol';
+    const normType=t=>t;
+    const levelType=normType(listType);
     const items=[];
     while (i<tokens.length) {
       const tok=tokens[i];
-      const typeOk=!listType||tok.type===listType;
-      if ((tok.type==='ul'||tok.type==='ol') && tok.indent===baseIndent && typeOk) {
+      const tokType=normType(tok.type);
+      const typeOk=!levelType||tokType===levelType;
+      if (isListToken(tok.type) && tok.indent===baseIndent && typeOk) {
         i++;
-        const item={listType:tok.type, text:tok.text, children:null};
+        const item={listType:tokType, text:tok.text, children:null};
         if (i<tokens.length) {
           const next=tokens[i];
           // Nested children may be a different type — recurse without listType constraint
-          if ((next.type==='ul'||next.type==='ol') && next.indent===baseIndent+2)
+          if (isListToken(next.type) && next.indent===baseIndent+2)
             item.children=parseListItems(next.indent);
         }
         items.push(item);
@@ -416,23 +491,23 @@ function buildAST(tokens) {
       cur.items.push(item);
     }
     let html='';
-    for (const group of groups) {
-      const isTask=group.type==='task';
-      const tag=group.type==='ol'?'ol':'ul';
-      if (html) html+='\n';
-      html+=`<${tag}>\n`;
-      for (const item of group.items) {
-        if (isTask) {
-          html+=`  <li class="task-item"><input type="checkbox" disabled${item.checked?' checked':''}> ${parseInline(item.text)}</li>\n`;
-        } else {
-          html+=`  <li>${parseInline(item.text)}`;
-          if (item.children) html+='\n'+renderListItems(item.children).split('\n').map(l=>'  '+l).join('\n')+'\n  ';
-          html+=`</li>\n`;
+      for (const group of groups) {
+        const isTask=group.type==='task';
+        const tag=group.type==='ol'?'ol':'ul';
+        if (html) html+='\n';
+        html+=`<${tag}>\n`;
+        for (const item of group.items) {
+          if (isTask) {
+            html+=`  <li class="task-item"><input type="checkbox" disabled${item.checked?' checked':''}> ${parseInline(item.text)}</li>\n`;
+          } else {
+            html+=`  <li>${parseInline(item.text)}`;
+            if (item.children) html+='\n'+renderListItems(item.children).split('\n').map(l=>'  '+l).join('\n')+'\n  ';
+            html+=`</li>\n`;
+          }
         }
+        html+=`</${tag}>`;
       }
-      html+=`</${tag}>`;
-    }
-    return html;
+      return html;
   }
 
   // フロントマターパース
@@ -444,7 +519,6 @@ function buildAST(tokens) {
     'description',
     'tags',
     'slug',
-    'draft',
     'lang'
   ]);
 
@@ -455,17 +529,18 @@ function buildAST(tokens) {
   function parseFrontLines(lines) {
     const meta={};
     for (const line of lines) {
+      if (/^\s*#/.test(line)) continue;
       const m=line.match(/^([a-z][a-z0-9-]*): (.*)$/);
       if (!m) {
-        // [W002] Non-empty lines that do not match FrontMetaLine syntax are invalid
-        if (line !== '') pushDiag('W002',`Malformed front matter line: ${line}`);
+        // [W201] Non-empty lines that do not match FrontMetaLine syntax are invalid
+        if (line !== '') pushDiag('W201',`Malformed front matter line: "${line}". Expected format: "key: value".`);
         continue;
       }
 
       const key=m[1];
       if (!isAllowedFrontMatterKey(key)) {
-        // [E001] Invalid key: invalidate this construct and continue (spec: errors fall back safely)
-        pushDiag('E001',`Invalid front matter key: ${key}`);
+        // [E201] Invalid key: invalidate this construct and continue (spec: errors fall back safely)
+        pushDiag('E201',`"${key}" is not a recognised front matter key. Allowed: title, author, date, updated, description, tags, slug, lang; or x-* for custom metadata.`);
         continue;
       }
 
@@ -568,14 +643,14 @@ function buildAST(tokens) {
         }
         break;
       }
-      // [E005] 定義本文（DD）が空の場合 — spec: DefinitionBlock requires at least one paragraph (DD)
+      // [E403] 定義本文（DD）が空の場合 — spec: DefinitionBlock requires at least one paragraph (DD)
       if (ddLines.length===0) {
-        pushDiag('E005',`Definition block for "${term}" has no body text. A DefinitionBlock requires at least one paragraph (DD).`);
+        pushDiag('E403',`Definition term "${term}" has no body text. Add at least one paragraph after the := line.`);
       }
-      // [W007] 定義用語の重複 — spec: Definition-list terms are unique across the document
+      // [W401] 定義用語の重複 — spec: Definition-list terms are unique across the document
       const termKey=term.trim().toLowerCase();
       if (definitionTerms.has(termKey)) {
-        pushDiag('W007',`Duplicate definition term: "${term}" is already defined in this document.`);
+        pushDiag('W401',`Definition term "${term}" is defined more than once. Terms must be unique (case-insensitive).`);
       } else {
         definitionTerms.add(termKey);
       }
@@ -615,11 +690,40 @@ function buildAST(tokens) {
       continue;
     }
 
+    // casual DL block (? term + one-or-more = desc) — top-level only
+    if (tok.type==='dl_dt' && tok.indent===0) {
+      const entries=[];
+      while (i<tokens.length && tokens[i].type==='dl_dt' && tokens[i].indent===0) {
+        const term=tokens[i++].text;
+        const ddLines=[];
+        while (i<tokens.length && tokens[i].type==='dl_dd' && tokens[i].indent===0) ddLines.push(tokens[i++].text);
+        if (ddLines.length===0) {
+          pushDiag('E403',`Definition term "${term}" has no body text. Add at least one "= " line after the "? " line.`);
+          nodes.push({type:'paragraph', html:parseInline(`? ${term}`)});
+        } else {
+          entries.push({term, ddLines});
+        }
+      }
+      if (entries.length>0) {
+        const html='<dl>\n'+entries.map(e=>`  <dt>${parseInline(e.term)}</dt><dd>${e.ddLines.map(l=>parseInline(l)).join('<br>\n')}</dd>`).join('\n')+'\n</dl>';
+        const mods=cm();
+        nodes.push({type:'list', html, mods});
+      }
+      continue;
+    }
+
     // ul / ol
     if (tok.type==='ul'||tok.type==='ol') {
       const items=parseListItems(tok.indent, tok.type);
       const mods=cm();
       nodes.push({type:'list', html:renderListItems(items), mods});
+      continue;
+    }
+
+    if (tok.type==='dl_dd') {
+      pushDiag('E403',`Casual DL description "${tok.text}" has no matching "? term" above it. Add a "? term" line immediately before it.`);
+      i++;
+      nodes.push({type:'paragraph', html:parseInline(tok.text)});
       continue;
     }
 
@@ -638,7 +742,7 @@ function buildAST(tokens) {
         .replace(/'/g,'&#39;');
       for (const url of group) {
         if (isSafeUrl(url)) {
-          nodes.push({type:'autolink', url, label:ogpMap[url]||getHostname(url)});
+          nodes.push({type:'autolink', url, label:getHostname(url)});
         } else {
           nodes.push({type:'paragraph', html:escapeHtmlText(url)});
         }
@@ -651,9 +755,9 @@ function buildAST(tokens) {
       i++;
       const mods=cm();
       const altMod=tok.alt!==null?[{key:'alt',value:tok.alt}]:[];
-      // [W009] @[alt: ...] modifier on an ObsidianEmbed is deprecated — use ![[path|alt text]]
+      // [W802] @[alt: ...] modifier on an ObsidianEmbed is deprecated — use ![[path|alt text]]
       if (mods.some(m=>m.key==='alt')) {
-        pushDiag('W009','@[alt: ...] is deprecated for ObsidianEmbed. Use the inline pipe syntax ![[path|alt text]] to set the alt attribute instead.');
+        pushDiag('W802','@[alt: ...] is deprecated for ObsidianEmbed. Use the inline pipe syntax ![[path|alt text]] to set the alt attribute instead.');
       }
       nodes.push({type:'figure', images:[{url:tok.path, mods:[...altMod,...mods]}]});
       continue;
@@ -684,9 +788,9 @@ function buildAST(tokens) {
       continue;
     }
 
-    // [W008] 孤立したモディファイア — どのブロックにも消費されなかった修飾キー
+    // [W801] 孤立したモディファイア — どのブロックにも消費されなかった修飾キー
     if (tok.type==='modifier') {
-      pushDiag('W008',`Orphaned modifier @[${tok.key}: ${tok.value}]: not associated with any block. Modifiers must immediately follow a block that accepts them, with no intervening blank lines.`);
+      pushDiag('W801',`@[${tok.key}: ${tok.value}] was not applied to any block. Place it on the line immediately after a supported block with no blank line in between.`);
     }
     i++;
   }
@@ -754,7 +858,7 @@ function astToHtml(nodes, forDisplay=false) {
       case 'list': {
         const attrs=buildAttrs(node.mods);
         if (!attrs) return node.html;
-        return node.html.replace(/^<(ul|ol)/, `<$1${attrs}`);
+        return node.html.replace(/^<(ul|ol|dl)/, `<$1${attrs}`);
       }
 
       case 'codeblock': {
@@ -804,8 +908,7 @@ function astToHtml(nodes, forDisplay=false) {
   }
 
   case 'autolink': {
-    const label=ogpMap[node.url]||node.label;
-    return `<p>${extLink(node.url, esc(label))}</p>`;
+    return `<p>${extLink(node.url, esc(node.label))}</p>`;
   }
 
   case 'paragraph': return `<p${node.mods?buildAttrs(node.mods):''}>${node.html}</p>`;
@@ -893,7 +996,7 @@ const ast=parseToAST(src);
 const diags=getBlogableDiagnostics();
 updateDiagnosticsPanel(diags);
 if (currentTab==='preview') {
-document.getElementById('preview-out').innerHTML=astToHtml(ast,true);
+document.getElementById('preview-out').innerHTML=astToHtml(applyDemoUrlLabelExtension(ast),true);
 if (window.Prism) highlightCodeTables(document.getElementById('preview-out'));
 if (window.katex) renderKaTeXBlocks(document.getElementById('preview-out'));
 } else if (currentTab==='html') {
@@ -903,7 +1006,7 @@ document.getElementById('html-out').textContent=astToHtml(ast,false);
 let renderTimer=null;
 document.getElementById('source').addEventListener('input',()=>{
 clearTimeout(renderTimer);
-renderTimer=setTimeout(async()=>{render();const updated=await fetchNewOgps(document.getElementById('source').value);if(updated)render();},150);
+renderTimer=setTimeout(()=>{updateDemoUrlLabelsFromSource(document.getElementById('source').value);render();},150);
 });
 
 // –– デモソース ––
@@ -1061,5 +1164,5 @@ Heading  = "::" , { ":" } , SP , InlineText , NL ;
 見出し参照: [#インライン記法]
 `;
 
+updateDemoUrlLabelsFromSource(document.getElementById('source').value);
 render();
-fetchNewOgps(document.getElementById('source').value).then(u=>{if(u)render();});

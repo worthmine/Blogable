@@ -22,6 +22,39 @@ This document defines the bootstrap EBNF for Blogable v1.1-alpha.
 
 ---
 
+## Goals
+
+**Goals**
+
+For v1.0-frozen, the core priorities are fixed in this order:
+
+- Deterministic parsing
+- Single-pass processing
+- Secure rendering
+
+Convenience features MUST NOT take precedence over these core goals.
+
+---
+
+## Non-Goals
+
+**Non-Goals**
+
+The core specification excludes behavior that depends on external state or the network.
+
+In particular, the following are non-goals for v1.0-frozen core:
+
+- OGP fetching
+- link unfurling
+- outbound URL validation
+- HEAD/GET metadata retrieval
+- preview card generation
+- external content embedding
+
+Such behavior MAY exist only as an optional implementation extension.
+
+---
+
 ## Lexical Elements
 
 ```ebnf
@@ -71,7 +104,10 @@ FrontMatterBlock =
   "@@" , NL ;
 
 FrontMetaLine =
-  FrontKey , ":" , SP , TEXT , NL ;
+  ( FrontKey , ":" , SP , TEXT
+  | YAMLCommentLine ) , NL ;
+
+YAMLCommentLine = "#" , TEXT ;
 
 FrontKey =
     "title"
@@ -81,7 +117,6 @@ FrontKey =
   | "description"
   | "tags"
   | "slug"
-  | "draft"
   | "lang"
   | "x-" , { LOWER | DIGIT | "-" } ;
 ```
@@ -89,6 +124,7 @@ FrontKey =
 **FrontMatter**
 
 Front matter is parsed and preserved as metadata, but it does not alter core body rendering.
+Front matter follows a commentable YAML-style line format (`# ...` comment lines are allowed).
 
 ---
 
@@ -122,7 +158,7 @@ Plain paragraphs do not accept metadata modifiers.
 ## Explicit Paragraphs
 
 ```ebnf
-ParaBlock = ": " , InlineText , NL , { Meta } ;
+ParaBlock = ":" , SP , InlineText , NL , { Meta } ;
 ```
 
 **ParaBlock**
@@ -135,7 +171,7 @@ The `: ` prefix is stripped from output.
 ## Horizontal Rule
 
 ```ebnf
-HorizontalRule = "---" , NL ;
+HorizontalRule = "---" , { "-" } , NL ;
 ```
 
 ---
@@ -163,6 +199,8 @@ A line beginning with `\!#` MUST be treated as a literal `!#`.
 
 The opener `#!<lang>` sets the `language-<lang>` class on the rendered block.
 A native shebang line (`#!/path/to/interpreter` or `#!/usr/bin/env <cmd>`) is also accepted as a block opener; the interpreter name is mapped to a canonical language class via the shebang map.
+`copy` (copy-all) excludes the shebang opener by default.
+Clicking a line number copies that exact line, including the shebang line when clicked.
 
 Recognised language tags and shebang aliases:
 
@@ -197,6 +235,7 @@ BlogableBlock =
 
 Blogable blocks present Blogable syntax literally.
 No re-parse is performed inside the block.
+BlogableBlock uses the same opener/closer, literal-content, and copy behavior as CodeBlock, with fixed language tag `blogable`.
 
 ---
 
@@ -214,6 +253,7 @@ EbnfBlock =
 
 Ebnf blocks present grammar definitions literally.
 No re-parse is performed inside the block.
+EbnfBlock uses the same opener/closer, literal-content, and copy behavior as CodeBlock, with fixed language tag `ebnf`.
 
 ---
 
@@ -267,6 +307,10 @@ UrlBlock = HTTPS_URL , NL , { Meta } ;
 A UrlBlock is a standalone body line that begins with an HTTPS URL.
 Inline URLs MUST NOT auto-link.
 
+For non-image UrlBlock rendering, the visible link label MUST be derived only from the URL itself.
+The reference renderer uses the hostname as the deterministic core label.
+Fetched metadata or application-supplied replacement labels are outside the core specification.
+
 ---
 
 ## Images
@@ -306,10 +350,10 @@ ULItem   = "- " , InlineText , NL ;
 OLItem   = "# " , InlineText , NL ;
 TaskItem = "[" , ( " " | "x" ) , "]" , SP , InlineText , NL ;
 
-DLItem   = ":=" , SP , Term , NL , DD ;
+DLItem   = "?" , SP , Term , NL , DDItem , { DDItem } ;
+DDItem   = "=" , SP , InlineText , NL ;
 
 Term = InlineText ;
-DD   = Paragraph , { Paragraph } ;
 ```
 
 **ListBlock**
@@ -317,7 +361,9 @@ DD   = Paragraph , { Paragraph } ;
 A ListBlock contains one item type at a time.
 Indentation must use spaces only and must advance in multiples of two spaces.
 List blocks split when the item type changes, a blank line appears, or a non-list block appears.
-Definition-list terms are unique across the document.
+`?` / `=` DLItem is casual definition-list markup for list usage and is distinct from `:=` DefinitionBlock grammar.
+Each `? term` MUST be immediately paired with one or more following `= ` lines.
+Casual DL (`?` / `=`) is top-level only and MUST NOT be nested inside other lists.
 
 ---
 
@@ -392,6 +438,8 @@ DefinitionBlock = ":=" , SP , Term , NL , DD , { Meta } ;
 
 Definition blocks behave as list items in the DL system.
 The definition body is one or more paragraphs.
+Definition-list terms are unique across the document.
+DefinitionBlock (`:=`) is top-level only and MUST NOT be nested inside lists.
 
 ---
 
@@ -417,6 +465,17 @@ Metadata does not cross blank lines.
 
 ---
 
+## Extension Points
+
+**Extension Points**
+
+`x-*` keys are the standardized extension slot for front matter and block metadata.
+
+Extensions MUST preserve the core parse rules, diagnostics, and security guarantees for the same input.
+Extensions MAY add UI enhancements, label completion, or preview generation, but they are not part of core conformance.
+
+---
+
 ## Parsing Model
 
 **Parsing**
@@ -438,19 +497,38 @@ Warnings notify without stopping rendering.
 
 | Code | Kind | Trigger |
 |------|------|---------|
-| E001 | Error | Invalid front matter key (not in allowed list, not `x-*`) |
-| E002 | Error | Unknown MetaKey in a modifier `@[key: value]` |
-| E003 | Error | Invalid list indentation (odd number of leading spaces) |
-| E004 | Error | Heading level out of range (more than 6 colons; maximum is h6) |
-| E005 | Error | Definition block has no body text (DD is required by spec) |
-| W001 | Warning | Unresolved ObsidianAnchor reference `[[#id]]` |
-| W002 | Warning | Malformed front matter line (does not match `key: value` format) |
-| W003 | Warning | Unterminated front matter block (EOF reached without closing `@@`) |
-| W004 | Warning | Unterminated code block (EOF reached without closing `!#`) |
-| W005 | Warning | Unterminated quote block (EOF reached without closing `<|`) |
-| W006 | Warning | Unterminated math block (EOF reached without closing `$$`) |
-| W007 | Warning | Duplicate definition term (same term defined more than once) |
-| W008 | Warning | Orphaned modifier (not consumed by any block) |
+| E201 | Error | Unknown front matter key. Allowed: `title`, `author`, `date`, `updated`, `description`, `tags`, `slug`, `lang`; or `x-*` for custom metadata. |
+| E202 | Error | Unknown modifier key. Built-in keys: `class`, `id`, `title`, `cite`, `author`, `alt`; or `x-<name>` for custom data attributes. |
+| E401 | Error | List indentation is not a multiple of two. Use 0, 2, 4, … spaces for each nesting level. |
+| E402 | Error | Heading depth exceeds h6. Use 2–6 colons: `:: h2` … `:::::: h6`. |
+| E403 | Error | Definition term has no body. Add at least one paragraph after the `:= term` line. |
+| W601 | Warning | `[#id]` — no heading or anchor with that id found. Add `[#id]` on its own line to create the target. |
+| W201 | Warning | Malformed front matter line. Expected format: `key: value`. |
+| W202 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
+| W001 | Warning | Unterminated code block: `#!lang` opened but closing `!#` not found before EOF. |
+| W002 | Warning | Unterminated block quote: `\|>` opened but closing `<\|` not found before EOF. |
+| W003 | Warning | Unterminated math block: `$$` opened but closing `$$` not found before EOF. |
+| W401 | Warning | Duplicate definition term. Terms must be unique (case-insensitive). |
+| W801 | Warning | Orphaned modifier: not placed on the line immediately after a supported block. |
+| W802 | Warning | `@[alt: ...]` on an ObsidianEmbed block is deprecated. Use `![[path\|alt text]]` instead. |
+
+---
+
+## Conformance Levels
+
+**Conformance Levels**
+
+**Core Conformant**
+
+A Core Conformant implementation MUST produce the same AST, HTML, and diagnostics for the same input without external I/O.
+
+**Optional Extension**
+
+An Optional Extension MAY add implementation-defined behavior, but it MUST NOT override or weaken the core semantics, diagnostics, or security model.
+
+**Demo / App Behavior**
+
+Demo or application behavior is non-normative and is excluded from language conformance requirements.
 
 ---
 
@@ -462,6 +540,16 @@ The core parser MUST not access the network.
 The core parser MUST not accept raw HTML.
 The core parser MUST not execute scripts.
 Only HTTPS URLs are accepted by the strict core parser.
+New core features SHOULD be accepted only when they avoid external state, preserve single-pass evaluation, and do not increase implementation divergence.
+
+---
+
+## Non-Normative Demo Behaviors
+
+**Non-Normative Demo Behaviors**
+
+The live demo MAY enhance URL labels for preview convenience.
+Such behavior is informative only and MUST NOT redefine the core AST/HTML contract.
 
 ---
 
@@ -478,4 +566,3 @@ Blogable is a deterministic, single-pass markup language with semantic output an
 ## Conclusion
 
 Blogable v1.1-alpha is deterministic, self-describing, and semantically stable.
-
