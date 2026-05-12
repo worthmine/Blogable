@@ -89,7 +89,6 @@ Block = Heading
       | MathBlock
       | UrlBlock
       | HorizontalRule
-      | InternalAnchorBlock
       | DefinitionBlock ;
 ```
 
@@ -449,21 +448,11 @@ Inline code has no escape syntax.
 
 ## Internal Anchors
 
-```ebnf
-InternalAnchorBlock = "[#" , TEXT , "]" , NL ;
-```
-
 **InternalAnchor**
 
-Internal anchors reference document IDs.
-Resolvable targets are heading IDs (including `@[id: ...]` overrides), anchor-block IDs (`[#id]`), and definition-term IDs.
-Unresolved references produce a warning.
-
-**Anchor Notation Policy (Readability)**
-
-- `[[#id]]` is the canonical syntax for in-text references.
-- `[#id]` (anchor-block) is discouraged by default and should be treated as an exceptional fallback only.
-- Prefer defining targets via existing heading/definition IDs (`:: ...`, `@[id: ...]`, `:= term`) instead of introducing standalone anchor blocks.
+Internal anchors are in-text references using `[[#id]]`.
+Resolvable targets are heading IDs (including `@[id: ...]` overrides) and definition-term IDs.
+`[#id]` standalone anchor-block syntax is removed.
 
 ---
 
@@ -544,7 +533,7 @@ Warnings notify without stopping rendering.
 | E402 | Error | Heading depth exceeds h6. Use 2–6 colons: `:: h2` … `:::::: h6`. |
 | E403 | Error | Definition term has no body. Add at least one paragraph after the `:= term` line. |
 | E405 | Error | Duplicate generated id in one document. IDs are not auto-renamed; resolve the collision in source. |
-| W601 | Warning | `[#id]` — target id not found. Define a matching id via heading, definition-term, or `@[id]` (standalone `[#id]` is fallback-only). |
+| W601 | Warning | `[[#id]]` — target id not found. Define a matching id via heading, definition-term, or `@[id]`. |
 | W201 | Warning | Malformed front matter line. Expected format: `key: value`. |
 | W202 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
 | W001 | Warning | Unterminated code block: `#!lang` opened but closing `!#` not found before EOF. |

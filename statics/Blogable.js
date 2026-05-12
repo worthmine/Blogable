@@ -24,7 +24,6 @@ Prism.languages.blogable = {
   'bq-inline':     { pattern:/^> .+$/m,             alias:'string' },
   'task-done':     { pattern:/^\[x\] .+$/mi,          alias:'inserted' },
   'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
-  'anchor-block':  { pattern:/^\[#[^\]]+\]$/m,       alias:'symbol' },
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
   'external-embed': { pattern:/!!https:\/\/[^!\n]+!!/,               alias:'url' },
   'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
@@ -273,7 +272,7 @@ function parseInline(text) {
       if (Object.hasOwn(anchorIds, slug)) {
         out += `<a href="#${esc(slug)}" class="obsidian-anchor">${esc(id)}</a>`;
       } else {
-        pushDiag('W601',`[#${id}] — target id not found. Define a matching id via heading, definition term, or @[id] (standalone "[#${id}]" is fallback-only).`);
+        pushDiag('W601',`[[#${id}]] — target id not found. Define a matching id via heading, definition term, or @[id].`);
         out += esc(id);
       }
       i += m[0].length; continue;
@@ -417,10 +416,6 @@ function tokenize(lines) {
     // `: ` 段落ブロック（明示的な段落 — モディファイア使用可）
     const paraM=t.match(/^: (.+)/);
     if (paraM) { tokens.push({type:'para_block', text:paraM[1]}); continue; }
-
-    // 内部アンカーブロック [#text]
-    const anchorM=t.match(/^\[#([^\]]+)\]$/);
-    if (anchorM) { tokens.push({type:'anchor_block', id:slugify(anchorM[1]), label:anchorM[1]}); continue; }
 
     // タスクリスト
     const taskM=raw.match(/^(\s*)\[([ x])\]\s+(.*)/);
@@ -703,14 +698,6 @@ function buildAST(tokens) {
       continue;
     }
 
-    // 内部アンカーブロック
-    if (tok.type==='anchor_block') {
-      i++;
-      const id=reserveAnchorId(tok.id,'anchor block');
-      nodes.push({type:'anchor_block', id, label:tok.label});
-      continue;
-    }
-
     // コードブロック
     if (tok.type==='shebang_open') {
       const {lang, shebangLine}=tok; i++;
@@ -902,10 +889,6 @@ function astToHtml(nodes, forDisplay=false) {
 
       case 'def_block': {
         return `<dl${mergeAttrs('def-block', node.mods)}><dt id="${esc(node.termId)}"><a href="#${esc(node.termId)}">${node.termHtml}</a></dt><dd>${node.ddHtml}</dd></dl>`;
-      }
-
-      case 'anchor_block': {
-        return `<span class="anchor-block" id="${esc(node.id)}">[#${esc(node.label)}]</span>`;
       }
 
       case 'list': {
@@ -1227,7 +1210,8 @@ Heading  = "::" , { ":" } , SP , InlineText , NL ;
 
 :: 内部アンカー
 
-[#blogable-v11-alpha-demo]
+:: Blogable v1.1-alpha デモ用アンカーターゲット
+@[id: blogable-v11-alpha-demo]
 
 見出し参照: [[#インライン記法]]
 `;

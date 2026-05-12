@@ -73,8 +73,6 @@ def hello(name):
 
 ## [アンカーブロック](#アンカーブロック)
 
-<a id="introduction-anchor"></a>
-
 ---
 
 ## [数式ブロック](#数式ブロック)

@@ -63,8 +63,6 @@ def plain_text(blogable_inline):
     s = re.sub(r'\[https?://[^ \]\n]+ ([^\]\n]+)\]', r'\1', s)
     # [https://...] (bare URL) → URL
     s = re.sub(r'\[https?://([^\]\n]+)\]', r'\1', s)
-    # [#label] → label
-    s = re.sub(r'\[#([^\]\n]+)\]', r'\1', s)
     # [^...] footnote → (remove; no visible inline text)
     s = re.sub(r'\[\^[^\]\n]*\]', '', s)
     # **bold** → bold
@@ -132,7 +130,7 @@ def convert_inline(text, footnotes):
     Convert Blogable inline markup to Markdown inline markup.
 
     Evaluation order (mirrors Blogable spec):
-    Code > Link > Footnote > AnchorRef > Strong > Emphasis > Delete > Insert > Plain
+    Code > Link > Footnote > Strong > Emphasis > Delete > Insert > Plain
     """
     result = ''
     idx = 0
@@ -166,14 +164,6 @@ def convert_inline(text, footnotes):
             else:
                 footnotes.append({'n': fn_num, 'url': None, 'text': inner})
             result += f'[^{fn_num}]'
-            idx += len(m.group(0))
-            continue
-
-        # ── AnchorRef [#label] ────────────────────────────────────────────
-        m = re.match(r'^\[#([^\]\n]+)\]', rest)
-        if m:
-            label = m.group(1)
-            result += f'[{label}](#{slugify(label)})'
             idx += len(m.group(0))
             continue
 
@@ -531,15 +521,6 @@ def convert(src, mode='zenn'):
             out.append('')
             continue
 
-        # ── Internal anchor block  [#label]  ─────────────────────────────
-        anchor_m = re.match(r'^\[#([^\]]+)\]$', stripped)
-        if anchor_m:
-            label = anchor_m.group(1)
-            slug = slugify(label)
-            out.append(f'<a id="{slug}"></a>')
-            i += 1
-            continue
-
         # ── Task list item  [x] / [ ]  ───────────────────────────────────
         task_m = re.match(r'^(\s*)\[([ x])\]\s+(.*)', line, re.IGNORECASE)
         if task_m:
@@ -613,7 +594,6 @@ def convert(src, mode='zenn'):
                     or re.match(r'^https://', ns)
                     or re.match(r'^@\[', ns)
                     or ns.startswith('> ')
-                    or re.match(r'^\[#[^\]]+\]$', ns)
                     or re.match(r'^\s*\[([ x])\]\s+', next_raw, re.IGNORECASE)
                     or re.match(r'^((?:  )*)-\s+', next_raw)
                     or re.match(r'^((?:  )*)#\s+', next_raw)):

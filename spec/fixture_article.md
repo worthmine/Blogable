@@ -73,8 +73,6 @@ The body paragraph that defines the term.
 
 ## [Anchor Block](#anchor-block)
 
-<a id="introduction-anchor"></a>
-
 ---
 
 ## [Math Block](#math-block)

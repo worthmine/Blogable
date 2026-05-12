@@ -862,23 +862,21 @@ describe('§InlineSyntax', () => {
   });
 
   it('ObsidianAnchor: [[#heading-id]] resolves to an in-page link when heading exists', () => {
-    // ObsidianAnchor is an inline construct; it must appear inside paragraph text,
-    // not as a standalone line (which would be tokenised as anchor_block instead).
+    // ObsidianAnchor is an inline construct; it must appear inside paragraph text.
     const src = ':: My Section\n\nSee [[#My Section]] for details.';
     const html = parse(src);
     expect(html).toMatch(/<a href="#my-section" class="obsidian-anchor"/);
   });
 
-  it('ObsidianAnchor: [[#anchor-id]] resolves to an anchor block id', () => {
+  it('ObsidianAnchor: [[#anchor-id]] does not resolve from deprecated [#id] syntax', () => {
     const src = '[#My Anchor]\n\nSee [[#my-anchor]] here.';
     const html = parse(src);
-    expect(html).toMatch(/<a href="#my-anchor" class="obsidian-anchor">my-anchor<\/a>/);
-    expect(getDiagnostics().some(d => d.code === 'W601')).toBe(false);
+    expect(html).not.toMatch(/<a href="#my-anchor" class="obsidian-anchor">my-anchor<\/a>/);
+    expect(getDiagnostics().some(d => d.code === 'W601')).toBe(true);
   });
 
   it('ObsidianAnchor: [[#unknown]] emits [W601] and renders plain text', () => {
-    // ObsidianAnchor is inline-only; use it inside paragraph text so it is not
-    // tokenised as a standalone anchor_block.
+    // ObsidianAnchor is inline-only; use it inside paragraph text.
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const html = parse('Read [[#nonexistent]] for more.');
@@ -1043,19 +1041,18 @@ describe('§InlineSyntax', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// §InternalAnchors
+// Deprecated [#id]
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('§InternalAnchors', () => {
-  it('[#text] standalone block → <span class="anchor-block" id="…">', () => {
+describe('Deprecated [#id]', () => {
+  it('[#text] standalone line is treated as plain text', () => {
     const html = parse('[#my-anchor]');
-    expect(html).toMatch(/<span class="anchor-block"/);
-    expect(html).toMatch(/id="my-anchor"/);
+    expect(html).toMatch(/<p>\[#my-anchor\]<\/p>/);
   });
 
-  it('anchor block id is derived via slugify', () => {
+  it('deprecated [#id] does not create an anchor target for [[#id]]', () => {
     const html = parse('[#My Anchor]');
-    expect(html).toMatch(/id="my-anchor"/);
+    expect(html).toMatch(/<p>\[#My Anchor\]<\/p>/);
   });
 });
 
@@ -1294,7 +1291,7 @@ describe('§Diagnostics', () => {
   });
 
   it('[W601] warning does not stop rendering', () => {
-    const html = parse(':: Section\n\n[#ghost]');
+    const html = parse(':: Section\n\nSee [[#ghost]]');
     // The heading must still be rendered
     expect(html).toMatch(/<h2/);
   });
@@ -1910,9 +1907,9 @@ describe('§Security', () => {
     expect(html).toMatch(/&lt;script&gt;/);
   });
 
-  it('anchor block label with HTML chars is escaped', () => {
+  it('deprecated [#id] literal with HTML chars is escaped', () => {
     const html = parse('[#<evil> section]');
-    // The label text must be escaped in the span output
+    // The literal text must be escaped in paragraph output
     expect(html).not.toMatch(/<evil>/);
     expect(html).toMatch(/&lt;evil&gt;/);
   });
@@ -2063,9 +2060,9 @@ describe('§Tokenizer', () => {
     expect(toks[0].type).toBe('url');
   });
 
-  it('[#anchor] standalone → anchor_block token', () => {
+  it('[#anchor] standalone → text token (deprecated syntax)', () => {
     const toks = tokenize('[#my-anchor]');
-    expect(toks[0].type).toBe('anchor_block');
+    expect(toks[0].type).toBe('text');
   });
 
   it(':= term → def_term token', () => {

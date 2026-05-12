@@ -169,9 +169,9 @@ class TestConvertInline(unittest.TestCase):
         self.assertEqual(text, '[^1] and [^2]')
         self.assertEqual(len(footnotes), 2)
 
-    def test_anchor_ref(self):
+    def test_deprecated_anchor_ref_is_plain_text(self):
         result, _ = self._ci('[#My Section]')
-        self.assertEqual(result, '[My Section](#my-section)')
+        self.assertEqual(result, '[#My Section]')
 
     def test_strong(self):
         result, _ = self._ci('**bold text**')
@@ -404,12 +404,6 @@ class TestConvert(unittest.TestCase):
         # The visible label should contain no nested [...](...) inside the outer [...]
         self.assertIn('## [See the site](#see-the-site)', out)
 
-    def test_heading_with_anchor_ref_no_nested_link(self):
-        """Heading containing an anchor ref must not produce nested Markdown links."""
-        src = ':: Refer to [#other section]\n'
-        out = convert(src)
-        self.assertIn('## [Refer to other section](#refer-to-other-section)', out)
-
     def test_heading_with_strong_plain_text(self):
         """Heading containing **bold** emits plain text in the link label."""
         src = ':: **Important** Notice\n'
@@ -532,13 +526,6 @@ class TestConvert(unittest.TestCase):
         out = convert(src)
         self.assertIn('Line one', out)
         self.assertIn('Line two', out)
-
-    # ── anchor blocks ────────────────────────────────────────────────────────
-
-    def test_anchor_block(self):
-        src = '[#My Section]\n'
-        out = convert(src)
-        self.assertIn('<a id="my-section"></a>', out)
 
     # ── task list ────────────────────────────────────────────────────────────
 
