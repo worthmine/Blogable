@@ -279,6 +279,19 @@ class TestConvertFrontMatter(unittest.TestCase):
         out = self._fm(['title: My Title # ignore me'])
         self.assertIn('title: "My Title"', out)
 
+    def test_zenn_x_type_and_x_emoji_override_defaults(self):
+        out = self._fm(['x-type: idea', 'x-emoji: 💡'])
+        self.assertIn('type: "idea"', out)
+        self.assertIn('emoji: "💡"', out)
+
+    def test_invalid_x_type_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid x-type'):
+            self._fm(['x-type: invalid'])
+
+    def test_invalid_x_emoji_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid x-emoji'):
+            self._fm(['x-emoji: bad value'])
+
     # Qiita mode
     def test_qiita_tags(self):
         out = convert_front_matter(['tags: python, javascript'], mode='qiita')
@@ -980,6 +993,28 @@ class TestCliModes(unittest.TestCase):
             self.assertNotIn('published:', out)
             self.assertNotIn('private:', out)
             self.assertNotIn('slug:', out)
+
+    def test_cli_invalid_x_type_exits_with_error(self):
+        src = dedent("""\
+            @@
+            title: Invalid
+            x-type: invalid
+            @@
+        """)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            in_path = os.path.join(tmpdir, 'in.txt')
+            out_path = os.path.join(tmpdir, 'out.md')
+            with open(in_path, 'w', encoding='utf-8') as fh:
+                fh.write(src)
+
+            proc = subprocess.run(
+                [sys.executable, self.SCRIPT, '--Zenn', in_path, out_path],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('Invalid x-type', proc.stderr)
 
 
 if __name__ == '__main__':

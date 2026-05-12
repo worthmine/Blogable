@@ -266,11 +266,21 @@ def convert_front_matter(fm_lines, mode='zenn'):
         else:
             out.append('tags: []')
     else:
-        # emoji: default placeholder emoji for new articles
-        out.append('emoji: "🚀"')
+        if 'x-emoji' in meta:
+            emoji = meta['x-emoji']
+            if not emoji or re.search(r'\s', emoji):
+                raise ValueError('Invalid x-emoji: use a non-empty value without whitespace')
+        else:
+            emoji = '🚀'
+        out.append(f'emoji: "{emoji}"')
 
-        # type (Zenn: "tech" or "idea"; not in Blogable – default tech)
-        out.append('type: "tech"')
+        if 'x-type' in meta:
+            article_type = meta['x-type']
+            if article_type not in ('tech', 'idea'):
+                raise ValueError('Invalid x-type: expected "tech" or "idea"')
+        else:
+            article_type = 'tech'
+        out.append(f'type: "{article_type}"')
 
         # topics (from tags)
         if tags:
@@ -681,7 +691,11 @@ def main():
             slug = extract_slug(src)
             out_path = Path(slug + '.md') if slug else in_path.with_suffix('.md')
 
-    result = convert(src, mode=args.mode)
+    try:
+        result = convert(src, mode=args.mode)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        raise SystemExit(2)
 
     if out_path:
         out_path.write_text(result, encoding='utf-8')
