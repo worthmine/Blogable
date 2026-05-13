@@ -621,10 +621,7 @@ function buildAST(tokens) {
       } else if (idMods.length>1) {
         pushDiag('E205',`Multiple @[id: ...] modifiers were provided on one heading. Use only one id modifier; rendering uses the last id "${idMods[idMods.length-1]}".`);
       }
-      let customId;
-      for (let idx=mods.length-1; idx>=0; idx--) {
-        if (mods[idx].key==='id') { customId=mods[idx].value; break; }
-      }
+      const customId=idMods.length>0 ? idMods[idMods.length-1] : undefined;
       const otherMods=mods.filter(m=>m.key!=='id');
       const id=reserveAnchorId(customId||tok.text, customId?'heading @[id]':'heading');
       nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(otherMods)});
