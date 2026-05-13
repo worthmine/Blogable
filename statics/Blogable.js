@@ -122,7 +122,8 @@ function buildAttrs(mods) {
 // Like buildAttrs but merges any `class` modifier value into an existing baseClass.
 function mergeAttrs(baseClass, mods) {
   const extras=(mods||[]).filter(m=>m.key==='class').map(m=>m.value);
-  const cls=[baseClass, ...extras].map(c=>esc(c)).join(' ');
+  const extraClass=extras.map(c=>esc(c)).join(' ');
+  const cls=extraClass?`${baseClass} ${extraClass}`:baseClass;
   return ` class="${cls}"`+buildAttrs((mods||[]).filter(m=>m.key!=='class'));
 }
 
@@ -902,7 +903,8 @@ function astToHtml(nodes, forDisplay=false) {
       }
 
       case 'codeblock': {
-        const figAttrs=mergeAttrs(node.lang?`blogable-code language-${node.lang}`:'blogable-code', node.mods);
+        const baseClass=node.lang?`blogable-code language-${esc(node.lang)}`:'blogable-code';
+        const figAttrs=mergeAttrs(baseClass, node.mods);
         if (!forDisplay) {
           const allLines=[node.shebangLine,...node.lines];
           let h=`<figure${figAttrs}>\n`;
