@@ -534,8 +534,8 @@ Warnings notify without stopping rendering.
 | E403 | Error | Definition term has no body. Add at least one paragraph after the `:= term` line. |
 | E405 | Error | Duplicate generated id in one document. IDs are not auto-renamed; resolve the collision in source. |
 | W601 | Warning | `[[#id]]` — target id not found. Define a matching id via heading, definition-term, or `@[id]`. |
-| W211 | Warning | Malformed front matter line. Expected format: `key: value`. |
-| W212 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
+| W201 | Warning | Malformed front matter line. Expected format: `key: value`. |
+| W202 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
 | W001 | Warning | Unterminated code block: `#!lang` opened but closing `!#` not found before EOF. |
 | W002 | Warning | Unterminated block quote: `\|>` opened but closing `<\|` not found before EOF. |
 | W003 | Warning | Unterminated math block: `$$` opened but closing `$$` not found before EOF. |
