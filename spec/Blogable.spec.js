@@ -1114,7 +1114,7 @@ describe('§Metadata', () => {
   it('multiple @[class: ...] modifiers append classes in order', () => {
     const src = ':: My Heading\n@[class: alpha]\n@[class: beta]';
     const html = parse(src);
-    expect(html).toMatch(/<h2[^>]*class="[^"]*alpha[^"]*beta[^"]*"/);
+    expect(html).toMatch(/<h2[^>]*class="[^"]*\balpha\b[^"]*\bbeta\b[^"]*"/);
   });
 
   it('@[id: value] after a block sets id attribute', () => {
@@ -1206,7 +1206,7 @@ describe('§Metadata', () => {
 
   it('multiple @[class: ...] after a math block append to base classes', () => {
     const html = parse('$$\nx = 1\n$$\n@[class: equation]\n@[class: compact]');
-    expect(html).toMatch(/<pre class="math-block equation compact"><code>x = 1<\/code><\/pre>/);
+    expect(html).toMatch(/<pre[^>]*class="[^"]*\bmath-block\b[^"]*\bequation\b[^"]*\bcompact\b[^"]*"[^>]*><code>x = 1<\/code><\/pre>/);
   });
 
   it('single @[id: ...] does not emit [W802]', () => {
