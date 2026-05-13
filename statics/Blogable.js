@@ -121,7 +121,7 @@ function buildAttrs(mods) {
   }
   if (ids.length>1) {
     const finalId=ids[ids.length-1];
-    pushDiag('W802',`Multiple @[id: ...] modifiers were provided; using the last id "${finalId}".`);
+    pushDiag('E205',`Multiple @[id: ...] modifiers were provided on one block. Use only one id modifier; rendering uses the last id "${finalId}".`);
   }
   if (classes.length) attrs.class=classes.map(c=>esc(c)).join(' ');
   return Object.entries(attrs).map(([k,v])=>` ${k}="${v}"`).join('')+(da.length?' '+da.join(' '):'');
@@ -616,8 +616,10 @@ function buildAST(tokens) {
       i++;
       const mods=cm();
       const idMods=mods.filter(m=>m.key==='id').map(m=>m.value);
-      if (idMods.length>1) {
-        pushDiag('W802',`Multiple @[id: ...] modifiers were provided; using the last id "${idMods[idMods.length-1]}".`);
+      if (idMods.length===1) {
+        pushDiag('W802',`@[id: ...] on heading overrides the auto-generated heading id. Using "${idMods[0]}".`);
+      } else if (idMods.length>1) {
+        pushDiag('E205',`Multiple @[id: ...] modifiers were provided on one heading. Use only one id modifier; rendering uses the last id "${idMods[idMods.length-1]}".`);
       }
       let customId;
       for (let idx=mods.length-1; idx>=0; idx--) {
