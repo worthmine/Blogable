@@ -492,6 +492,7 @@ MetaKey =
 Block-local metadata applies only to the immediately preceding block.
 Metadata does not cross blank lines.
 `@[id: ...]` on supported blocks sets that block's ID target. IDs are normalized at the document level; duplicates emit an error.
+If the same key is repeated, `id` is overwritten by the last value, while `class` values are appended in order.
 
 ---
 

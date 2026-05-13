@@ -109,19 +109,20 @@ function detectLang(line) {
 }
 
 function buildAttrs(mods) {
-  const attrs={}, da=[];
+  const attrs={}, da=[], classes=[];
   for (const {key,value} of mods) {
-    if (key==='class') attrs.class=esc(value);
+    if (key==='class') classes.push(value);
     if (key==='id')    attrs.id=esc(value);
     if (/^x-[a-z0-9-]+$/.test(key)) da.push(`data-${esc(key.slice(2))}="${esc(value)}"`);
   }
+  if (classes.length) attrs.class=esc(classes.join(' '));
   return Object.entries(attrs).map(([k,v])=>` ${k}="${v}"`).join('')+(da.length?' '+da.join(' '):'');
 }
 
 // Like buildAttrs but merges any `class` modifier value into an existing baseClass.
 function mergeAttrs(baseClass, mods) {
-  const extra=(mods||[]).find(m=>m.key==='class')?.value;
-  const cls=extra?`${baseClass} ${esc(extra)}`:baseClass;
+  const extras=(mods||[]).filter(m=>m.key==='class').map(m=>m.value);
+  const cls=esc([baseClass, ...extras].join(' '));
   return ` class="${cls}"`+buildAttrs((mods||[]).filter(m=>m.key!=='class'));
 }
 
@@ -605,7 +606,7 @@ function buildAST(tokens) {
     if (tok.type==='heading') {
       i++;
       const mods=cm();
-      const customId=mods.find(m=>m.key==='id')?.value;
+      const customId=[...mods].reverse().find(m=>m.key==='id')?.value;
       const otherMods=mods.filter(m=>m.key!=='id');
       const id=reserveAnchorId(customId||tok.text, customId?'heading @[id]':'heading');
       nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(otherMods)});

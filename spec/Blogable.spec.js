@@ -1111,6 +1111,12 @@ describe('§Metadata', () => {
     expect(html).toMatch(/class="[^"]*highlight[^"]*"/);
   });
 
+  it('multiple @[class: ...] modifiers append classes in order', () => {
+    const src = ':: My Heading\n@[class: alpha]\n@[class: beta]';
+    const html = parse(src);
+    expect(html).toMatch(/<h2[^>]*class="[^"]*alpha[^"]*beta[^"]*"/);
+  });
+
   it('@[id: value] after a block sets id attribute', () => {
     const src = ':: Section\n@[id: custom-id]';
     const html = parse(src);
@@ -1118,6 +1124,15 @@ describe('§Metadata', () => {
     expect(headingTag).toMatch(/id="custom-id"/);
     expect(headingTag.match(/\bid="/g) || []).toHaveLength(1);
     expect(html).toMatch(/<a href="#custom-id">Section<\/a>/);
+  });
+
+  it('multiple @[id: ...] modifiers overwrite id (last one wins)', () => {
+    const src = ':: Section\n@[id: first-id]\n@[id: final-id]';
+    const html = parse(src);
+    const headingTag = (html.match(/<h2[^>]*>/) || [''])[0];
+    expect(headingTag).toMatch(/id="final-id"/);
+    expect(headingTag).not.toMatch(/id="first-id"/);
+    expect(html).toMatch(/<a href="#final-id">Section<\/a>/);
   });
 
   it('@[x-foo: bar] after a block adds data-foo="bar"', () => {
@@ -1185,6 +1200,11 @@ describe('§Metadata', () => {
   it('@[class: equation] after a math block adds class to the math wrapper', () => {
     const html = parse('$$\nx = 1\n$$\n@[class: equation]');
     expect(html).toMatch(/<pre class="math-block equation"><code>x = 1<\/code><\/pre>/);
+  });
+
+  it('multiple @[class: ...] after a math block append to base classes', () => {
+    const html = parse('$$\nx = 1\n$$\n@[class: equation]\n@[class: compact]');
+    expect(html).toMatch(/<pre class="math-block equation compact"><code>x = 1<\/code><\/pre>/);
   });
 
   it('@[class: glossary] after a definition block adds class to <dl>', () => {
