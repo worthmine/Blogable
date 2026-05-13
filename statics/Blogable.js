@@ -122,7 +122,7 @@ function buildAttrs(mods) {
 // Like buildAttrs but merges any `class` modifier value into an existing baseClass.
 function mergeAttrs(baseClass, mods) {
   const extras=(mods||[]).filter(m=>m.key==='class').map(m=>m.value);
-  const cls=esc([baseClass, ...extras].join(' '));
+  const cls=[baseClass, ...extras].map(c=>esc(c)).join(' ');
   return ` class="${cls}"`+buildAttrs((mods||[]).filter(m=>m.key!=='class'));
 }
 
@@ -606,7 +606,10 @@ function buildAST(tokens) {
     if (tok.type==='heading') {
       i++;
       const mods=cm();
-      const customId=[...mods].reverse().find(m=>m.key==='id')?.value;
+      let customId;
+      for (let idx=mods.length-1; idx>=0; idx--) {
+        if (mods[idx].key==='id') { customId=mods[idx].value; break; }
+      }
       const otherMods=mods.filter(m=>m.key!=='id');
       const id=reserveAnchorId(customId||tok.text, customId?'heading @[id]':'heading');
       nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(otherMods)});
