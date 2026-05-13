@@ -1211,9 +1211,9 @@ Heading  = "::" , { ":" } , SP , InlineText , NL ;
 :: 内部アンカー
 
 :: Blogable v1.1-alpha デモ用アンカーターゲット
-@[id: blogable-v11-alpha-demo]
+@[id: blogable-v11-alpha-demo-ja]
 
-見出し参照: [[#インライン記法]]
+見出し参照: [[#blogable-v11-alpha-demo-ja]]
 `;
 
 updateDemoUrlLabelsFromSource(document.getElementById('source').value);
