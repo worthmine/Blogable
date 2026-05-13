@@ -52,23 +52,23 @@ describe('§FrontMatter', () => {
     }
   });
 
-  it('emits [W203] for a malformed front matter line', () => {
+  it('emits [W202] for a malformed front matter line', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       parse('@@\nnot a key value line\n@@');
-      expect(warnSpy.mock.calls.some(a => a.join(' ').includes('[W203]'))).toBe(true);
+      expect(warnSpy.mock.calls.some(a => a.join(' ').includes('[W202]'))).toBe(true);
     } finally {
       warnSpy.mockRestore();
     }
   });
 
-  it('front matter key regex is case-sensitive (uppercase key is treated as malformed, emits [W203])', () => {
+  it('front matter key regex is case-sensitive (uppercase key is treated as malformed, emits [W202])', () => {
     // FrontKey = LOWER , { LOWER | DIGIT | "-" } — uppercase never matches the key
-    // pattern, so the line is rejected as malformed and [W203] is emitted.
+    // pattern, so the line is rejected as malformed and [W202] is emitted.
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       parse('@@\nTitle: Hello\n@@');
-      expect(warnSpy.mock.calls.some(a => a.join(' ').includes('[W203]'))).toBe(true);
+      expect(warnSpy.mock.calls.some(a => a.join(' ').includes('[W202]'))).toBe(true);
     } finally {
       warnSpy.mockRestore();
     }
@@ -95,7 +95,7 @@ describe('§FrontMatter', () => {
   it('accepts YAML comment-only lines in front matter', () => {
     const html = parse('@@\n# this is a YAML comment\ntitle: My Doc\n@@');
     expect(html).toMatch(/<dt>title<\/dt><dd>My Doc<\/dd>/);
-    expect(getDiagnostics().some(d => d.code === 'W203')).toBe(false);
+    expect(getDiagnostics().some(d => d.code === 'W202')).toBe(false);
   });
 });
 
@@ -1197,11 +1197,11 @@ describe('§Metadata', () => {
     expect(html).toMatch(/<figure[^>]*class="[^"]*highlight[^"]*">/);
   });
 
-  it('unknown MetaKey emits [E202] and falls back to literal text', () => {
+  it('unknown MetaKey emits [E204] and falls back to literal text', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const html = parse('@[badkey: value]');
-      expect(warnSpy.mock.calls.some(a => a.join(' ').includes('[E202]'))).toBe(true);
+      expect(warnSpy.mock.calls.some(a => a.join(' ').includes('[E204]'))).toBe(true);
       expect(html).not.toMatch(/badkey="value"/);
       expect(html).not.toMatch(/data-badkey/);
     } finally {
@@ -1247,14 +1247,14 @@ describe('§Diagnostics', () => {
     expect(getDiagnostics().find(d => d.code === 'E201')?.message).toMatch(/badkey/);
   });
 
-  it('[E202] is emitted for an unknown MetaKey', () => {
+  it('[E204] is emitted for an unknown MetaKey', () => {
     parse('@[unknownkey: v]');
-    expect(getDiagnostics().some(d => d.code === 'E202')).toBe(true);
+    expect(getDiagnostics().some(d => d.code === 'E204')).toBe(true);
   });
 
-  it('[E202] diagnostic carries the unknown key in its message', () => {
+  it('[E204] diagnostic carries the unknown key in its message', () => {
     parse('@[unknownkey: v]');
-    expect(getDiagnostics().find(d => d.code === 'E202')?.message).toMatch(/unknownkey/);
+    expect(getDiagnostics().find(d => d.code === 'E204')?.message).toMatch(/unknownkey/);
   });
 
   it('[W601] is emitted for an unresolved anchor reference', () => {
@@ -1268,14 +1268,14 @@ describe('§Diagnostics', () => {
     expect(getDiagnostics().find(d => d.code === 'W601')?.message).toMatch(/ghost-anchor/);
   });
 
-  it('[W203] is emitted for a malformed front matter line', () => {
+  it('[W202] is emitted for a malformed front matter line', () => {
     parse('@@\nmalformed line without colon\n@@');
-    expect(getDiagnostics().some(d => d.code === 'W203')).toBe(true);
+    expect(getDiagnostics().some(d => d.code === 'W202')).toBe(true);
   });
 
-  it('[W203] diagnostic carries the malformed line in its message', () => {
+  it('[W202] diagnostic carries the malformed line in its message', () => {
     parse('@@\nmalformed line without colon\n@@');
-    expect(getDiagnostics().find(d => d.code === 'W203')?.message).toMatch(/malformed line without colon/);
+    expect(getDiagnostics().find(d => d.code === 'W202')?.message).toMatch(/malformed line without colon/);
   });
 
   it('getDiagnostics() is reset on each parse call', () => {
@@ -1370,26 +1370,26 @@ describe('§Diagnostics', () => {
     expect(getDiagnostics().some(d => d.code === 'E403')).toBe(false);
   });
 
-  // ── W204: unterminated front matter ──────────────────────────────────────
+  // ── W203: unterminated front matter ──────────────────────────────────────
 
-  it('[W204] is emitted when front matter has no closing @@', () => {
+  it('[W203] is emitted when front matter has no closing @@', () => {
     parse('@@\ntitle: No Close');
-    expect(getDiagnostics().some(d => d.code === 'W204')).toBe(true);
+    expect(getDiagnostics().some(d => d.code === 'W203')).toBe(true);
   });
 
-  it('[W204] diagnostic message mentions the closing delimiter @@', () => {
+  it('[W203] diagnostic message mentions the closing delimiter @@', () => {
     parse('@@\ntitle: No Close');
-    const msg = getDiagnostics().find(d => d.code === 'W204')?.message || '';
+    const msg = getDiagnostics().find(d => d.code === 'W203')?.message || '';
     expect(msg).toMatch(/@@/);
   });
 
-  it('[W204] does not crash the parser', () => {
+  it('[W203] does not crash the parser', () => {
     expect(() => parse('@@\ntitle: No Close')).not.toThrow();
   });
 
-  it('properly closed front matter does NOT emit [W204]', () => {
+  it('properly closed front matter does NOT emit [W203]', () => {
     parse('@@\ntitle: OK\n@@');
-    expect(getDiagnostics().some(d => d.code === 'W204')).toBe(false);
+    expect(getDiagnostics().some(d => d.code === 'W203')).toBe(false);
   });
 
   // ── W001: unterminated code block ─────────────────────────────────────────
@@ -1562,13 +1562,13 @@ describe('§Diagnostics', () => {
     // Also verifies the code appears in getDiagnostics() so both channels are covered.
     const codes = [
       { src: '@@\nbadkey: v\n@@',          code: 'E201' },
-      { src: '@[badmetakey: v]',            code: 'E202' },
+      { src: '@[badmetakey: v]',            code: 'E204' },
       { src: 'See [[#ghost]] for details.',  code: 'W601' },
-      { src: '@@\nno colon here\n@@',       code: 'W203' },
+      { src: '@@\nno colon here\n@@',       code: 'W202' },
       { src: ' - odd-indent item',          code: 'E401' },
       { src: ':::::::: Too Deep',            code: 'E402' },
       { src: ':= TermOnly',                  code: 'E403' },
-      { src: '@@\ntitle: Unterminated',      code: 'W204' },
+      { src: '@@\ntitle: Unterminated',      code: 'W203' },
       { src: '#!bash\nno close',             code: 'W001' },
       { src: '|>\nno close',                 code: 'W002' },
       { src: '$$\nno close',                 code: 'W003' },
@@ -1589,10 +1589,10 @@ describe('§Diagnostics', () => {
     }
   });
 
-  it('[E202] diagnostic message lists the allowed MetaKeys', () => {
+  it('[E204] diagnostic message lists the allowed MetaKeys', () => {
     // The message must tell users which keys ARE valid so they can fix the input.
     parse('@[badmetakey: v]');
-    const msg = getDiagnostics().find(d => d.code === 'E202')?.message || '';
+    const msg = getDiagnostics().find(d => d.code === 'E204')?.message || '';
     // At least one well-known allowed key (e.g. 'class') should appear in the message.
     expect(msg).toMatch(/class/);
   });
@@ -1670,15 +1670,15 @@ describe('§SecureFallback', () => {
     expect(html).toMatch(/My Heading/);
   });
 
-  // ── [E202] unknown MetaKey ───────────────────────────────────────────────
+  // ── [E204] unknown MetaKey ───────────────────────────────────────────────
 
-  it('[E202] surrounding content still renders when an unknown MetaKey appears', () => {
+  it('[E204] surrounding content still renders when an unknown MetaKey appears', () => {
     const html = parse(':: Before\n@[badmetakey: v]\n:: After');
     expect(html).toMatch(/Before/);
     expect(html).toMatch(/After/);
   });
 
-  it('[E202] unknown MetaKey modifier falls back to literal text (not injected as attribute)', () => {
+  it('[E204] unknown MetaKey modifier falls back to literal text (not injected as attribute)', () => {
     const html = parse('@[badmetakey: value]');
     // Must not appear as an attribute in any tag
     expect(html).not.toMatch(/badmetakey="value"/);
@@ -1687,7 +1687,7 @@ describe('§SecureFallback', () => {
     expect(html).toMatch(/badmetakey/);
   });
 
-  it('[E202] modifier value with HTML chars is escaped in the fallback text', () => {
+  it('[E204] modifier value with HTML chars is escaped in the fallback text', () => {
     const html = parse('@[badmetakey: <script>xss</script>]');
     expect(html).not.toMatch(/<script>/i);
     expect(html).toMatch(/&lt;script&gt;/);
@@ -1715,15 +1715,15 @@ describe('§SecureFallback', () => {
     expect(html).toMatch(/&lt;evil&gt;/);
   });
 
-  // ── [W203] malformed front matter line ──────────────────────────────────
+  // ── [W202] malformed front matter line ──────────────────────────────────
 
-  it('[W203] valid front matter entries still render despite a malformed line', () => {
+  it('[W202] valid front matter entries still render despite a malformed line', () => {
     const html = parse('@@\ntitle: Good Title\nthis line has no colon\nauthor: Bob\n@@');
     expect(html).toMatch(/<dt>title<\/dt><dd>Good Title<\/dd>/);
     expect(html).toMatch(/<dt>author<\/dt><dd>Bob<\/dd>/);
   });
 
-  it('[W203] content after the front matter block still renders despite malformed line', () => {
+  it('[W202] content after the front matter block still renders despite malformed line', () => {
     const html = parse('@@\nmalformed\n@@\n\n:: Heading Still Renders');
     expect(html).toMatch(/<h2 /);
     expect(html).toMatch(/Heading Still Renders/);
@@ -1772,7 +1772,7 @@ describe('§SecureFallback', () => {
   });
 
   it('document with multiple error types still renders all safe blocks', () => {
-    // E201 (bad fm key) + W203 (malformed fm line) + W601 (unresolved anchor ref) + E401 (odd indent)
+    // E201 (bad fm key) + W202 (malformed fm line) + W601 (unresolved anchor ref) + E401 (odd indent)
     const src = [
       '@@',
       'badkey: v',
