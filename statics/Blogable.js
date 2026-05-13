@@ -115,7 +115,7 @@ function buildAttrs(mods) {
     if (key==='id')    attrs.id=esc(value);
     if (/^x-[a-z0-9-]+$/.test(key)) da.push(`data-${esc(key.slice(2))}="${esc(value)}"`);
   }
-  if (classes.length) attrs.class=esc(classes.join(' '));
+  if (classes.length) attrs.class=classes.map(c=>esc(c)).join(' ');
   return Object.entries(attrs).map(([k,v])=>` ${k}="${v}"`).join('')+(da.length?' '+da.join(' '):'');
 }
 
