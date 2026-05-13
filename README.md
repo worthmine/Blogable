@@ -533,19 +533,19 @@ Code numbering policy:
 
 | Code | Kind | Trigger |
 |------|------|---------|
+| W001 | Warning | Unterminated code block: `#!lang` opened but closing `!#` not found before EOF. |
+| W002 | Warning | Unterminated block quote: `\|>` opened but closing `<\|` not found before EOF. |
+| W003 | Warning | Unterminated math block: `$$` opened but closing `$$` not found before EOF. |
 | E201 | Error | Unknown front matter key. Allowed: `title`, `author`, `date`, `updated`, `description`, `tags`, `slug`, `lang`; or `x-*` for custom metadata. |
+| W202 | Warning | Malformed front matter line. Expected format: `key: value`. |
+| W203 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
 | E204 | Error | Unknown modifier key. Built-in keys: `class`, `id`, `title`, `cite`, `author`, `alt`; or `x-<name>` for custom data attributes. |
 | E401 | Error | List indentation is not a multiple of two. Use 0, 2, 4, … spaces for each nesting level. |
 | E402 | Error | Heading depth exceeds h6. Use 2–6 colons: `:: h2` … `:::::: h6`. |
 | E403 | Error | Definition term has no body. Add at least one paragraph after the `:= term` line. |
+| E404 | Error | Duplicate definition term. Terms must be unique (case-insensitive). |
 | E405 | Error | Duplicate generated id in one document. IDs are not auto-renamed; resolve the collision in source. |
 | W601 | Warning | `[[#id]]` — target id not found. Define a matching id via heading, definition-term, or `@[id]`. |
-| W202 | Warning | Malformed front matter line. Expected format: `key: value`. |
-| W203 | Warning | Unterminated front matter: `@@` opened but closing `@@` not found before EOF. |
-| W001 | Warning | Unterminated code block: `#!lang` opened but closing `!#` not found before EOF. |
-| W002 | Warning | Unterminated block quote: `\|>` opened but closing `<\|` not found before EOF. |
-| W003 | Warning | Unterminated math block: `$$` opened but closing `$$` not found before EOF. |
-| E404 | Error | Duplicate definition term. Terms must be unique (case-insensitive). |
 | W801 | Warning | Orphaned modifier: not placed on the line immediately after a supported block. |
 
 ---
