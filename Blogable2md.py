@@ -477,10 +477,47 @@ def convert(src, mode='zenn'):
             i += 1
             continue
 
+        # ── Casual definition list  ? term / = desc / : desc  ─────────────
+        dl_term_m = re.match(r'^\?\s+(.*)', line)
+        if dl_term_m:
+            entries = []
+            while i < total:
+                term_m = re.match(r'^\?\s+(.*)', lines[i])
+                if not term_m:
+                    break
+                term = term_m.group(1).strip()
+                i += 1
+
+                dd_lines = []
+                while i < total:
+                    dd_m = re.match(r'^[=:]\s+(.*)', lines[i])
+                    if not dd_m:
+                        break
+                    dd_lines.append(dd_m.group(1).strip())
+                    i += 1
+
+                # Require at least one dd line; otherwise fall back to plain text.
+                if not dd_lines:
+                    out.append('? ' + convert_inline(term, footnotes))
+                    out.append('')
+                    break
+
+                entries.append((term, dd_lines))
+
+            if entries:
+                out.append('<dl>')
+                for term, dd_lines in entries:
+                    out.append(f'<dt>{convert_inline(term, footnotes)}</dt>')
+                    for dd in dd_lines:
+                        out.append(f'<dd>{convert_inline(dd, footnotes)}</dd>')
+                out.append('</dl>')
+                out.append('')
+            continue
+
         # ── Definition block  := Term  ────────────────────────────────────
-        def_m = re.match(r'^:=\s+(.*)', stripped)
+        def_m = re.match(r'^:=\s+(.*)', line)
         if def_m:
-            term = def_m.group(1)
+            term = def_m.group(1).strip()
             i += 1
             body_lines = []
             while i < total:
@@ -488,6 +525,9 @@ def convert(src, mode='zenn'):
                 if (ns == ''
                         or ns in ('---', '$$', '|>', '<|')
                         or ns.startswith(':=')
+                    or ns.startswith('? ')
+                    or ns.startswith('= ')
+                    or ns.startswith(': ')
                         or ns.startswith('::')
                         or ns.startswith('#!')
                         or ns.startswith('> ')):
@@ -497,9 +537,22 @@ def convert(src, mode='zenn'):
                 body_lines.append(ns)
                 i += 1
             mods, i = collect_modifiers(lines, i)
-            out.append(f'**{convert_inline(term, footnotes)}**')
+
+            term_id = slugify(plain_text(term))
+            classes = ['def-block']
+            if 'class' in mods and mods['class'].strip():
+                classes.append(mods['class'].strip())
+            class_attr = ' '.join(classes)
+            id_attr = f' id="{mods["id"]}"' if 'id' in mods and mods['id'].strip() else ''
+
+            out.append(f'<dl class="{class_attr}"{id_attr}>')
+            out.append(f'<dt id="{term_id}"><a href="#{term_id}">{convert_inline(term, footnotes)}</a></dt>')
             if body_lines:
-                out.append(convert_inline(' '.join(body_lines), footnotes))
+                body_text = convert_inline(' '.join(body_lines), footnotes)
+                out.append(f'<dd>{body_text}</dd>')
+            else:
+                out.append('<dd></dd>')
+            out.append('</dl>')
             out.append('')
             continue
 
@@ -590,6 +643,8 @@ def convert(src, mode='zenn'):
                     or ns.startswith('#!')
                     or ns.startswith('::')
                     or re.match(r'^:=\s', ns)
+                    or re.match(r'^\?\s', ns)
+                    or re.match(r'^[=:]\s', ns)
                     or re.match(r'^: .', ns)
                     or re.match(r'^https://', ns)
                     or re.match(r'^@\[', ns)

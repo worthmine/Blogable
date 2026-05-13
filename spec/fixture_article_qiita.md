@@ -1,10 +1,7 @@
 ---
 title: "Blogable 機能サンプラー"
-emoji: "🚀"
-type: "tech"
-topics: ["blogable", "markdown"]
-published: false
-slug: "blogable-feature-sampler-ja"
+tags: ["blogable", "markdown"]
+private: false
 ---
 
 ## [はじめに](#はじめに)
@@ -66,8 +63,10 @@ def hello(name):
 
 ## [定義ブロック](#定義ブロック)
 
-**用語**
-用語を定義する本文段落。
+<dl class="def-block">
+<dt id="用語"><a href="#用語">用語</a></dt>
+<dd>用語を定義する本文段落。</dd>
+</dl>
 
 ---
 
