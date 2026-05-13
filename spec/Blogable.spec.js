@@ -1133,6 +1133,7 @@ describe('§Metadata', () => {
     expect(headingTag).toMatch(/id="final-id"/);
     expect(headingTag).not.toMatch(/id="first-id"/);
     expect(html).toMatch(/<a href="#final-id">Section<\/a>/);
+    expect(getDiagnostics().some(d => d.code === 'W802')).toBe(true);
   });
 
   it('@[x-foo: bar] after a block adds data-foo="bar"', () => {
@@ -1205,6 +1206,11 @@ describe('§Metadata', () => {
   it('multiple @[class: ...] after a math block append to base classes', () => {
     const html = parse('$$\nx = 1\n$$\n@[class: equation]\n@[class: compact]');
     expect(html).toMatch(/<pre class="math-block equation compact"><code>x = 1<\/code><\/pre>/);
+  });
+
+  it('single @[id: ...] does not emit [W802]', () => {
+    parse(': Intro text\n@[id: intro]');
+    expect(getDiagnostics().some(d => d.code === 'W802')).toBe(false);
   });
 
   it('@[class: glossary] after a definition block adds class to <dl>', () => {
@@ -1577,6 +1583,19 @@ describe('§Diagnostics', () => {
     expect(getDiagnostics().some(d => d.code === 'W801')).toBe(false);
   });
 
+  // ── W802: id overwrite warning ────────────────────────────────────────────
+
+  it('[W802] is emitted when multiple @[id: ...] modifiers overwrite id', () => {
+    parse(':: Heading\n@[id: first]\n@[id: second]');
+    expect(getDiagnostics().some(d => d.code === 'W802')).toBe(true);
+  });
+
+  it('[W802] diagnostic carries the final id value in its message', () => {
+    parse(': Intro\n@[id: old]\n@[id: final-id]');
+    const msg = getDiagnostics().find(d => d.code === 'W802')?.message || '';
+    expect(msg).toMatch(/final-id/);
+  });
+
   it('every diagnostic emits console.warn with [CODE] prefix format', () => {
     // All diagnostic codes must log [CODE] so users see the code in browser console.
     // Also verifies the code appears in getDiagnostics() so both channels are covered.
@@ -1595,6 +1614,7 @@ describe('§Diagnostics', () => {
       { src: ':= T\nB.\n\n:= T\nB2.',       code: 'E404' },
       { src: ':: Intro\n\n:: Intro',         code: 'E405' },
       { src: 'Plain.\n@[class: orphan]',     code: 'W801' },
+      { src: ':: Intro\n@[id: one]\n@[id: two]', code: 'W802' },
     ];
     for (const { src, code } of codes) {
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});

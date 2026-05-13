@@ -110,11 +110,18 @@ function detectLang(line) {
 }
 
 function buildAttrs(mods) {
-  const attrs={}, da=[], classes=[];
+  const attrs={}, da=[], classes=[], ids=[];
   for (const {key,value} of mods) {
     if (key==='class') classes.push(value);
-    if (key==='id')    attrs.id=esc(value);
+    if (key==='id') {
+      ids.push(value);
+      attrs.id=esc(value);
+    }
     if (/^x-[a-z0-9-]+$/.test(key)) da.push(`data-${esc(key.slice(2))}="${esc(value)}"`);
+  }
+  if (ids.length>1) {
+    const finalId=ids[ids.length-1];
+    pushDiag('W802',`Multiple @[id: ...] modifiers were provided; using the last id "${finalId}".`);
   }
   if (classes.length) attrs.class=classes.map(c=>esc(c)).join(' ');
   return Object.entries(attrs).map(([k,v])=>` ${k}="${v}"`).join('')+(da.length?' '+da.join(' '):'');
@@ -608,6 +615,10 @@ function buildAST(tokens) {
     if (tok.type==='heading') {
       i++;
       const mods=cm();
+      const idMods=mods.filter(m=>m.key==='id').map(m=>m.value);
+      if (idMods.length>1) {
+        pushDiag('W802',`Multiple @[id: ...] modifiers were provided; using the last id "${idMods[idMods.length-1]}".`);
+      }
       let customId;
       for (let idx=mods.length-1; idx>=0; idx--) {
         if (mods[idx].key==='id') { customId=mods[idx].value; break; }
