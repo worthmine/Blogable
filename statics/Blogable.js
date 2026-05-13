@@ -105,7 +105,8 @@ function detectLang(line) {
   }
 
   const cmd = rawCmd.replace(/[0-9.]+$/,'');
-  return SHEBANG_LANG_MAP[cmd] || cmd;
+  const mapped = SHEBANG_LANG_MAP[cmd] || cmd;
+  return mapped.replace(/[^A-Za-z0-9_+.-]/g, '');
 }
 
 function buildAttrs(mods) {
@@ -903,7 +904,7 @@ function astToHtml(nodes, forDisplay=false) {
       }
 
       case 'codeblock': {
-        const baseClass=node.lang?`blogable-code language-${esc(node.lang)}`:'blogable-code';
+        const baseClass=node.lang?`blogable-code language-${node.lang}`:'blogable-code';
         const figAttrs=mergeAttrs(baseClass, node.mods);
         if (!forDisplay) {
           const allLines=[node.shebangLine,...node.lines];
