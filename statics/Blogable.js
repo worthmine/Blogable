@@ -105,23 +105,33 @@ function detectLang(line) {
   }
 
   const cmd = rawCmd.replace(/[0-9.]+$/,'');
-  return SHEBANG_LANG_MAP[cmd] || cmd;
+  const mapped = SHEBANG_LANG_MAP[cmd] || cmd;
+  return mapped.replace(/[^A-Za-z0-9_+.-]/g, '');
 }
 
 function buildAttrs(mods) {
-  const attrs={}, da=[];
+  const attrs={}, da=[], classes=[], ids=[];
   for (const {key,value} of mods) {
-    if (key==='class') attrs.class=esc(value);
-    if (key==='id')    attrs.id=esc(value);
+    if (key==='class') classes.push(value);
+    if (key==='id') {
+      ids.push(value);
+      attrs.id=esc(value);
+    }
     if (/^x-[a-z0-9-]+$/.test(key)) da.push(`data-${esc(key.slice(2))}="${esc(value)}"`);
   }
+  if (ids.length>1) {
+    const finalId=ids[ids.length-1];
+    pushDiag('E205',`Multiple @[id: ...] modifiers were provided on one block. Use only one id modifier; rendering uses the last id "${finalId}".`);
+  }
+  if (classes.length) attrs.class=classes.map(c=>esc(c)).join(' ');
   return Object.entries(attrs).map(([k,v])=>` ${k}="${v}"`).join('')+(da.length?' '+da.join(' '):'');
 }
 
 // Like buildAttrs but merges any `class` modifier value into an existing baseClass.
 function mergeAttrs(baseClass, mods) {
-  const extra=(mods||[]).find(m=>m.key==='class')?.value;
-  const cls=extra?`${baseClass} ${esc(extra)}`:baseClass;
+  const extras=(mods||[]).filter(m=>m.key==='class').map(m=>m.value);
+  const extraClass=extras.map(c=>esc(c)).join(' ');
+  const cls=extraClass?`${baseClass} ${extraClass}`:baseClass;
   return ` class="${cls}"`+buildAttrs((mods||[]).filter(m=>m.key!=='class'));
 }
 
@@ -605,7 +615,13 @@ function buildAST(tokens) {
     if (tok.type==='heading') {
       i++;
       const mods=cm();
-      const customId=mods.find(m=>m.key==='id')?.value;
+      const idMods=mods.filter(m=>m.key==='id').map(m=>m.value);
+      if (idMods.length===1) {
+        pushDiag('W802',`@[id: ...] on heading overrides the auto-generated heading id. Using "${idMods[0]}".`);
+      } else if (idMods.length>1) {
+        pushDiag('E205',`Multiple @[id: ...] modifiers were provided on one heading. Use only one id modifier; rendering uses the last id "${idMods[idMods.length-1]}".`);
+      }
+      const customId=idMods.length>0 ? idMods[idMods.length-1] : undefined;
       const otherMods=mods.filter(m=>m.key!=='id');
       const id=reserveAnchorId(customId||tok.text, customId?'heading @[id]':'heading');
       nodes.push({type:'heading', level:tok.colons, id, label:tok.text, numbered:tok.numbered, attrs:buildAttrs(otherMods)});
@@ -898,7 +914,8 @@ function astToHtml(nodes, forDisplay=false) {
       }
 
       case 'codeblock': {
-        const figAttrs=mergeAttrs(node.lang?`blogable-code language-${node.lang}`:'blogable-code', node.mods);
+        const baseClass=node.lang?`blogable-code language-${node.lang}`:'blogable-code';
+        const figAttrs=mergeAttrs(baseClass, node.mods);
         if (!forDisplay) {
           const allLines=[node.shebangLine,...node.lines];
           let h=`<figure${figAttrs}>\n`;
