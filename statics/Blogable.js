@@ -26,7 +26,7 @@ Prism.languages.blogable = {
   'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
   'external-embed': { pattern:/!!https:\/\/[^!\n]+!!/,               alias:'url' },
-  'footnote':      { pattern:/\[\^[^\]]+\]/,         alias:'symbol' },
+  'footnote':      { pattern:/\^\[[^\]]+\]/,           alias:'symbol' },
   'obsidian-embed':  { pattern:/^!\[\[[^\]\n]+\]\]$/m,   alias:'url' },
   'obsidian-anchor': { pattern:/\[\[#[^\]\n]+\]\]/,     alias:'symbol' },
   'obsidian-link':   { pattern:/\[\[[^#\]\|\n][^\]\|\n]*(?:#[^\]\|\n]+)?(?:\|[^\]\n]*)?\]\]/, alias:'url' },
@@ -262,8 +262,8 @@ function parseInline(text) {
       i += m[0].length; continue;
     }
 
-    // ── Footnote  [^TEXT] ───────────────────────────────────────
-    if ((m = rest.match(/^\[\^([^\]\n]*)\]/))) {
+    // ── Footnote  ^[TEXT] ───────────────────────────────────────
+    if ((m = rest.match(/^\^\[([^\]\n]*)\]/))) {
       const inner = m[1];
       const urlM = inner.match(/^(https:\/\/\S+) (.+)$/);
       const n = footnotes.length + 1;
@@ -1181,7 +1181,7 @@ $$
 
 リンク: [https://example.com リンクテキスト]
 
-脚注: [^https://example.com 参考リンク] [^ URLなしの補足]
+脚注: ^[https://example.com 参考リンク] ^[ URLなしの補足]
 
 ---
 
