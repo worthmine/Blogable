@@ -26,7 +26,7 @@ Prism.languages.blogable = {
   'task-open':     { pattern:/^\[ \] .+$/m,          alias:'punctuation' },
   'url-block':     { pattern:/^https:\/\/\S+$/m,     alias:'url' },
   'external-embed': { pattern:/!!https:\/\/[^!\n]+!!/,               alias:'url' },
-  'footnote':      { pattern:/\^\[[^\]]+\]/,           alias:'symbol' },
+  'footnote':      { pattern:/\^\[[^\]\n]+\]/,          alias:'symbol' },
   'obsidian-embed':  { pattern:/^!\[\[[^\]\n]+\]\]$/m,   alias:'url' },
   'obsidian-anchor': { pattern:/\[\[#[^\]\n]+\]\]/,     alias:'symbol' },
   'obsidian-link':   { pattern:/\[\[[^#\]\|\n][^\]\|\n]*(?:#[^\]\|\n]+)?(?:\|[^\]\n]*)?\]\]/, alias:'url' },

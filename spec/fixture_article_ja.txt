@@ -27,7 +27,7 @@ slug: blogable-feature-sampler-ja
 
 : インラインスタイル: **太字**、*イタリック*、~~取り消し線~~、++挿入++、`コード`。
 
-: [https://example.com リンクラベル] および脚注。[^脚注を参照]
+: [https://example.com リンクラベル] および脚注。^[脚注を参照]
 
 https://picsum.photos/seed/blogable1/600/200.jpg
 @[alt: サンプル写真]
