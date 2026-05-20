@@ -1,10 +1,7 @@
 ---
 title: "Blogable 機能サンプラー"
-emoji: "🚀"
-type: "tech"
-topics: ["blogable", "markdown"]
-published: false
-slug: "blogable-feature-sampler-ja"
+tags: ["blogable", "markdown"]
+private: false
 ---
 
 ## [はじめに](#はじめに)

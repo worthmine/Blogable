@@ -66,8 +66,10 @@ def hello(name):
 
 ## [Definition Block](#definition-block)
 
-**Term**
-The body paragraph that defines the term.
+<dl class="def-block">
+<dt id="term"><a href="#term">Term</a></dt>
+<dd>The body paragraph that defines the term.</dd>
+</dl>
 
 ---
 

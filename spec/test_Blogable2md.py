@@ -490,29 +490,44 @@ class TestConvert(unittest.TestCase):
     def test_definition_block(self):
         src = ':= Term\nThe definition body.\n'
         out = convert(src)
-        self.assertIn('**Term**', out)
-        self.assertIn('The definition body.', out)
+        self.assertIn('<dl class="def-block">', out)
+        self.assertIn('<dt id="term"><a href="#term">Term</a></dt>', out)
+        self.assertIn('<dd>The definition body.</dd>', out)
 
     def test_definition_block_stops_at_horizontal_rule(self):
         """A horizontal rule after a definition body must not be consumed."""
         src = ':= Term\nDefinition text.\n---\n'
         out = convert(src)
-        self.assertIn('**Term**', out)
-        self.assertIn('Definition text.', out)
+        self.assertIn('<dt id="term"><a href="#term">Term</a></dt>', out)
+        self.assertIn('<dd>Definition text.</dd>', out)
         self.assertIn('---', out)
 
     def test_definition_block_stops_at_math_block(self):
         src = ':= Term\nDefinition text.\n$$\nE = mc^2\n$$\n'
         out = convert(src)
-        self.assertIn('**Term**', out)
+        self.assertIn('<dt id="term"><a href="#term">Term</a></dt>', out)
         self.assertIn('$$', out)
         self.assertIn('E = mc^2', out)
 
     def test_definition_block_stops_at_quote_block(self):
         src = ':= Term\nDefinition text.\n|>\nquoted\n<|\n'
         out = convert(src)
-        self.assertIn('**Term**', out)
+        self.assertIn('<dt id="term"><a href="#term">Term</a></dt>', out)
         self.assertIn('> quoted', out)
+
+    def test_casual_definition_list_equals_marker(self):
+        src = '? Term\n= Definition line\n'
+        out = convert(src)
+        self.assertIn('<dl>', out)
+        self.assertIn('<dt>Term</dt>', out)
+        self.assertIn('<dd>Definition line</dd>', out)
+
+    def test_casual_definition_list_colon_marker(self):
+        src = '? Term\n: Definition line\n'
+        out = convert(src)
+        self.assertIn('<dl>', out)
+        self.assertIn('<dt>Term</dt>', out)
+        self.assertIn('<dd>Definition line</dd>', out)
 
     # ── para blocks ──────────────────────────────────────────────────────────
 
@@ -711,7 +726,8 @@ class TestFixtureArticle(unittest.TestCase):
 
     # definition block
     def test_fixture_definition(self):
-        self.assertIn('**Term**', self.out)
+        self.assertIn('<dl class="def-block">', self.out)
+        self.assertIn('<dt id="term"><a href="#term">Term</a></dt>', self.out)
 
     # math block
     def test_fixture_math(self):
@@ -821,7 +837,8 @@ class TestFixtureArticleJa(unittest.TestCase):
 
     # definition block
     def test_fixture_ja_definition(self):
-        self.assertIn('**用語**', self.out)
+        self.assertIn('<dl class="def-block">', self.out)
+        self.assertIn('<dt id="用語"><a href="#用語">用語</a></dt>', self.out)
 
     # math block
     def test_fixture_ja_math(self):
