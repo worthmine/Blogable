@@ -152,7 +152,7 @@ class TestConvertInline(unittest.TestCase):
         self.assertEqual(result, '[click here](https://example.com)')
 
     def test_footnote_text_only(self):
-        result, fns = self._ci('see ^[note]')
+        result, fns = self._ci('see ^[ note]')
         self.assertEqual(result, 'see [^1]')
         self.assertEqual(fns[0]['text'], 'note')
         self.assertIsNone(fns[0]['url'])
@@ -165,7 +165,7 @@ class TestConvertInline(unittest.TestCase):
 
     def test_multiple_footnotes_numbered(self):
         footnotes = []
-        text = convert_inline('^[one] and ^[two]', footnotes)
+        text = convert_inline('^[ one] and ^[ two]', footnotes)
         self.assertEqual(text, '[^1] and [^2]')
         self.assertEqual(len(footnotes), 2)
 
@@ -589,7 +589,7 @@ class TestConvert(unittest.TestCase):
     # ── footnotes ────────────────────────────────────────────────────────────
 
     def test_footnote_appendix(self):
-        src = 'See ^[a note].\n'
+        src = 'See ^[ a note].\n'
         out = convert(src)
         self.assertIn('[^1]', out)
         self.assertIn('[^1]: a note', out)
@@ -600,7 +600,7 @@ class TestConvert(unittest.TestCase):
         self.assertIn('[^1]: [link text](https://example.com)', out)
 
     def test_multiple_footnotes(self):
-        src = 'First ^[alpha] and second ^[beta].\n'
+        src = 'First ^[ alpha] and second ^[ beta].\n'
         out = convert(src)
         self.assertIn('[^1]: alpha', out)
         self.assertIn('[^2]: beta', out)

@@ -270,7 +270,7 @@ function parseInline(text) {
       if (urlM && isSafeUrl(urlM[1])) {
         footnotes.push({n, url: urlM[1], text: urlM[2]});
       } else {
-        footnotes.push({n, url: null, text: inner});
+        footnotes.push({n, url: null, text: inner.startsWith(' ') ? inner.slice(1) : inner});
       }
       out += `<sup><a href="#fn-${n}" id="fnref-${n}">[${n}]</a></sup>`;
       i += m[0].length; continue;
