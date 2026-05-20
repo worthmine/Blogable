@@ -27,7 +27,7 @@ slug: blogable-feature-sampler
 
 : Inline styles: **bold**, *italic*, ~~strikethrough~~, ++inserted++, `code`.
 
-: A [https://example.com link label] and a footnote.[^see footnote]
+: A [https://example.com link label] and a footnote.^[ see footnote]
 
 https://example.com/photo.png
 @[alt: sample photo]

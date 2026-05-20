@@ -131,7 +131,7 @@ $$
 
 ページ内アンカー: [[#見出し]]
 
-脚注（URL付き）: [^https://example.com 参考] [^ URLなしの注釈]
+脚注（URL付き）: ^[https://example.com 参考] ^[ URLなしの注釈]
 
 ---
 

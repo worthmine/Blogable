@@ -130,7 +130,7 @@ Local page link: [[your-page|display text]]
 
 In-page anchor: [[#Headings]]
 
-Footnote with URL: [^https://example.com reference] [^ note without URL]
+Footnote with URL: ^[https://example.com reference] ^[ note without URL]
 
 ---
 
