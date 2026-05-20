@@ -418,7 +418,7 @@ Code         = "`" , { CodeChar } , "`" ;
 CodeChar     = ? any character except "`" and NL ? ;
 
 ExternalEmbed = "!!" , HTTPS_URL , [ "|" , TEXT ] , "!!" ;
-Footnote  = "^[" , [ HTTPS_URL ] , " " , TEXT , "]" ;
+Footnote  = "^[" , [ HTTPS_URL ] , SP , TEXT , "]" ;
 ObsidianAnchor = "[[" , "#" , HEADING , "]]" ;
 ObsidianLink   = "[[" , PATH , [ "#" , HEADING ] , [ "|" , TEXT ] , "]]" ;
 
