@@ -842,21 +842,21 @@ describe('§InlineSyntax', () => {
     expect(html).toMatch(/\[Visit Example\]/);
   });
 
-  it('Footnote: [^text] → superscript footnote reference', () => {
-    const html = parse('[^See note 1]');
+  it('Footnote: ^[ text] → superscript footnote reference', () => {
+    const html = parse('^[ See note 1]');
     expect(html).toMatch(/<sup>/);
     expect(html).toMatch(/fn-1/);
   });
 
-  it('Footnote: [^https://url label] → URL footnote', () => {
-    const html = parse('[^https://example.com Example]');
+  it('Footnote: ^[https://url label] → URL footnote', () => {
+    const html = parse('^[https://example.com Example]');
     expect(html).toMatch(/<sup>/);
     // footnote list rendered at end
     expect(html).toMatch(/example\.com/);
   });
 
   it('Footnote: multiple footnotes are numbered sequentially', () => {
-    const html = parse('[^First note] and [^Second note]');
+    const html = parse('^[ First note] and ^[ Second note]');
     expect(html).toMatch(/fn-1/);
     expect(html).toMatch(/fn-2/);
   });
@@ -1967,7 +1967,7 @@ describe('§Security', () => {
   });
 
   it('footnote text with HTML chars is escaped', () => {
-    const html = parse('See[^<script>xss</script>] this.');
+    const html = parse('See^[ <script>xss</script>] this.');
     expect(html).not.toMatch(/<script>/i);
   });
 

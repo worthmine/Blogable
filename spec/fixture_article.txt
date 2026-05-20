@@ -1,82 +1,82 @@
 @@
-title: Blogable 機能サンプラー
+title: Blogable Feature Sampler
 tags: blogable, markdown
-slug: blogable-feature-sampler-ja
+slug: blogable-feature-sampler
 @@
 
-:: はじめに
+:: Introduction
 
-: この記事はすべての主要な Blogable ブロックを網羅しており、コンバーターのエンドツーエンドテストに使用されます。
-
----
-
-:: 見出し
-
-::: レベル 3
-
-:::: レベル 4
-
-::# 番号付き 1
-::# 番号付き 2
-:::# ネスト番号付き 1
-:::# ネスト番号付き 2
+: This article exercises every major Blogable block so the converter can be tested end-to-end.
 
 ---
 
-:: インラインマークアップ
+:: Headings
 
-: インラインスタイル: **太字**、*イタリック*、~~取り消し線~~、++挿入++、`コード`。
+::: Level Three
 
-: [https://example.com リンクラベル] および脚注。[^脚注を参照]
+:::: Level Four
 
-https://picsum.photos/seed/blogable1/600/200.jpg
-@[alt: サンプル写真]
-@[title: サンプル写真]
+::# Numbered One
+::# Numbered Two
+:::# Nested Numbered One
+:::# Nested Numbered Two
 
 ---
 
-:: コードブロック
+:: Inline Markup
+
+: Inline styles: **bold**, *italic*, ~~strikethrough~~, ++inserted++, `code`.
+
+: A [https://example.com link label] and a footnote.^[ see footnote]
+
+https://example.com/photo.png
+@[alt: sample photo]
+@[title: A sample photo]
+
+---
+
+:: Code Block
 
 #!python
 def hello(name):
-    return f"こんにちは、{name}！"
+    return f"Hello, {name}!"
 !#
 @[title: hello.py]
 
 ---
 
-:: 引用ブロック
+:: Quote Block
 
 |>
-引用の 1 行目。
-引用の 2 行目。
+First line of the quote.
+Second line of the quote.
 <|
-@[cite: 著名な著者]
+@[cite: Famous Author]
 
 ---
 
-:: リスト
+:: Lists
 
-# 1 番目の順序付きアイテム
-# 2 番目の順序付きアイテム
-  - ネスト箇条書き a
-  - ネスト箇条書き b
-# 3 番目の順序付きアイテム
-
----
-
-:: 定義ブロック
-
-:= 用語
-用語を定義する本文段落。
+# First ordered item
+# Second ordered item
+  - nested unordered a
+  - nested unordered b
+# Third ordered item
 
 ---
 
-:: アンカーブロック
+:: Definition Block
+
+:= Term
+The body paragraph that defines the term.
 
 ---
 
-:: 数式ブロック
+:: Anchor Block
+
+---
+
+:: Math Block
 
 $$
 E = mc^2
@@ -84,6 +84,6 @@ $$
 
 ---
 
-:: 水平線
+:: Horizontal Rule
 
 ---

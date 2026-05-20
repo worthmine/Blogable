@@ -63,8 +63,8 @@ def plain_text(blogable_inline):
     s = re.sub(r'\[https?://[^ \]\n]+ ([^\]\n]+)\]', r'\1', s)
     # [https://...] (bare URL) → URL
     s = re.sub(r'\[https?://([^\]\n]+)\]', r'\1', s)
-    # [^...] footnote → (remove; no visible inline text)
-    s = re.sub(r'\[\^[^\]\n]*\]', '', s)
+    # ^[...] footnote → (remove; no visible inline text)
+    s = re.sub(r'\^\[[^\]\n]*\]', '', s)
     # **bold** → bold
     s = re.sub(r'\*\*([^*\n]+)\*\*', r'\1', s)
     # *em* → em
@@ -153,8 +153,8 @@ def convert_inline(text, footnotes):
             idx += len(m.group(0))
             continue
 
-        # ── Footnote [^text] or [^url text] ───────────────────────────────
-        m = re.match(r'^\[\^([^\]\n]*)\]', rest)
+        # ── Footnote ^[ text] or ^[url text] ───────────────────────────────
+        m = re.match(r'^\^\[([^\]\n]*)\]', rest)
         if m:
             inner = m.group(1)
             fn_num = len(footnotes) + 1
@@ -162,7 +162,7 @@ def convert_inline(text, footnotes):
             if url_m:
                 footnotes.append({'n': fn_num, 'url': url_m.group(1), 'text': url_m.group(2)})
             else:
-                footnotes.append({'n': fn_num, 'url': None, 'text': inner})
+                footnotes.append({'n': fn_num, 'url': None, 'text': inner[1:] if inner.startswith(' ') else inner})
             result += f'[^{fn_num}]'
             idx += len(m.group(0))
             continue
