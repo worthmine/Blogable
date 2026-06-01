@@ -105,6 +105,12 @@ unlike $html, qr{<h2[^>]*class="[^"]*late[^"]*"}, 'modifier after blank line not
 ($h, $diags) = pb(": Intro text\n\@[id: intro]");
 ok !scalar(grep { $_->{code} eq 'W802' } @$diags), 'single @[id:] on non-heading does not emit W802';
 
+# non-heading @[id: ...] creates a resolvable [[#...]] anchor target
+($h, $diags) = pb(": Intro text\n\@[id: My Intro!]\n\nSee [[#my-intro]] for details.");
+like $h, qr/<p id="my-intro">Intro text<\/p>/, 'non-heading @[id:] is normalized and applied to block id';
+like $h, qr{<a href="#my-intro" class="obsidian-anchor">my-intro</a>}, 'non-heading @[id:] target resolves in [[#...]]';
+ok !scalar(grep { $_->{code} eq 'W601' } @$diags), 'resolved non-heading @[id:] does not emit W601';
+
 # heading @[id: ...] DOES emit W802
 ($h, $diags) = pb(":: Intro\n\@[id: custom-id]");
 ok scalar(grep { $_->{code} eq 'W802' } @$diags), 'heading @[id:] emits W802';

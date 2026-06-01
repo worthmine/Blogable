@@ -522,6 +522,14 @@ sub _build_ast {
         }
         return \@mods;
     };
+    my $reserve_non_heading_mod_id = sub {
+        my ($mods) = @_;
+        my @id_indexes = grep { $mods->[$_]{key} eq 'id' } 0 .. $#$mods;
+        return $mods unless @id_indexes;
+        my $last = $id_indexes[-1];
+        $mods->[$last]{value} = $self->_reserve_anchor_id($mods->[$last]{value}, '@[id]');
+        return $mods;
+    };
 
     # recursive list parser
     my $parse_list_items; # forward declare
@@ -632,7 +640,7 @@ sub _build_ast {
         # ── inline blockquote ─────────────────────────────────
         if ($tok->{type} eq 'bq_inline') {
             $i++;
-            my $mods = $cm->();
+            my $mods = $reserve_non_heading_mod_id->($cm->());
             push @nodes, { type => 'blockquote_inline', html => $self->_parse_inline($tok->{text}), mods => $mods };
             next;
         }
@@ -649,7 +657,7 @@ sub _build_ast {
                 }
             }
             $i++ if $i < $n && $tokens->[$i]{type} eq 'quote_close';
-            my $mods = $cm->();
+            my $mods = $reserve_non_heading_mod_id->($cm->());
             my @paragraphs = map { join('<br>', map { $self->_parse_inline($_) } @$_) }
                              grep { @$_ > 0 } @line_groups;
             my $cite   = _find_mod_value($mods, 'cite')   // '';
@@ -667,7 +675,7 @@ sub _build_ast {
                 push @lines, $tokens->[$i++]{text} // '';
             }
             $i++ if $i < $n && $tokens->[$i]{type} eq 'math_close';
-            my $mods = $cm->();
+            my $mods = $reserve_non_heading_mod_id->($cm->());
             push @nodes, { type => 'math', lines => \@lines, mods => $mods };
             next;
         }
@@ -704,7 +712,7 @@ sub _build_ast {
             } else {
                 $self->{_def_terms}{$term_key} = 1;
             }
-            my $mods     = $cm->();
+            my $mods     = $reserve_non_heading_mod_id->($cm->());
             my $term_html = $self->_parse_inline($term);
             my $term_id   = $self->_reserve_anchor_id($term, 'definition term');
             my $dd_html   = join("\n", map { '<p>' . $self->_parse_inline($_) . '</p>' } @dd_lines);
@@ -724,7 +732,7 @@ sub _build_ast {
                 $i++;
             }
             $i++ if $i < $n && $tokens->[$i]{type} eq 'shebang_close';
-            my $mods  = $cm->();
+            my $mods  = $reserve_non_heading_mod_id->($cm->());
             my $title = _find_mod_value($mods, 'title') // '';
             my $cite  = _find_mod_value($mods, 'cite')  // '';
             push @nodes, { type => 'codeblock', shebang_line => $shebang_line, lang => $lang,
@@ -739,7 +747,7 @@ sub _build_ast {
                 push @items, { list_type => 'task', checked => $tokens->[$i]{checked}, text => $tokens->[$i]{text} };
                 $i++;
             }
-            my $mods = $cm->();
+            my $mods = $reserve_non_heading_mod_id->($cm->());
             push @nodes, { type => 'list', html => $self->_render_list_items(\@items), mods => $mods };
             next;
         }
@@ -768,7 +776,7 @@ sub _build_ast {
                         '<dd>' . join('<br>' . "\n", map { $self->_parse_inline($_) } @{ $_->{dd_lines} }) . '</dd>'
                     } @entries) .
                     "\n</dl>";
-                my $mods = $cm->();
+                my $mods = $reserve_non_heading_mod_id->($cm->());
                 push @nodes, { type => 'list', html => $html, mods => $mods };
             }
             next;
@@ -777,7 +785,7 @@ sub _build_ast {
         # ── ul / ol ───────────────────────────────────────────
         if ($tok->{type} eq 'ul' || $tok->{type} eq 'ol') {
             my $items = $parse_list_items->($tok->{indent}, $tok->{type});
-            my $mods  = $cm->();
+            my $mods  = $reserve_non_heading_mod_id->($cm->());
             push @nodes, { type => 'list', html => $self->_render_list_items($items), mods => $mods };
             next;
         }
@@ -833,7 +841,7 @@ sub _build_ast {
             while ($i < $n && $tokens->[$i]{type} eq 'para_block') {
                 push @lines, $tokens->[$i++]{text};
             }
-            my $mods = $cm->();
+            my $mods = $reserve_non_heading_mod_id->($cm->());
             push @nodes, { type => 'paragraph',
                            html => join("<br>\n", map { $self->_parse_inline($_) } @lines),
                            mods => $mods };
@@ -960,7 +968,7 @@ sub _ast_to_html {
                 $h .= "  <footer>\n";
                 if ($node->{cite}) {
                     my $cu = _is_safe_url($node->{cite});
-                    my $c  = $cu ? _ext_link($node->{cite}, _get_hostname($node->{cite})) : _esc($node->{cite});
+                    my $c  = $cu ? _ext_link($node->{cite}, _esc(_get_hostname($node->{cite}))) : _esc($node->{cite});
                     $h .= "    <cite>$c</cite>\n";
                 }
                 if ($node->{author}) {
@@ -1006,7 +1014,7 @@ sub _ast_to_html {
             $h .= "  <pre><code$lang_attr>$code_content</code></pre>\n";
             if ($node->{cite}) {
                 my $cu = _is_safe_url($node->{cite});
-                my $c  = $cu ? _ext_link($node->{cite}, _get_hostname($node->{cite})) : _esc($node->{cite});
+                my $c  = $cu ? _ext_link($node->{cite}, _esc(_get_hostname($node->{cite}))) : _esc($node->{cite});
                 $h .= "  <cite>$c</cite>\n";
             }
             $h .= "</figure>";
@@ -1037,7 +1045,7 @@ sub _ast_to_html {
             $h .= "  <figcaption>" . _esc($lt) . "</figcaption>\n" if defined $lt;
             if (defined $lc) {
                 my $cu = _is_safe_url($lc);
-                $h .= "  <cite>" . ($cu ? _ext_link($lc, _get_hostname($lc)) : _esc($lc)) . "</cite>\n";
+                $h .= "  <cite>" . ($cu ? _ext_link($lc, _esc(_get_hostname($lc))) : _esc($lc)) . "</cite>\n";
             }
             $h .= "</figure>";
             push @parts, $h; next;
@@ -1078,7 +1086,7 @@ sub _ast_to_html {
         for my $f (@{ $self->{_footnotes} }) {
             my $body;
             if ($f->{url}) {
-                $body = _ext_link($f->{url}, _get_hostname($f->{url}))
+                $body = _ext_link($f->{url}, _esc(_get_hostname($f->{url})))
                       . " <span class=\"fn-alt\">" . _esc($f->{text}) . "</span>";
             } else {
                 $body = _esc($f->{text});

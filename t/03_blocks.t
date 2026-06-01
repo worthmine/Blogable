@@ -33,6 +33,11 @@ $html = p("#!bash\necho hi\n!#\n\@[cite: https://example.com]");
 like $html, qr/<cite>/, 'code block @[cite:] renders <cite>';
 like $html, qr/example\.com/, 'code block @[cite:] shows hostname';
 
+# code block cite hostname is HTML-escaped
+$html = p("#!bash\necho hi\n!#\n\@[cite: https://<img-src=x-onerror=alert(1)>]");
+unlike $html, qr{<img-src=x-onerror=alert\(1\)>}, 'code block cite hostname is not rendered as raw HTML';
+like   $html, qr{&lt;img-src=x-onerror=alert\(1\)&gt;</a>}, 'code block cite hostname is escaped in link text';
+
 # #!blogable block
 like p("#!blogable\n:: heading\n!#"), qr/language-blogable/, '#!blogable renders with lang="blogable"';
 
@@ -109,6 +114,11 @@ like $html, qr/<footer>/, 'block quote @[author:] adds <footer>';
 $html = p("|>\nSome text.\n<|\n\@[cite: https://example.com]");
 like $html, qr/<cite>/,       'block quote @[cite:] renders <cite>';
 like $html, qr/example\.com/, 'block quote @[cite:] shows hostname';
+
+# block quote cite hostname is HTML-escaped
+$html = p("|>\nSome text.\n<|\n\@[cite: https://<img-src=x-onerror=alert(1)>]");
+unlike $html, qr{<img-src=x-onerror=alert\(1\)>}, 'block quote cite hostname is not rendered as raw HTML';
+like   $html, qr{&lt;img-src=x-onerror=alert\(1\)&gt;</a>}, 'block quote cite hostname is escaped in link text';
 
 # inline parsing enabled inside quote blocks
 $html = p("|>\n**bold text**\n<|");

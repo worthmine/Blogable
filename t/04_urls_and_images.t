@@ -87,6 +87,11 @@ like $html, qr/<figure/, '![[image.svg]] renders <figure>';
 like $html, qr/<img /,   '![[image.svg]] renders <img>';
 like $html, qr/src="image\.svg"/, '![[image.svg]] sets src';
 
+# ![[...]] with @[cite:] escapes hostname text in cite link
+$html = p("![[image.png]]\n\@[cite: https://<img-src=x-onerror=alert(1)>]");
+unlike $html, qr{<img-src=x-onerror=alert\(1\)>}, '![[...]] cite hostname is not rendered as raw HTML';
+like   $html, qr{<cite><a href="https://&lt;img-src=x-onerror=alert\(1\)&gt;"[^>]*>&lt;img-src=x-onerror=alert\(1\)&gt;</a></cite>}, '![[...]] cite hostname is escaped in link text';
+
 # §ExternalEmbed (block)
 
 # !!URL!! → external link paragraph

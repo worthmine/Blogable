@@ -54,6 +54,11 @@ $html = p('^[https://example.com Example]');
 like $html, qr/<sup>/,        'URL footnote renders <sup>';
 like $html, qr/example\.com/, 'URL footnote includes hostname in output';
 
+# Footnote URL hostname is HTML-escaped
+$html = p('^[https://<img-src=x-onerror=alert(1)> Example]');
+unlike $html, qr{<img-src=x-onerror=alert\(1\)>}, 'URL footnote hostname is not rendered as raw HTML';
+like   $html, qr{&lt;img-src=x-onerror=alert\(1\)&gt;</a>}, 'URL footnote hostname is escaped in link text';
+
 # Multiple footnotes numbered sequentially
 $html = p('^[ First note] and ^[ Second note]');
 like $html, qr/fn-1/, 'first footnote is fn-1';
