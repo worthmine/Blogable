@@ -231,7 +231,8 @@ sub _parse_inline {
         if ($rest =~ /^(!!(https:\/\/[^ |!\n]+)(?:[| ]([^!\n]*))?!!)/) {
             my ($full, $url, $label_raw) = ($1, $2, $3);
             $url =~ s/^\s+|\s+$//g;
-            my $display = (defined $label_raw && $label_raw =~ /\S/) ? do { $label_raw =~ s/^\s+|\s+$//g; $label_raw } : _get_hostname($url);
+            if (defined $label_raw) { $label_raw =~ s/^\s+|\s+$//g }
+            my $display = (defined $label_raw && $label_raw =~ /\S/) ? $label_raw : _get_hostname($url);
             $out .= _is_safe_url($url) ? _ext_link($url, _esc($display)) : _esc($full);
             $i += length $full; next;
         }
@@ -269,7 +270,8 @@ sub _parse_inline {
         if ($rest =~ /^(\[\[([^#\]\|\n][^\]\|\n]*)(?:\|([^\]\n]*))?\]\])/) {
             my ($full, $path, $display_raw) = ($1, $2, $3);
             $path =~ s/^\s+|\s+$//g;
-            my $display = defined $display_raw ? do { $display_raw =~ s/^\s+|\s+$//g; $display_raw } : $path;
+            if (defined $display_raw) { $display_raw =~ s/^\s+|\s+$//g }
+            my $display = defined $display_raw ? $display_raw : $path;
             my $is_safe = $path !~ /^[a-zA-Z][a-zA-Z0-9+\-.]*:/;
             $out .= $is_safe
                 ? '<a href="' . _esc($path) . '" class="obsidian-link">' . _esc($display) . '</a>'
@@ -933,7 +935,7 @@ sub _ast_to_html {
             my $attrs = $node->{attrs} // '';
             if ($node->{numbered}) {
                 if ($attrs =~ /\sclass="([^"]*)"/) {
-                    (my $new = $attrs) =~ s/\sclass="([^"]*)"/\ class="numbered $1"/;
+                    (my $new = $attrs) =~ s/\sclass="([^"]*)"/ class="numbered $1"/;
                     $attrs = $new;
                 } else {
                     $attrs = ' class="numbered"' . $attrs;
