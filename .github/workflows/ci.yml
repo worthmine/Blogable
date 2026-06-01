@@ -1,10 +1,11 @@
 name: CI
 
 on:
+  push:
   pull_request:
 
 jobs:
-  test:
+  test-js:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,3 +15,21 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm test
+
+  test-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python -m unittest discover -s spec -p 'test_*.py' -v
+
+  test-perl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: latest
+      - run: prove -Ilib t/
