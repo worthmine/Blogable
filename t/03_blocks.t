@@ -121,7 +121,7 @@ ok scalar(@ps) >= 2, 'blank line inside quote block creates separate paragraphs'
 
 # §MathBlocks
 
-$html = p("$$\nE = mc^2\n\$\$");
+$html = p("\$\$\nE = mc^2\n\$\$");
 like   $html, qr/<pre class="math-block"><code>/, 'math block renders <pre class="math-block"><code>';
 like   $html, qr/E = mc\^2/,                      'math block contains formula';
 like   $html, qr/<\/code><\/pre>/,                 'math block ends with </code></pre>';
