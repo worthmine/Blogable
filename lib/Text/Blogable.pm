@@ -568,6 +568,7 @@ sub _build_ast {
     my $parse_front_lines = sub {
         my ($lines) = @_;
         my %meta;
+        my @meta_order;
         for my $line (@$lines) {
             next if $line =~ /^\s*#/;
             if ($line =~ /^([a-z][a-z0-9-]*): (.*)$/) {
@@ -578,6 +579,7 @@ sub _build_ast {
                     next;
                 }
                 $val =~ s/\s+#.*$//;
+                push @meta_order, $key unless exists $meta{$key};
                 $meta{$key} = $val;
             } else {
                 if ($line ne '') {
@@ -586,7 +588,7 @@ sub _build_ast {
                 }
             }
         }
-        return \%meta;
+        return { meta => \%meta, order => \@meta_order };
     };
 
     while ($i < $n) {
@@ -602,7 +604,8 @@ sub _build_ast {
                 push @lines, $tokens->[$i++]{text} // '';
             }
             $i++ if $i < $n && $tokens->[$i]{type} eq 'front_close';
-            push @nodes, { type => 'frontmatter', meta => $parse_front_lines->(\@lines) };
+            my $fm = $parse_front_lines->(\@lines);
+            push @nodes, { type => 'frontmatter', meta => $fm->{meta}, meta_order => $fm->{order} };
             next;
         }
 
@@ -926,12 +929,12 @@ sub _ast_to_html {
         my $type = $node->{type};
 
         if ($type eq 'frontmatter') {
-            my @entries = %{ $node->{meta} };
-            next unless @entries;
+            my @keys = @{ $node->{meta_order} // [] };
+            @keys = keys %{ $node->{meta} } unless @keys;
+            next unless @keys;
             my $h = "<dl class=\"front-matter\">\n";
-            my %m = %{ $node->{meta} };
-            for my $k (sort keys %m) {
-                $h .= "  <dt>" . _esc($k) . "</dt><dd>" . _esc($m{$k}) . "</dd>\n";
+            for my $k (@keys) {
+                $h .= "  <dt>" . _esc($k) . "</dt><dd>" . _esc($node->{meta}{$k}) . "</dd>\n";
             }
             $h .= "</dl>";
             push @parts, $h; next;

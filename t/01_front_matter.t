@@ -57,6 +57,14 @@ $html = $b->parse("@@\ntitle: My Doc # this is a comment\n@@");
 like   $html, qr/<dt>title<\/dt><dd>My Doc<\/dd>/, 'YAML comment stripped from FM value';
 unlike $html, qr/this is a comment/, 'YAML comment not in output';
 
+# preserves front matter key source order in rendered HTML
+$b = new_parser();
+$html = $b->parse("@@\nslug: hello-world\nauthor: Alice\ntitle: Hello\n@@");
+ok index($html, '<dt>slug</dt><dd>hello-world</dd>') < index($html, '<dt>author</dt><dd>Alice</dd>'),
+    'front matter preserves source order (slug before author)';
+ok index($html, '<dt>author</dt><dd>Alice</dd>') < index($html, '<dt>title</dt><dd>Hello</dd>'),
+    'front matter preserves source order (author before title)';
+
 # strips inline YAML comment, preserving value before marker
 $b = new_parser();
 $html = $b->parse("@@\nx-version: 1.1-alpha # Blogable version\n@@");
